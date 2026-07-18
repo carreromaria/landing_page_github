@@ -526,6 +526,20 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--gold);}
   .field textarea{resize:vertical; min-height:90px;}
+  .field-error{
+    display:none;
+    color:#b3413a;
+    font-size:12.5px;
+    margin-top:6px;
+  }
+  .field.invalid input,
+  .field.invalid select,
+  .field.invalid textarea{
+    border-color:#b3413a;
+  }
+  .field.invalid .field-error{
+    display:block;
+  }
   .field.honey{position:absolute; left:-9999px; opacity:0;}
   .quote-form .btn-primary{border:none; width:100%; text-align:center; margin-top:6px;}
   .form-note{font-size:12px; color:var(--muted); margin-top:14px;}
@@ -686,6 +700,67 @@
     opacity:1;
     transform:translateY(0);
   }
+  /* Cascada: cada tarjeta aparece un poco después que la anterior */
+  .services-grid .service-card:nth-child(1){transition-delay:.05s;}
+  .services-grid .service-card:nth-child(2){transition-delay:.12s;}
+  .services-grid .service-card:nth-child(3){transition-delay:.19s;}
+  .services-grid .service-card:nth-child(4){transition-delay:.26s;}
+  .services-grid .service-card:nth-child(5){transition-delay:.33s;}
+  .services-grid .service-card:nth-child(6){transition-delay:.40s;}
+  .portfolio-scroller .port-card:nth-child(1){transition-delay:.05s;}
+  .portfolio-scroller .port-card:nth-child(2){transition-delay:.11s;}
+  .portfolio-scroller .port-card:nth-child(3){transition-delay:.17s;}
+  .portfolio-scroller .port-card:nth-child(4){transition-delay:.23s;}
+  .portfolio-scroller .port-card:nth-child(5){transition-delay:.29s;}
+  .about-values .value-item:nth-child(1){transition-delay:.05s;}
+  .about-values .value-item:nth-child(2){transition-delay:.11s;}
+  .about-values .value-item:nth-child(3){transition-delay:.17s;}
+  .about-values .value-item:nth-child(4){transition-delay:.23s;}
+
+  /* Zoom suave en imágenes al pasar el mouse */
+  .about-visual, .hero-visual, .port-card{ overflow:hidden; }
+  .about-visual img, .hero-visual img, .port-card img{
+    transition:transform .6s ease;
+  }
+  .about-visual:hover img, .hero-visual:hover img, .port-card:hover img{
+    transform:scale(1.06);
+  }
+
+  /* Entrada animada del hero al cargar la página */
+  @keyframes hero-fade-up{
+    from{ opacity:0; transform:translateY(22px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+  .hero-logo, .hero .eyebrow, .hero h1, .hero p.lead, .hero-actions, .hero-visual{
+    opacity:0;
+    animation:hero-fade-up .8s ease forwards;
+  }
+  .hero-logo{animation-delay:.05s;}
+  .hero .eyebrow{animation-delay:.18s;}
+  .hero h1{animation-delay:.30s;}
+  .hero p.lead{animation-delay:.44s;}
+  .hero-actions{animation-delay:.56s;}
+  .hero-visual{animation-delay:.34s;}
+
+  /* Subrayado animado bajo los títulos de sección al aparecer */
+  .section-head h2{
+    background-image:linear-gradient(var(--gold), var(--gold));
+    background-repeat:no-repeat;
+    background-position:left bottom;
+    background-size:0% 2px;
+    transition:background-size 1s ease .3s;
+  }
+  .section-head.in-view h2{
+    background-size:60px 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .hero-logo, .hero .eyebrow, .hero h1, .hero p.lead, .hero-actions, .hero-visual{
+      animation:none; opacity:1;
+    }
+    .reveal{ transition:none; opacity:1; transform:none; }
+  }
+
   .nav-links a.active::after{width:100%;}
   .nav-links a.active{color:var(--gold);}
   header:not(.scrolled) .nav-links a.active{color:var(--gold);}
@@ -1068,30 +1143,33 @@
         <div class="contact-line">☎ +56 9 5703 9988 (WhatsApp)</div>
       </div>
 
-      <form class="quote-form" id="quoteForm">
-        <!-- Reemplazar YOUR_ACCESS_KEY con la Access Key real de Web3Forms -->
-        <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY">
+      <form class="quote-form" id="quoteForm" novalidate>
+        <input type="hidden" name="access_key" value="74abdeba-3095-4617-a1c8-7053d86fa17f">
         <input type="hidden" name="subject" value="Nueva solicitud de cotización — Linence">
 
         <div class="form-row">
           <div class="field">
             <label for="nombre">Nombre completo</label>
             <input type="text" id="nombre" name="nombre" required>
+            <span class="field-error" id="err-nombre">Por favor ingresa tu nombre.</span>
           </div>
           <div class="field">
             <label for="email">Correo electrónico</label>
             <input type="email" id="email" name="email" required>
+            <span class="field-error" id="err-email">Ingresa un correo válido.</span>
           </div>
         </div>
 
         <div class="form-row">
           <div class="field">
             <label for="telefono">Teléfono</label>
-            <input type="tel" id="telefono" name="telefono" placeholder="+56 9 ...">
+            <input type="tel" id="telefono" name="telefono" placeholder="+56 9 1234 5678" required>
+            <span class="field-error" id="err-telefono">Ingresa un teléfono chileno válido (ej: +56 9 1234 5678).</span>
           </div>
           <div class="field">
             <label for="tipo">Tipo de proyecto</label>
-            <select id="tipo" name="tipo_de_proyecto">
+            <select id="tipo" name="tipo_de_proyecto" required>
+              <option value="" disabled selected>Selecciona una opción</option>
               <option value="Cocina moderna">Cocina moderna</option>
               <option value="Closet de lujo">Closet de lujo</option>
               <option value="Centro de entretenimiento">Centro de entretenimiento</option>
@@ -1099,12 +1177,14 @@
               <option value="Vanitorio">Vanitorio</option>
               <option value="Otro">Otro</option>
             </select>
+            <span class="field-error" id="err-tipo">Selecciona el tipo de proyecto.</span>
           </div>
         </div>
 
         <div class="field">
           <label for="mensaje">Cuéntanos sobre tu proyecto</label>
-          <textarea id="mensaje" name="mensaje" placeholder="Espacio, medidas aproximadas, plazos, referencias..."></textarea>
+          <textarea id="mensaje" name="mensaje" placeholder="Espacio, medidas aproximadas, plazos, referencias..." required></textarea>
+          <span class="field-error" id="err-mensaje">Cuéntanos brevemente sobre tu proyecto.</span>
         </div>
 
         <!-- Honeypot anti-spam -->
@@ -1267,7 +1347,7 @@
 
   // ---- Animación de aparición al hacer scroll ----
   const revealTargets = document.querySelectorAll(
-    '.about-grid, .section-head, .services-grid .service-card, .port-card, .quote-grid, .showroom-block'
+    '.about-grid, .about-values .value-item, .section-head, .services-grid .service-card, .port-card, .quote-grid, .showroom-block, .slogan-text, .slogan-sub, .footer-grid'
   );
   revealTargets.forEach(el => el.classList.add('reveal'));
 
@@ -1300,10 +1380,68 @@
   const form = document.getElementById('quoteForm');
   const status = document.getElementById('formStatus');
 
+  // Validador de teléfono chileno: acepta +56 9 XXXX XXXX, 9XXXXXXXX, con o sin espacios/guiones
+  function isValidChileanPhone(value){
+    const digits = value.replace(/[\s\-()]/g, '');
+    return /^(\+?56)?9\d{8}$/.test(digits);
+  }
+
+  function setFieldError(fieldEl, isInvalid){
+    const wrapper = fieldEl.closest('.field');
+    if (!wrapper) return;
+    wrapper.classList.toggle('invalid', isInvalid);
+  }
+
+  function validateForm(){
+    let isValid = true;
+
+    const nombre = form.querySelector('#nombre');
+    if (!nombre.value.trim()){
+      setFieldError(nombre, true); isValid = false;
+    } else { setFieldError(nombre, false); }
+
+    const email = form.querySelector('#email');
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
+    if (!emailOk){
+      setFieldError(email, true); isValid = false;
+    } else { setFieldError(email, false); }
+
+    const telefono = form.querySelector('#telefono');
+    if (!isValidChileanPhone(telefono.value.trim())){
+      setFieldError(telefono, true); isValid = false;
+    } else { setFieldError(telefono, false); }
+
+    const tipo = form.querySelector('#tipo');
+    if (!tipo.value){
+      setFieldError(tipo, true); isValid = false;
+    } else { setFieldError(tipo, false); }
+
+    const mensaje = form.querySelector('#mensaje');
+    if (!mensaje.value.trim()){
+      setFieldError(mensaje, true); isValid = false;
+    } else { setFieldError(mensaje, false); }
+
+    return isValid;
+  }
+
+  // Quita el error de un campo apenas el usuario empieza a corregirlo
+  ['nombre','email','telefono','tipo','mensaje'].forEach(id => {
+    const el = form.querySelector('#' + id);
+    if (el) el.addEventListener('input', () => setFieldError(el, false));
+  });
+
   form.addEventListener('submit', async function(e){
     e.preventDefault();
     status.className = 'form-status';
     status.textContent = '';
+
+    if (!validateForm()){
+      status.textContent = 'Revisa los campos marcados en rojo antes de enviar.';
+      status.classList.add('err');
+      const firstInvalid = form.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea');
+      if (firstInvalid) firstInvalid.focus();
+      return;
+    }
 
     const accessKey = form.querySelector('input[name="access_key"]').value;
     if (!accessKey || accessKey === 'YOUR_ACCESS_KEY') {
@@ -1331,6 +1469,7 @@
         status.textContent = 'Gracias, recibimos tu solicitud. Te contactaremos a la brevedad.';
         status.classList.add('ok');
         form.reset();
+        form.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
       } else {
         status.textContent = 'No pudimos enviar tu solicitud. Intenta nuevamente o escríbenos por WhatsApp.';
         status.classList.add('err');
