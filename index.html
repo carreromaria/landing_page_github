@@ -1031,7 +1031,7 @@
       <div class="about-visual">
           <div class="skeleton" data-skeleton></div>
         <img src="https://images.unsplash.com/photo-1779031242515-205111711b23?w=900&q=80&auto=format&fit=crop" alt="Carpintero trabajando la madera en taller" loading="lazy">
-        <span class="tag">Taller Linence</span>
+        <span class="tag">Mueblista Linence - Abraham Quintero</span>
       </div>
       <div class="about-copy">
         <div class="tape-divider">
@@ -1241,7 +1241,8 @@
 
       <form class="quote-form" id="quoteForm" novalidate>
         <input type="hidden" name="access_key" value="74abdeba-3095-4617-a1c8-7053d86fa17f">
-        <input type="hidden" name="subject" value="Nueva solicitud de cotización — Linence">
+        <input type="hidden" name="subject" id="quoteSubject" value="Nueva solicitud de cotización — Linence">
+        <input type="hidden" name="ID_de_Solicitud" id="quoteId" value="">
 
         <div class="form-row">
           <div class="field">
@@ -1527,6 +1528,31 @@
   // ---- Formulario de cotización (Web3Forms) ----
   const form = document.getElementById('quoteForm');
   const status = document.getElementById('formStatus');
+
+  // Genera un ID único de solicitud (ej: LIN-M9X2K-A1B2) apenas carga la página
+  const quoteIdField = document.getElementById('quoteId');
+  function generateQuoteId(){
+    const timePart = Date.now().toString(36).toUpperCase();
+    const randPart = Math.random().toString(36).slice(2, 6).toUpperCase();
+    return `LIN-${timePart}-${randPart}`;
+  }
+  const currentQuoteId = generateQuoteId();
+  if (quoteIdField) quoteIdField.value = currentQuoteId;
+
+  // Actualiza el asunto del correo con el nombre del cliente a medida que lo escribe
+  const nombreInput = document.getElementById('nombre');
+  const subjectField = document.getElementById('quoteSubject');
+  if (subjectField) {
+    subjectField.value = `Nueva solicitud de cotización — Linence [${currentQuoteId}]`;
+  }
+  if (nombreInput && subjectField) {
+    nombreInput.addEventListener('input', function(){
+      const nombre = nombreInput.value.trim();
+      subjectField.value = nombre
+        ? `Cotización de ${nombre} — Linence [${currentQuoteId}]`
+        : `Nueva solicitud de cotización — Linence [${currentQuoteId}]`;
+    });
+  }
 
   // Validador de teléfono chileno: acepta +56 9 XXXX XXXX, 9XXXXXXXX, con o sin espacios/guiones
   function isValidChileanPhone(value){
