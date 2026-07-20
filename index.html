@@ -503,6 +503,14 @@
     color:var(--sand);
     margin-bottom:14px;
   }
+  .quote-side .contact-line a{
+    color:var(--sand);
+    transition:color .2s ease;
+  }
+  .quote-side .contact-line a:hover{
+    color:var(--gold);
+    text-decoration:underline;
+  }
 
   form.quote-form{
     background:var(--cream);
@@ -550,6 +558,46 @@
   .form-status{font-size:13.5px; margin-top:14px; display:none;}
   .form-status.ok{color:#4d7a4d; display:block;}
   .form-status.err{color:#a33; display:block;}
+
+  /* ---------- Toast emergente ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:34px;
+    transform:translate(-50%, 20px);
+    z-index:2000;
+    max-width:90vw;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:16px 22px;
+    background:var(--ink);
+    color:var(--cream);
+    border:1px solid var(--gold-line);
+    border-left:4px solid var(--gold);
+    box-shadow:0 16px 40px rgba(0,0,0,0.28);
+    font-size:14.5px;
+    line-height:1.4;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .toast.show{
+    opacity:1;
+    transform:translate(-50%, 0);
+  }
+  .toast.err{ border-left-color:#c0564d; }
+  .toast .toast-icon{
+    flex:0 0 auto;
+    width:22px; height:22px;
+    color:var(--gold);
+  }
+  .toast.err .toast-icon{ color:#c0564d; }
+  .toast .toast-icon svg{ width:100%; height:100%; }
+  @media (max-width:640px){
+    .toast{ left:16px; right:16px; transform:translateY(20px); max-width:none; }
+    .toast.show{ transform:translateY(0); }
+  }
 
   /* ---------- Showroom / Contacto ---------- */
   .showroom-block{
@@ -810,13 +858,19 @@
 
   /* ---------- Eslogan ---------- */
   .slogan-section{
-    padding:70px 0 50px 0;
+    padding:60px 0 45px 0;
     background:var(--cream);
     text-align:center;
     position:relative;
   }
   .slogan-section .tape-divider{
-    margin:0 0 24px 0;
+    margin:0 0 18px 0;
+  }
+  .slogan-logo{
+    height:130px;
+    width:auto;
+    margin:0 auto 18px auto;
+    display:block;
   }
   .slogan-text{
     font-family:'Champagne & Limousines','Poppins', serif;
@@ -864,6 +918,15 @@
     .hero-logo{height:52px;}
     .hero-scroll{display:none;}
     .showroom-visual{min-height:auto; aspect-ratio:16/10;}
+    .port-nav{justify-content:center;}
+    .port-arrow{
+      width:50px; height:50px;
+      background:var(--gold);
+      border:none;
+      color:var(--ink);
+    }
+    .port-arrow:hover{ background:var(--sand); }
+    .port-arrow svg{ color:var(--ink); }
   }
   @media (max-width:640px){
     .section{padding:84px 0;}
@@ -874,6 +937,7 @@
     .port-card{flex:0 0 82vw;}
     .wrap{padding:0 22px;}
     .nav-inner{padding:0 22px;}
+    .slogan-logo{height:88px; margin-bottom:14px;}
   }
 </style>
 </head>
@@ -959,6 +1023,7 @@
       </div>
       <span class="label">Nuestro sello</span>
     </div>
+    <img src="data:image/png;base64,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F2D6Jo1jZkS8FiQuBqlHRsasIjJTkIDJd0gVGRkRzQMHgBtBkAAQJAAQJAAECQAECQBBAgBBAkCQAECQABAkABAkAAQJAAQJAEECAEECQJAAQJAAECQAECQABAkABAmA99JgBLxt1qIqokdEL+MAplcVkRHRBYkL1r0PD/bmrfdoLc0DmL5Ge/OMzXpzIEhERMTx9me29urkbHx2tuo9z1ctAJM2aRyzVeZfc7E4fN5aPqyqimkfQD0zW1UtWxseLZfL0+31nAwB4KMGAG4GR3ZcxVEdsGslSFx5YxgBsGuO7AAQJAAQJAAECQAECQBBAgBBAkCQAECQABAkABAkAAQJAAQJAEECAEECQJAAQJAAECQAECQABAkABAkAQQIAQQJAkABAkAAQJAAQJAAECQAECQBBAgBBAkCQAECQAECQABAkABAkAAQJAAQJAEECAEECQJAAQJAAECQAECQABAkABAkAQQIAQQJAkABAkAAQJAAQJAAECQAECQBBAgBBAkCQAECQABAkABAkAAQJAAQJAEECAEECQJAAQJAAQJAAECQAECQABAkABAkAQQIAQQJAkABAkAAQJAAQJAAECQAECQBBAgBBAkCQAECQABAkABAkAAQJAAQJAEECAEECQJAAQJAAECQAECQABAkABAkAQQIAQQIAQQJAkABAkAAQJAAQJAAECQAECQBBAgBBAkCQAECQABAkABAkAAQJAAQJAEECAEECQJAA4FszXMdFV6tV28YwI6L8GQCu1AVpWvXy5csT9xkAl4O0V7WTTUo7v059f7E4/H1mdeMHeMeY2eZV/bMXL778RZyfJt2K5+UQO3+PlHdns/y511cA/2f13lpsNn3870PzNu2Qdq73Gr06ArjSJiKGzHx9237x4ZquO3PPAVypImJWVbfuGMm5GQCCBACCBIAgAYAgASBIACBIAAgSAAgSAIIEAIIEgCABgCABIEgAIEgACBIACBIAggQAggSAIAGAIAEgSAAgSAC890FKYwC4cRuFW/dsHiJiExF9+2/qAeT2Oiv3HMCVNlW1FxGnt+0X/w+co6PDfsGwHgAAAABJRU5ErkJggg==" alt="Linence" class="slogan-logo">
     <div class="slogan-text">Línea <span class="amp">&amp;</span> Esencia</div>
     <div class="slogan-sub">
       <svg class="flag" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
@@ -1182,8 +1247,8 @@
         </div>
         <h2>Cuéntanos tu proyecto</h2>
         <p>Completa el formulario con los datos de tu proyecto y te contactaremos para coordinar los siguientes pasos. También puedes escribirnos directo por WhatsApp.</p>
-        <div class="contact-line">✉ contacto@linence.cl</div>
-        <div class="contact-line">☎ +56 9 5703 9988 (WhatsApp)</div>
+        <div class="contact-line"><a href="mailto:contacto@linence.cl">✉ contacto@linence.cl</a></div>
+        <div class="contact-line"><a href="https://wa.me/56957039988" target="_blank" rel="noopener">☎ +56 9 5703 9988 (WhatsApp)</a></div>
       </div>
 
       <form class="quote-form" id="quoteForm" novalidate>
@@ -1321,6 +1386,12 @@
   </svg>
 </a>
 
+<!-- ================= TOAST EMERGENTE ================= -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span class="toast-icon" id="toastIcon"></span>
+  <span id="toastMessage"></span>
+</div>
+
 <script>
 (function(){
   // ---- Header sólido al hacer scroll ----
@@ -1443,6 +1514,28 @@
     setTimeout(hideSkeleton, 8000);
   });
 
+  // ---- Toast emergente ----
+  const toast = document.getElementById('toast');
+  const toastIcon = document.getElementById('toastIcon');
+  const toastMessage = document.getElementById('toastMessage');
+  let toastTimer = null;
+
+  const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg>';
+  const ICON_ERR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>';
+
+  function showToast(message, type, duration){
+    if (!toast) return;
+    toastMessage.textContent = message;
+    toastIcon.innerHTML = type === 'err' ? ICON_ERR : ICON_OK;
+    toast.classList.toggle('err', type === 'err');
+    toast.classList.add('show');
+
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+    }, duration || 5000);
+  }
+
   // ---- Formulario de cotización (Web3Forms) ----
   const form = document.getElementById('quoteForm');
   const status = document.getElementById('formStatus');
@@ -1505,6 +1598,7 @@
     if (!validateForm()){
       status.textContent = 'Revisa los campos marcados en rojo antes de enviar.';
       status.classList.add('err');
+      showToast('Revisa los campos marcados en rojo antes de enviar.', 'err');
       const firstInvalid = form.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea');
       if (firstInvalid) firstInvalid.focus();
       return;
@@ -1514,6 +1608,7 @@
     if (!accessKey || accessKey === 'YOUR_ACCESS_KEY') {
       status.textContent = 'El formulario aún no está conectado. Escríbenos directo por WhatsApp mientras tanto.';
       status.classList.add('err');
+      showToast('El formulario aún no está conectado. Escríbenos por WhatsApp.', 'err');
       return;
     }
 
@@ -1535,15 +1630,18 @@
       if (result.success) {
         status.textContent = 'Gracias, recibimos tu solicitud. Te contactaremos a la brevedad.';
         status.classList.add('ok');
+        showToast('¡Gracias! Recibimos tu solicitud. Te contactaremos a la brevedad.', 'ok', 6000);
         form.reset();
         form.querySelectorAll('.field.invalid').forEach(f => f.classList.remove('invalid'));
       } else {
         status.textContent = 'No pudimos enviar tu solicitud. Intenta nuevamente o escríbenos por WhatsApp.';
         status.classList.add('err');
+        showToast('No pudimos enviar tu solicitud. Intenta por WhatsApp.', 'err');
       }
     } catch (err) {
       status.textContent = 'Ocurrió un problema de conexión. Intenta nuevamente o escríbenos por WhatsApp.';
       status.classList.add('err');
+      showToast('Problema de conexión. Intenta nuevamente.', 'err');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = originalText;
