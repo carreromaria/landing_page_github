@@ -1540,7 +1540,7 @@
   const quoteIdField = document.getElementById('quoteId');
   function generateQuoteId(){
     const num = Math.floor(Math.random() * 100000);
-    return `LIN-${String(num).padStart(5, '0')}`;
+    return `COT-${String(num).padStart(5, '0')}`;
   }
   const currentQuoteId = generateQuoteId();
   if (quoteIdField) quoteIdField.value = currentQuoteId;
