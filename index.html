@@ -1013,10 +1013,11 @@
   @media (max-width:980px){
     .nav-links, .nav-cta .btn-ghost-nav{display:none;}
     .burger{display:flex;}
+    .section{padding:96px 0;}
     .about-grid, .quote-grid{grid-template-columns:1fr; gap:44px;}
     .services-grid{grid-template-columns:repeat(2,1fr);}
     .showroom-block{grid-template-columns:1fr;}
-    .footer-grid{grid-template-columns:1fr 1fr;}
+    .footer-grid{grid-template-columns:1fr 1fr; gap:38px;}
     .footer-brand{text-align:center;}
     .footer-logo{margin-left:auto; margin-right:auto; height:130px; margin-bottom:38px;}
     .footer-brand p{margin-left:auto; margin-right:auto;}
@@ -1024,11 +1025,16 @@
     .hero-visual{aspect-ratio:16/10; order:-1;}
     .hero-scroll{display:none;}
     .showroom-visual{min-height:auto; aspect-ratio:16/10;}
+    .showroom-copy{padding:40px;}
+    form.quote-form{padding:36px;}
     .port-nav{justify-content:center;}
     .port-arrow{width:50px; height:50px;}
   }
   @media (max-width:640px){
     .section{padding:84px 0;}
+    footer{padding:60px 0 26px;}
+    form.quote-form{padding:28px 22px;}
+    .showroom-copy{padding:32px 24px;}
     .services-grid{grid-template-columns:1fr;}
     .form-row{grid-template-columns:1fr;}
     .about-values{grid-template-columns:1fr;}
@@ -1038,6 +1044,8 @@
     .nav-inner{padding:0 22px;}
     .slogan-logo{height:88px; margin-bottom:14px;}
     .dot-sep{display:none;}
+    .section-head{margin-bottom:44px;}
+    .about-values{margin-top:26px;}
   }
 </style>
 </head>
