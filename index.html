@@ -353,6 +353,14 @@
     background:rgba(20,18,19,0.35);
     backdrop-filter:blur(3px);
   }
+  .about-visual .tag em{
+    font-style:italic;
+  }
+  .about-visual .tag .tag-break{display:none;}
+  @media (max-width:640px){
+    .about-visual .tag .tag-sep{display:none;}
+    .about-visual .tag .tag-break{display:block; height:4px;}
+  }
   @media (min-width:641px){
     .about-visual .tag{
       white-space:nowrap;
@@ -1146,7 +1154,7 @@
       <div class="about-visual">
           <div class="skeleton" data-skeleton></div>
         <img src="https://images.unsplash.com/photo-1779031242515-205111711b23?w=900&q=80&auto=format&fit=crop" alt="Carpintero trabajando la madera en taller" loading="lazy">
-        <span class="tag">Mueblista Linence - Abraham Quintero</span>
+        <span class="tag">Mueblista Linence<span class="tag-sep"> - </span><span class="tag-break"></span><em>Abraham Quintero</em></span>
       </div>
       <div class="about-copy">
         <div class="tape-divider">
@@ -1663,6 +1671,49 @@
   const processPrev = document.getElementById('processPrev');
   const processNext = document.getElementById('processNext');
   setupScrollerNav(processScroller, processPrev, processNext, 300);
+
+  // ---- Cómo trabajamos: scroll automático lento ----
+  // Avanza solo cada cierto tiempo; se detiene si el usuario interactúa (click/touch) o pasa el mouse por encima.
+  if (processScroller) {
+    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let autoplayTimer = null;
+    let autoplayStopped = false;
+
+    const stepEls = Array.from(processScroller.querySelectorAll('.process-step'));
+    let stepIndex = 0;
+
+    function autoplayTick(){
+      if (autoplayStopped || stepEls.length === 0) return;
+      stepIndex++;
+      if (stepIndex >= stepEls.length) stepIndex = 0;
+      processScroller.scrollTo({left: stepEls[stepIndex].offsetLeft, behavior:'smooth'});
+    }
+
+    function startAutoplay(){
+      if (autoplayStopped || prefersReducedMotion) return;
+      stopAutoplayTimer();
+      autoplayTimer = setInterval(autoplayTick, 3500);
+    }
+    function stopAutoplayTimer(){
+      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
+    }
+    function stopAutoplayForGood(){
+      autoplayStopped = true;
+      stopAutoplayTimer();
+    }
+
+    // Pausa temporal al pasar el mouse (se reanuda al salir)
+    processScroller.addEventListener('mouseenter', stopAutoplayTimer);
+    processScroller.addEventListener('mouseleave', startAutoplay);
+
+    // Se detiene para siempre si el usuario interactúa activamente
+    processScroller.addEventListener('click', stopAutoplayForGood);
+    processScroller.addEventListener('touchstart', stopAutoplayForGood, {passive:true});
+    if (processPrev) processPrev.addEventListener('click', stopAutoplayForGood);
+    if (processNext) processNext.addEventListener('click', stopAutoplayForGood);
+
+    if (!prefersReducedMotion) startAutoplay();
+  }
 
   // ---- Año dinámico en footer ----
   document.getElementById('year').textContent = new Date().getFullYear();
