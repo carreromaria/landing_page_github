@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguimiento de tu Proyecto · LINENCE</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/cliente.css">
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="cliente-header">
+  <a href="https://linence.cl" class="logo-mini-link">
+    <img src="assets/img/logo-icono-oscuro.png" alt="Linence" class="logo-mini">
+  </a>
+  <span class="codigo">Proyecto <span id="codigoHeader">—</span></span>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero-proyecto reveal-target">
+  <div class="eyebrow">Seguimiento en tiempo real</div>
+  <h1 id="clienteNombre">—</h1>
+  <p class="subtitulo" id="tipoProyecto">—</p>
+  <div class="estado-actual-pill">
+    <span class="dot"></span>
+    <span id="estadoActualTexto">—</span>
+  </div>
+</section>
+
+<!-- ================= CINTA DE PROGRESO ================= -->
+<section class="medida-progreso reveal-target">
+  <div class="medida-head">
+    <span class="eyebrow">Avance de tu proyecto</span>
+    <span class="porcentaje"><span id="porcentajeTexto">0</span><small>% completado</small></span>
+  </div>
+  <div class="cinta-track" id="cintaTrack">
+    <div class="cinta-fill"></div>
+    <div class="cinta-marcas" id="cintaMarcas"></div>
+    <div class="cinta-cursor"></div>
+  </div>
+</section>
+
+<!-- ================= INFO RÁPIDA ================= -->
+<div class="info-grid reveal-target">
+  <div class="info-card">
+    <div class="eyebrow">Fecha estimada de instalación</div>
+    <div class="valor grande" id="infoFecha">—</div>
+  </div>
+  <div class="info-card">
+    <div class="eyebrow">Responsable de tu proyecto</div>
+    <div class="valor" id="infoResponsable">—</div>
+  </div>
+  <div class="info-card">
+    <div class="eyebrow">Código de proyecto</div>
+    <div class="valor" id="infoCodigo">—</div>
+  </div>
+</div>
+
+<!-- ================= LÍNEA DE TIEMPO ================= -->
+<section class="timeline-section reveal-target">
+  <h2>Etapas del proceso</h2>
+  <ul class="timeline-list" id="timelineList"></ul>
+</section>
+
+<!-- ================= GALERÍA ================= -->
+<section class="galeria-section reveal-target" id="galeriaSection">
+  <h2>Fotografías del avance</h2>
+  <div class="galeria-grid" id="galeriaGrid"></div>
+</section>
+
+<!-- ================= OBSERVACIONES ================= -->
+<section class="observaciones-section reveal-target" id="observacionesSection">
+  <h2 style="font-size:26px; margin-bottom:20px;">Observaciones de nuestro equipo</h2>
+  <div class="observaciones-card" id="observacionesTexto">—</div>
+</section>
+
+<!-- ================= HISTORIAL ================= -->
+<section class="historial-section reveal-target">
+  <h2>Historial completo</h2>
+  <ul id="historialList"></ul>
+</section>
+
+<!-- ================= FOOTER ================= -->
+<footer class="cliente-footer">
+  <span>© <span id="anioFooter"></span> LINENCE · Mobiliario a medida · Chile</span>
+  <a href="https://wa.me/56957039988" target="_blank" rel="noopener">¿Dudas? Escríbenos por WhatsApp</a>
+</footer>
+
+<!-- ================= LIGHTBOX ================= -->
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">×</button>
+  <img id="lightboxImg" src="" alt="Fotografía del avance">
+</div>
+
+<script>document.getElementById('anioFooter').textContent = new Date().getFullYear();</script>
+<script type="module" src="js/cliente.js"></script>
+</body>
+</html>
