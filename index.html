@@ -126,6 +126,8 @@
     transition:width .3s ease;
   }
   .nav-links a:hover::after{width:100%;}
+  .nav-links a.nav-seguimiento{color:var(--gold);}
+  header:not(.scrolled) .nav-links a.nav-seguimiento{color:var(--gold);}
 
   .nav-cta{
     display:flex; align-items:center; gap:22px;
@@ -178,6 +180,7 @@
     font-size:28px;
     letter-spacing:0.03em;
   }
+  .mobile-menu a.mm-seguimiento{color:var(--gold);}
   .mobile-menu .mm-cta{
     margin-top:10px;
     border:1px solid var(--gold);
@@ -1072,6 +1075,7 @@
         <li><a href="#servicios">Servicios</a></li>
         <li><a href="#portafolio">Portafolio</a></li>
         <li><a href="#contacto">Contacto</a></li>
+        <li><a href="/seguimiento/" class="nav-seguimiento">Seguimiento de mi Proyecto</a></li>
       </ul>
     </nav>
     <div class="nav-cta">
@@ -1091,6 +1095,7 @@
   <a href="#servicios" class="mm-link">Servicios</a>
   <a href="#portafolio" class="mm-link">Portafolio</a>
   <a href="#contacto" class="mm-link">Contacto</a>
+  <a href="/seguimiento/" class="mm-link mm-seguimiento">Seguimiento de mi Proyecto</a>
   <a href="#cotizacion" class="mm-cta mm-link">Solicitar Cotización</a>
 </div>
 
@@ -1720,7 +1725,9 @@
 
   // ---- Resaltar el ítem de navegación de la sección visible ----
   const navLinks = document.querySelectorAll('.nav-links a');
-  const sections = Array.from(navLinks)
+  const sectionLinks = Array.from(navLinks)
+    .filter(link => link.getAttribute('href').startsWith('#'));
+  const sections = sectionLinks
     .map(link => document.querySelector(link.getAttribute('href')))
     .filter(Boolean);
 
