@@ -1,0 +1,297 @@
+/* ============================================================
+   LINENCE — Seguimiento de Proyectos
+   Vista Cliente (proyecto.html)
+   ============================================================ */
+
+/* ---------- Header ---------- */
+.cliente-header{
+  padding:22px 6vw;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--gold-line);
+}
+.cliente-header .logo-mini{height:38px; width:auto;}
+.cliente-header .logo-mini-link{display:flex; align-items:center;}
+.cliente-header .codigo{
+  font-size:12px;
+  letter-spacing:0.16em;
+  color:var(--ink);
+  opacity:0.6;
+}
+
+/* ---------- Hero ---------- */
+.hero-proyecto{
+  padding:56px 6vw 40px;
+  max-width:980px;
+}
+.hero-proyecto .eyebrow{margin-bottom:10px;}
+.hero-proyecto h1{
+  font-size:clamp(30px, 5vw, 46px);
+  line-height:1.15;
+  margin-bottom:14px;
+}
+.hero-proyecto .subtitulo{
+  font-size:16px;
+  color:var(--ink);
+  opacity:0.72;
+  max-width:560px;
+}
+.estado-actual-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:22px;
+  padding:9px 18px;
+  border:1px solid var(--gold);
+  border-radius:999px;
+  font-size:13px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+}
+.estado-actual-pill .dot{
+  width:8px; height:8px; border-radius:50%;
+  background:var(--gold);
+  animation:pulse-dot 1.8s ease-in-out infinite;
+}
+@keyframes pulse-dot{
+  0%,100%{opacity:1; transform:scale(1);}
+  50%{opacity:0.4; transform:scale(1.3);}
+}
+
+/* ---------- Cinta métrica de progreso (elemento firma) ---------- */
+.medida-progreso{
+  padding:8px 6vw 48px;
+  max-width:980px;
+}
+.medida-progreso .medida-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  margin-bottom:18px;
+}
+.medida-progreso .medida-head .porcentaje{
+  font-family:'Champagne & Limousines','Poppins', serif;
+  font-size:40px;
+  color:var(--gold);
+}
+.medida-progreso .medida-head .porcentaje small{
+  font-family:'Poppins', sans-serif;
+  font-size:14px;
+  opacity:0.6;
+  margin-left:4px;
+}
+.cinta-track{
+  position:relative;
+  height:64px;
+  background:var(--ink);
+  border-radius:3px;
+  overflow:hidden;
+}
+.cinta-fill{
+  position:absolute; inset:0 auto 0 0;
+  width:var(--avance, 0%);
+  background:linear-gradient(90deg, var(--sand), var(--gold));
+  transition:width 1.4s cubic-bezier(.19,1,.22,1);
+}
+.cinta-marcas{
+  position:absolute; inset:0;
+  display:flex;
+}
+.cinta-marcas .marca{
+  flex:1;
+  border-right:1px solid rgba(250,247,242,0.18);
+  position:relative;
+}
+.cinta-marcas .marca:last-child{border-right:none;}
+.cinta-marcas .marca .num{
+  position:absolute; bottom:6px; left:6px;
+  font-size:10px;
+  color:rgba(250,247,242,0.55);
+  letter-spacing:0.05em;
+}
+.cinta-marcas .marca.activa .num{color:var(--ink);}
+.cinta-cursor{
+  position:absolute; top:-4px;
+  left:var(--avance, 0%);
+  transform:translateX(-50%);
+  width:2px; height:72px;
+  background:var(--cream);
+  transition:left 1.4s cubic-bezier(.19,1,.22,1);
+}
+.cinta-cursor::after{
+  content:'';
+  position:absolute; top:-6px; left:50%;
+  transform:translateX(-50%);
+  width:0; height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:7px solid var(--cream);
+}
+
+/* ---------- Grid de info rápida ---------- */
+.info-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:1px;
+  background:var(--gold-line);
+  margin:0 6vw 56px;
+  border:1px solid var(--gold-line);
+}
+.info-card{
+  background:var(--cream);
+  padding:26px 24px;
+}
+.info-card .eyebrow{margin-bottom:8px; font-size:11px;}
+.info-card .valor{font-size:18px; font-weight:500;}
+.info-card .valor.grande{font-family:'Champagne & Limousines','Poppins', serif; font-size:24px;}
+
+/* ---------- Línea de tiempo ---------- */
+.timeline-section{
+  padding:0 6vw 64px;
+  max-width:760px;
+}
+.timeline-section h2{
+  font-size:26px;
+  margin-bottom:36px;
+}
+.timeline-list{list-style:none;}
+.timeline-item{
+  display:flex;
+  gap:20px;
+  position:relative;
+  padding-bottom:34px;
+}
+.timeline-item::before{
+  content:'';
+  position:absolute;
+  left:11px; top:26px; bottom:0;
+  width:1px;
+  background:var(--gold-line);
+}
+.timeline-item:last-child::before{display:none;}
+.timeline-marker{
+  flex:0 0 24px; height:24px;
+  border-radius:50%;
+  border:1px solid var(--gold-line);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px;
+  background:var(--cream);
+  z-index:1;
+}
+.timeline-item.completada .timeline-marker{
+  background:var(--gold);
+  border-color:var(--gold);
+  color:var(--ink);
+}
+.timeline-item.actual .timeline-marker{
+  border-color:var(--gold);
+  animation:pulse-ring 1.8s ease-in-out infinite;
+}
+@keyframes pulse-ring{
+  0%,100%{box-shadow:0 0 0 0 rgba(214,165,44,0.35);}
+  50%{box-shadow:0 0 0 6px rgba(214,165,44,0);}
+}
+.timeline-item.pendiente .timeline-content{opacity:0.42;}
+.timeline-content .nombre-etapa{
+  font-size:15px; font-weight:500;
+}
+.timeline-item.actual .nombre-etapa{color:var(--gold);}
+.timeline-content .fecha-etapa{
+  font-size:12px; opacity:0.6; margin-top:2px;
+}
+
+/* ---------- Galería de fotografías ---------- */
+.galeria-section{padding:0 6vw 64px;}
+.galeria-section h2{font-size:26px; margin-bottom:24px;}
+.galeria-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+  gap:12px;
+}
+.galeria-grid figure{
+  aspect-ratio:4/3;
+  overflow:hidden;
+  border-radius:2px;
+  background:var(--ink-soft);
+  cursor:zoom-in;
+}
+.galeria-grid img{
+  width:100%; height:100%; object-fit:cover;
+  transition:transform .5s ease;
+}
+.galeria-grid figure:hover img{transform:scale(1.06);}
+
+.lightbox{
+  position:fixed; inset:0;
+  background:rgba(20,18,19,0.92);
+  display:none;
+  align-items:center; justify-content:center;
+  z-index:2000;
+  padding:5vh 5vw;
+}
+.lightbox.open{display:flex;}
+.lightbox img{max-height:90vh; border-radius:2px;}
+.lightbox-close{
+  position:absolute; top:24px; right:32px;
+  color:var(--cream); font-size:28px;
+  background:none; border:none;
+}
+
+/* ---------- Observaciones ---------- */
+.observaciones-section{padding:0 6vw 64px; max-width:760px;}
+.observaciones-card{
+  border-left:2px solid var(--gold);
+  padding:20px 26px;
+  background:var(--sand-soft);
+  font-size:15px;
+  line-height:1.6;
+}
+
+/* ---------- Historial (acordeón) ---------- */
+.historial-section{padding:0 6vw 80px; max-width:760px;}
+.historial-section h2{font-size:26px; margin-bottom:20px;}
+.historial-toggle{
+  width:100%;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:16px 0;
+  border-top:1px solid var(--gold-line);
+  background:none; border-left:none; border-right:none; border-bottom:none;
+  font-family:inherit; font-size:14px; color:var(--ink);
+  text-align:left;
+}
+.historial-section li:last-child .historial-toggle{border-bottom:1px solid var(--gold-line);}
+.historial-toggle .flecha{transition:transform .3s ease; color:var(--gold);}
+.historial-item.open .historial-toggle .flecha{transform:rotate(180deg);}
+.historial-detalle{
+  max-height:0; overflow:hidden;
+  transition:max-height .35s ease;
+  font-size:13px; opacity:0.75;
+}
+.historial-item.open .historial-detalle{max-height:120px; padding-bottom:16px;}
+
+/* ---------- Footer ---------- */
+.cliente-footer{
+  padding:32px 6vw;
+  border-top:1px solid var(--gold-line);
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:12px; opacity:0.6;
+  flex-wrap:wrap; gap:12px;
+}
+
+/* ---------- Animación de aparición ---------- */
+.reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease, transform .6s ease;}
+.reveal.visible{opacity:1; transform:none;}
+
+/* ---------- Responsive ---------- */
+@media (max-width:980px){
+  .info-grid{grid-template-columns:1fr;}
+}
+@media (max-width:640px){
+  .cliente-header{padding:18px 5vw;}
+  .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
+    padding-left:5vw; padding-right:5vw;
+  }
+  .cinta-track{height:52px;}
+  .cinta-cursor{height:60px;}
+}
