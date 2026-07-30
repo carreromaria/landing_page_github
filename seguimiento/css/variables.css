@@ -1,0 +1,48 @@
+/* ============================================================
+   LINENCE — Seguimiento de Proyectos
+   Variables de marca compartidas (cliente, dashboard, login)
+   ============================================================ */
+:root{
+  --ink:#141213;
+  --gold:#d6a52c;
+  --sand:#d3bb8c;
+  --cream:#faf7f2;
+  --gold-line:rgba(214,165,44,0.5);
+  --ink-soft:#232022;
+  --sand-soft:rgba(211,187,140,0.18);
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+body{
+  font-family:'Poppins', sans-serif;
+  background:var(--cream);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+}
+
+h1, h2, h3, .display{
+  font-family:'Champagne & Limousines','Poppins', serif;
+  font-weight:400;
+}
+
+a{color:inherit; text-decoration:none;}
+img{max-width:100%; display:block;}
+
+.eyebrow{
+  font-size:12px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--gold);
+  font-weight:500;
+}
+
+/* Foco visible para accesibilidad de teclado */
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:3px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}
+}
