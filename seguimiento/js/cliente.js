@@ -1,55 +1,76 @@
 // ============================================================
 // LINENCE — Seguimiento de Proyectos
-// Vista Cliente — lógica de renderizado
+// Vista Cliente — lógica de renderizado (FASE 5: datos reales)
 // ============================================================
-// FASE 4: usa datos de prueba (PROYECTO_MOCK) para maquetar.
-// FASE 5: PROYECTO_MOCK se reemplaza por una lectura real a
-// Firestore usando el código+token de la URL. El resto de este
-// archivo (renderizado) no debería necesitar cambios grandes.
+// Lee ?codigo=LIN-59147&token=xxxx de la URL, valida contra
+// Firestore y renderiza. Si el código no existe o el token no
+// coincide, muestra un estado de error — nunca datos ajenos.
 
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
+import { obtenerProyecto, obtenerHistorial } from './firestore.js';
+import { getQueryParams, formatearFecha } from './utils.js';
 
-// ---------- DATOS DE PRUEBA ----------
-const PROYECTO_MOCK = {
-  codigo: "LIN-59147",
-  cliente: "Familia Herrera Muñoz",
-  tipoProyecto: "Cocina moderna + Walk-in Closet",
-  responsable: "Abraham Quintero",
-  fechaEstimadaInstalacion: "18 de septiembre, 2026",
-  etapaActualIndex: 5,               // "Armado"
-  estadoEtapaActual: "en_proceso",
-  observaciones: "Se confirmaron los tiradores en línea dorada mate, tal como se conversó en la visita al taller. La fecha de instalación puede variar levemente según el avance del control de calidad.",
-  fotos: [
-    { url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600", descripcion: "Estructura de closet en armado" },
-    { url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600", descripcion: "Detalle de corte de tableros" },
-    { url: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=600", descripcion: "Cocina, vista de avance" }
-  ],
-  historial: [
-    { etapaNombre: "Armado", estadoNuevo: "en_proceso", fecha: "24 jul 2026", hora: "11:20", observacion: "Se inicia el armado de módulos de cocina." },
-    { etapaNombre: "Control de Calidad", estadoNuevo: "pendiente", fecha: "—", hora: "", observacion: "" },
-    { etapaNombre: "Armado", estadoNuevo: "pendiente", fecha: "22 jul 2026", hora: "09:00", observacion: "Se recibieron todos los tableros cortados desde bodega." },
-    { etapaNombre: "Fabricación", estadoNuevo: "completada", fecha: "18 jul 2026", hora: "17:40", observacion: "Fabricación de piezas principales terminada." },
-    { etapaNombre: "Corte de materiales", estadoNuevo: "completada", fecha: "10 jul 2026", hora: "10:05", observacion: "" },
-    { etapaNombre: "Compra de materiales", estadoNuevo: "completada", fecha: "2 jul 2026", hora: "16:00", observacion: "" },
-    { etapaNombre: "Abono del 50%", estadoNuevo: "completada", fecha: "28 jun 2026", hora: "12:30", observacion: "" },
-    { etapaNombre: "Cotización aceptada", estadoNuevo: "completada", fecha: "25 jun 2026", hora: "18:15", observacion: "" }
-  ]
-};
+async function init() {
+  const { codigo, token } = getQueryParams();
 
-function init(proyecto){
+  if (!codigo || !token) {
+    mostrarError("Este enlace no es válido. Revisa que copiaste la dirección completa que te enviamos.");
+    return;
+  }
+
+  let proyecto;
+  try {
+    proyecto = await obtenerProyecto(codigo);
+  } catch (err) {
+    console.error(err);
+    mostrarError("No pudimos cargar tu proyecto en este momento. Intenta nuevamente en unos minutos.");
+    return;
+  }
+
+  if (!proyecto || proyecto.token !== token) {
+    mostrarError("No encontramos un proyecto con ese enlace. Si crees que esto es un error, escríbenos por WhatsApp.");
+    return;
+  }
+
+  if (proyecto.activo === false) {
+    mostrarError("Este proyecto ya no está disponible para seguimiento. Si tienes dudas, escríbenos por WhatsApp.");
+    return;
+  }
+
+  let historial = [];
+  try {
+    historial = await obtenerHistorial(codigo);
+  } catch (err) {
+    console.error("No se pudo cargar el historial:", err);
+    // El proyecto igual se muestra aunque el historial falle
+  }
+
+  ocultarCarga();
   renderHero(proyecto);
   renderCinta(proyecto);
   renderInfoGrid(proyecto);
-  renderTimeline(proyecto);
+  renderTimeline(proyecto, historial);
   renderGaleria(proyecto);
   renderObservaciones(proyecto);
-  renderHistorial(proyecto);
+  renderHistorial(historial);
   activarReveal();
   activarLightbox();
 }
 
 function estadoLegible(estado){
   return { pendiente: "Pendiente", en_proceso: "En proceso", completada: "Completada" }[estado] ?? estado;
+}
+
+function ocultarCarga(){
+  document.getElementById('estadoCarga').style.display = 'none';
+  document.getElementById('contenidoProyecto').style.display = 'block';
+}
+
+function mostrarError(mensaje){
+  document.getElementById('estadoCarga').style.display = 'none';
+  const errorBox = document.getElementById('estadoError');
+  errorBox.querySelector('p').textContent = mensaje;
+  errorBox.style.display = 'flex';
 }
 
 function renderHero(p){
@@ -76,23 +97,22 @@ function renderCinta(p){
 }
 
 function renderInfoGrid(p){
-  document.getElementById('infoFecha').textContent = p.fechaEstimadaInstalacion;
-  document.getElementById('infoResponsable').textContent = p.responsable;
+  document.getElementById('infoFecha').textContent =
+    p.fechaEstimadaInstalacion ? formatearFecha(p.fechaEstimadaInstalacion) : 'Por confirmar';
+  document.getElementById('infoResponsable').textContent = p.responsable || 'Por asignar';
   document.getElementById('infoCodigo').textContent = p.codigo;
 }
 
-function renderTimeline(p){
+function renderTimeline(p, historial){
   const list = document.getElementById('timelineList');
   list.innerHTML = ETAPAS.map(e => {
     let estadoClase = 'pendiente';
-    let fecha = '';
     if (e.index < p.etapaActualIndex) estadoClase = 'completada';
     if (e.index === p.etapaActualIndex) estadoClase = 'actual';
 
-    const registro = p.historial.find(h => h.etapaNombre === e.nombre);
-    if (registro && registro.fecha !== '—') fecha = `${registro.fecha} · ${registro.hora}`;
-
-    const icono = estadoClase === 'completada' ? '✓' : (estadoClase === 'actual' ? '' : '');
+    const registro = historial.find(h => h.etapaNombre === e.nombre);
+    const fecha = registro ? formatearFecha(registro.fecha, true) : '';
+    const icono = estadoClase === 'completada' ? '✓' : '';
 
     return `
       <li class="timeline-item ${estadoClase}">
@@ -107,13 +127,14 @@ function renderTimeline(p){
 
 function renderGaleria(p){
   const grid = document.getElementById('galeriaGrid');
-  if (!p.fotos.length){
+  const fotos = p.fotos || [];
+  if (!fotos.length){
     document.getElementById('galeriaSection').style.display = 'none';
     return;
   }
-  grid.innerHTML = p.fotos.map(f => `
-    <figure data-full="${f.url.replace('w=600','w=1600')}">
-      <img src="${f.url}" alt="${f.descripcion}" loading="lazy">
+  grid.innerHTML = fotos.map(f => `
+    <figure data-full="${f.url}">
+      <img src="${f.url}" alt="${f.descripcion || 'Fotografía del avance'}" loading="lazy">
     </figure>
   `).join('');
 }
@@ -126,19 +147,21 @@ function renderObservaciones(p){
   document.getElementById('observacionesTexto').textContent = p.observaciones;
 }
 
-function renderHistorial(p){
+function renderHistorial(historial){
   const list = document.getElementById('historialList');
-  list.innerHTML = p.historial
-    .filter(h => h.fecha !== '—')
-    .map(h => `
-      <li class="historial-item">
-        <button class="historial-toggle" aria-expanded="false">
-          <span>${h.etapaNombre} — ${estadoLegible(h.estadoNuevo)} · ${h.fecha}</span>
-          <span class="flecha">⌄</span>
-        </button>
-        <div class="historial-detalle">${h.observacion || 'Sin observaciones adicionales.'}</div>
-      </li>
-    `).join('');
+  if (!historial.length){
+    document.getElementById('historialSectionWrap').style.display = 'none';
+    return;
+  }
+  list.innerHTML = historial.map(h => `
+    <li class="historial-item">
+      <button class="historial-toggle" aria-expanded="false">
+        <span>${h.etapaNombre} — ${estadoLegible(h.estadoNuevo)} · ${formatearFecha(h.fecha)}</span>
+        <span class="flecha">⌄</span>
+      </button>
+      <div class="historial-detalle">${h.observacion || 'Sin observaciones adicionales.'}</div>
+    </li>
+  `).join('');
 
   list.querySelectorAll('.historial-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -187,4 +210,4 @@ function activarLightbox(){
   });
 }
 
-document.addEventListener('DOMContentLoaded', () => init(PROYECTO_MOCK));
+document.addEventListener('DOMContentLoaded', init);
