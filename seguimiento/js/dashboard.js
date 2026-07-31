@@ -4,7 +4,10 @@
 // ============================================================
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
-import { listarProyectos, crearProyecto } from './firestore.js';
+import {
+  listarProyectos, crearProyecto, obtenerProyecto,
+  obtenerHistorial, actualizarProyecto, cambiarEtapaProyecto
+} from './firestore.js';
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS } from './etapas.js';
 
@@ -83,11 +86,7 @@ function renderLista() {
   }).join('');
 
   lista.querySelectorAll('.fila-proyecto').forEach(fila => {
-    fila.addEventListener('click', () => {
-      // La vista de detalle (editar etapas, fotos, observaciones) se
-      // construye en la Fase 8. Por ahora solo mostramos el código.
-      alert('El detalle editable de "' + fila.dataset.codigo + '" se habilita en la próxima fase.');
-    });
+    fila.addEventListener('click', () => abrirDetalle(fila.dataset.codigo));
   });
 }
 
@@ -183,3 +182,218 @@ document.getElementById('btnCopiarEnlace').addEventListener('click', () => {
 document.getElementById('btnCerrarExito').addEventListener('click', () => {
   modalExito.classList.remove('open');
 });
+
+// ============================================================
+// VISTA DE DETALLE (Fase 8)
+// ============================================================
+
+const vistaListado = document.querySelector('.dash-main'); // el primer .dash-main = listado
+const vistaDetalle = document.getElementById('vistaDetalle');
+let PROYECTO_ACTUAL = null;
+
+async function abrirDetalle(codigo) {
+  vistaListado.style.display = 'none';
+  vistaDetalle.style.display = 'block';
+  vistaDetalle.scrollIntoView({ behavior: 'instant' });
+
+  document.getElementById('detalleCodigo').textContent = codigo;
+  document.getElementById('detalleCliente').textContent = 'Cargando…';
+  document.getElementById('detalleTipo').textContent = '';
+
+  try {
+    const [proyecto, historial] = await Promise.all([
+      obtenerProyecto(codigo),
+      obtenerHistorial(codigo)
+    ]);
+    if (!proyecto) {
+      alert('No se encontró el proyecto ' + codigo + '.');
+      volverAlListado();
+      return;
+    }
+    PROYECTO_ACTUAL = proyecto;
+    renderDetalle(proyecto, historial);
+  } catch (err) {
+    console.error(err);
+    alert('No pudimos cargar el detalle del proyecto.');
+    volverAlListado();
+  }
+}
+
+function volverAlListado() {
+  vistaDetalle.style.display = 'none';
+  vistaListado.style.display = 'block';
+  PROYECTO_ACTUAL = null;
+}
+document.getElementById('btnVolverListado').addEventListener('click', () => {
+  volverAlListado();
+  cargarProyectos(); // refresca por si hubo cambios
+});
+
+function renderDetalle(p, historial) {
+  document.getElementById('detalleCodigo').textContent = p.codigo;
+  document.getElementById('detalleCliente').textContent = p.cliente || 'Sin nombre';
+  document.getElementById('detalleTipo').textContent = p.tipoProyecto || '';
+
+  const enlace = `${window.location.origin}/seguimiento/proyecto.html?codigo=${encodeURIComponent(p.codigo)}&token=${encodeURIComponent(p.token || '')}`;
+  document.getElementById('detalleEnlaceCliente').href = enlace;
+
+  // ---- Control de etapa ----
+  const etapa = ETAPAS[p.etapaActualIndex] ?? ETAPAS[0];
+  const estadoLegible = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' }[p.estadoEtapaActual] || p.estadoEtapaActual;
+  document.getElementById('etapaNombreActual').textContent = etapa.nombre;
+  const badge = document.getElementById('etapaEstadoBadge');
+  badge.textContent = estadoLegible;
+  badge.className = 'badge-estado ' + p.estadoEtapaActual;
+
+  document.getElementById('btnRetroceder').disabled = p.etapaActualIndex === 0;
+  document.getElementById('btnIniciarEtapa').disabled = p.estadoEtapaActual !== 'pendiente';
+  document.getElementById('btnCompletarEtapa').textContent =
+    p.etapaActualIndex === ETAPAS.length - 1 ? 'Marcar como entregado ✓' : 'Completar y avanzar →';
+
+  const miniTimeline = document.getElementById('miniTimeline');
+  miniTimeline.innerHTML = ETAPAS.map(e => {
+    let clase = '';
+    if (e.index < p.etapaActualIndex) clase = 'completada';
+    if (e.index === p.etapaActualIndex) clase = 'actual';
+    return `<li class="${clase}">${e.nombre}</li>`;
+  }).join('');
+
+  // ---- Formulario de datos generales ----
+  document.getElementById('eCliente').value = p.cliente || '';
+  document.getElementById('eTelefono').value = p.telefono || '';
+  document.getElementById('eEmail').value = p.email || '';
+  document.getElementById('eTipoProyecto').value = p.tipoProyecto || '';
+  document.getElementById('eResponsable').value = p.responsable || '';
+  document.getElementById('eDireccion').value = p.direccion || '';
+  document.getElementById('eFechaEstimada').value = p.fechaEstimadaInstalacion
+    ? (p.fechaEstimadaInstalacion.toDate ? p.fechaEstimadaInstalacion.toDate() : new Date(p.fechaEstimadaInstalacion)).toISOString().slice(0, 10)
+    : '';
+  document.getElementById('eObservaciones').value = p.observaciones || '';
+
+  // ---- Historial ----
+  const listaHist = document.getElementById('historialDashboard');
+  if (!historial.length) {
+    listaHist.innerHTML = '<li style="opacity:0.5;">Aún no hay movimientos registrados.</li>';
+  } else {
+    listaHist.innerHTML = historial.map(h => `
+      <li>
+        <div class="linea-1">
+          <span>${h.etapaNombre} — ${ { pendiente:'Pendiente', en_proceso:'En proceso', completada:'Completada' }[h.estadoNuevo] || h.estadoNuevo }</span>
+          <span>${formatearFecha(h.fecha, true)}</span>
+        </div>
+        ${h.usuarioNombre ? `<div class="nombre-usuario">Registrado por ${h.usuarioNombre}</div>` : ''}
+        ${h.observacion ? `<div class="obs">${h.observacion}</div>` : ''}
+      </li>
+    `).join('');
+  }
+}
+
+// ---- Guardar datos generales ----
+document.getElementById('formEditarProyecto').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorBox = document.getElementById('editarError');
+  errorBox.classList.remove('visible');
+  const btn = document.getElementById('btnGuardarEdicion');
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  const fechaValor = document.getElementById('eFechaEstimada').value;
+  const datos = {
+    cliente: document.getElementById('eCliente').value.trim(),
+    telefono: document.getElementById('eTelefono').value.trim(),
+    email: document.getElementById('eEmail').value.trim(),
+    tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
+    responsable: document.getElementById('eResponsable').value.trim(),
+    direccion: document.getElementById('eDireccion').value.trim(),
+    fechaEstimadaInstalacion: fechaValor ? new Date(fechaValor) : null,
+    observaciones: document.getElementById('eObservaciones').value.trim()
+  };
+
+  try {
+    await actualizarProyecto(PROYECTO_ACTUAL.codigo, datos);
+    PROYECTO_ACTUAL = { ...PROYECTO_ACTUAL, ...datos };
+    document.getElementById('detalleCliente').textContent = datos.cliente || 'Sin nombre';
+    document.getElementById('detalleTipo').textContent = datos.tipoProyecto || '';
+    btn.textContent = '¡Guardado!';
+    setTimeout(() => { btn.textContent = 'Guardar cambios'; btn.disabled = false; }, 1500);
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = 'No pudimos guardar los cambios. Intenta nuevamente.';
+    errorBox.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = 'Guardar cambios';
+  }
+});
+
+// ---- Botones de avance de etapa ----
+document.getElementById('btnIniciarEtapa').addEventListener('click', async () => {
+  await ejecutarCambioEtapa({
+    etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex,
+    estadoEtapaActual: 'en_proceso'
+  }, {
+    estadoAnterior: 'pendiente',
+    estadoNuevo: 'en_proceso'
+  });
+});
+
+document.getElementById('btnCompletarEtapa').addEventListener('click', async () => {
+  const esUltima = PROYECTO_ACTUAL.etapaActualIndex === ETAPAS.length - 1;
+  const estadoAnterior = PROYECTO_ACTUAL.estadoEtapaActual;
+
+  if (esUltima) {
+    await ejecutarCambioEtapa({
+      etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex,
+      estadoEtapaActual: 'completada'
+    }, { estadoAnterior, estadoNuevo: 'completada' });
+    return;
+  }
+
+  await ejecutarCambioEtapa({
+    etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex + 1,
+    estadoEtapaActual: 'pendiente'
+  }, {
+    estadoAnterior,
+    estadoNuevo: 'completada',
+    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre
+  });
+});
+
+document.getElementById('btnRetroceder').addEventListener('click', async () => {
+  if (PROYECTO_ACTUAL.etapaActualIndex === 0) return;
+  const confirmar = confirm('¿Retroceder a la etapa anterior? Esto quedará registrado en el historial.');
+  if (!confirmar) return;
+
+  await ejecutarCambioEtapa({
+    etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex - 1,
+    estadoEtapaActual: 'en_proceso'
+  }, {
+    estadoAnterior: PROYECTO_ACTUAL.estadoEtapaActual,
+    estadoNuevo: 'en_proceso',
+    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex - 1].nombre,
+    esRetroceso: true
+  });
+});
+
+async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, etapaNombreOverride, esRetroceso }) {
+  const botones = ['btnIniciarEtapa', 'btnCompletarEtapa', 'btnRetroceder'].map(id => document.getElementById(id));
+  botones.forEach(b => b.disabled = true);
+
+  const etapaNombre = etapaNombreOverride || ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre;
+
+  try {
+    await cambiarEtapaProyecto(PROYECTO_ACTUAL.codigo, nuevoEstado, {
+      etapaIndex: PROYECTO_ACTUAL.etapaActualIndex,
+      etapaNombre,
+      estadoAnterior,
+      estadoNuevo,
+      usuario: STAFF_ACTUAL.uid,
+      usuarioNombre: STAFF_ACTUAL.nombre || STAFF_ACTUAL.email,
+      observacion: esRetroceso ? 'Corrección: se retrocedió la etapa manualmente.' : ''
+    });
+    await abrirDetalle(PROYECTO_ACTUAL.codigo); // recarga con los datos frescos
+  } catch (err) {
+    console.error(err);
+    alert('No pudimos actualizar la etapa. Intenta nuevamente.');
+    botones.forEach(b => b.disabled = false);
+  }
+}
