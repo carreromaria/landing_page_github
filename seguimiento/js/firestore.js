@@ -10,7 +10,7 @@ import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
   collection, getDocs, query, orderBy,
-  serverTimestamp, writeBatch
+  serverTimestamp, writeBatch, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /**
@@ -115,4 +115,32 @@ export async function cambiarEtapaProyecto(codigo, nuevoEstado, entradaHistorial
   });
 
   await batch.commit();
+}
+
+// ---------- Fotografías (Fase 9) ----------
+
+/**
+ * Agrega una fotografía al array `fotos` del proyecto.
+ * @param {string} codigo
+ * @param {{url:string, storagePath:string, descripcion:string, fecha:Date}} foto
+ */
+export async function agregarFotoProyecto(codigo, foto) {
+  const ref = doc(db, "proyectos", codigo);
+  await updateDoc(ref, {
+    fotos: arrayUnion(foto),
+    actualizadoEn: serverTimestamp()
+  });
+}
+
+/**
+ * Quita una fotografía específica del array `fotos` del proyecto.
+ * Debe pasarse el objeto EXACTO como está guardado (arrayRemove
+ * compara por igualdad de todo el objeto).
+ */
+export async function quitarFotoProyecto(codigo, foto) {
+  const ref = doc(db, "proyectos", codigo);
+  await updateDoc(ref, {
+    fotos: arrayRemove(foto),
+    actualizadoEn: serverTimestamp()
+  });
 }
