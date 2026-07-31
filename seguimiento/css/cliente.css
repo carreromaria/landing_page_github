@@ -3,6 +3,58 @@
    Vista Cliente (proyecto.html)
    ============================================================ */
 
+/* ---------- Estados de carga y error ---------- */
+.estado-carga{
+  min-height:60vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:18px;
+  color:var(--ink);
+  opacity:0.7;
+}
+.spinner{
+  width:32px; height:32px;
+  border:2px solid var(--gold-line);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin 0.9s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.estado-error{
+  display:none;
+  min-height:70vh;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:14px;
+  padding:0 8vw;
+}
+.estado-error h2{
+  font-size:26px;
+  max-width:420px;
+}
+.estado-error p{
+  opacity:0.7;
+  max-width:380px;
+  font-size:15px;
+}
+.estado-error-cta{
+  margin-top:10px;
+  padding:12px 26px;
+  border:1px solid var(--gold);
+  border-radius:999px;
+  font-size:14px;
+  transition:background .25s ease, color .25s ease;
+}
+.estado-error-cta:hover{
+  background:var(--gold);
+  color:var(--ink);
+}
+
 /* ---------- Header ---------- */
 .cliente-header{
   padding:22px 6vw;
