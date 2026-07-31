@@ -10,7 +10,7 @@ import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
   collection, getDocs, query, orderBy,
-  serverTimestamp
+  serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /**
@@ -78,11 +78,41 @@ export async function crearProyecto(codigo, datos, uid) {
   });
 }
 
-/** Actualiza campos generales de un proyecto (no las etapas, ver Fase 8). */
+/** Actualiza campos generales de un proyecto (no las etapas). */
 export async function actualizarProyecto(codigo, datos) {
   const ref = doc(db, "proyectos", codigo);
   await updateDoc(ref, {
     ...datos,
     actualizadoEn: serverTimestamp()
   });
+}
+
+// ---------- Gestión de etapas (Fase 8) ----------
+
+/**
+ * Cambia la etapa/estado actual de un proyecto y registra el cambio
+ * en el historial, en una sola operación atómica (writeBatch): o se
+ * guardan ambos cambios, o no se guarda ninguno.
+ *
+ * @param {string} codigo
+ * @param {{etapaActualIndex:number, estadoEtapaActual:string}} nuevoEstado
+ * @param {{etapaNombre:string, estadoAnterior:string, estadoNuevo:string, usuario:string, usuarioNombre:string, observacion?:string}} entradaHistorial
+ */
+export async function cambiarEtapaProyecto(codigo, nuevoEstado, entradaHistorial) {
+  const batch = writeBatch(db);
+
+  const refProyecto = doc(db, "proyectos", codigo);
+  batch.update(refProyecto, {
+    ...nuevoEstado,
+    actualizadoEn: serverTimestamp()
+  });
+
+  const refHistorial = doc(collection(db, "proyectos", codigo, "historial"));
+  batch.set(refHistorial, {
+    ...entradaHistorial,
+    fecha: serverTimestamp(),
+    hora: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+  });
+
+  await batch.commit();
 }
