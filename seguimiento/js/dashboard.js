@@ -6,8 +6,10 @@
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   listarProyectos, crearProyecto, obtenerProyecto,
-  obtenerHistorial, actualizarProyecto, cambiarEtapaProyecto
+  obtenerHistorial, actualizarProyecto, cambiarEtapaProyecto,
+  agregarFotoProyecto, quitarFotoProyecto
 } from './firestore.js';
+import { validarFoto, subirFoto, eliminarFotoStorage } from './storage.js';
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS } from './etapas.js';
 
@@ -258,6 +260,9 @@ function renderDetalle(p, historial) {
     return `<li class="${clase}">${e.nombre}</li>`;
   }).join('');
 
+  // ---- Galería de fotos ----
+  renderGaleriaDashboard(p.fotos || []);
+
   // ---- Formulario de datos generales ----
   document.getElementById('eCliente').value = p.cliente || '';
   document.getElementById('eTelefono').value = p.telefono || '';
@@ -395,5 +400,109 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
     console.error(err);
     alert('No pudimos actualizar la etapa. Intenta nuevamente.');
     botones.forEach(b => b.disabled = false);
+  }
+}
+
+// ============================================================
+// FOTOGRAFÍAS (Fase 9)
+// ============================================================
+
+function renderGaleriaDashboard(fotos) {
+  const grid = document.getElementById('galeriaDashboard');
+  if (!fotos.length) {
+    grid.innerHTML = '<div class="foto-vacio">Aún no hay fotografías subidas para este proyecto.</div>';
+    return;
+  }
+  grid.innerHTML = fotos.map((f, i) => `
+    <figure>
+      <img src="${f.url}" alt="${f.descripcion || 'Fotografía del proyecto'}">
+      <button type="button" class="btn-eliminar-foto" data-indice="${i}" title="Eliminar fotografía">×</button>
+    </figure>
+  `).join('');
+
+  grid.querySelectorAll('.btn-eliminar-foto').forEach(btn => {
+    btn.addEventListener('click', () => eliminarFoto(fotos[Number(btn.dataset.indice)]));
+  });
+}
+
+async function eliminarFoto(foto) {
+  const confirmar = confirm('¿Eliminar esta fotografía? Esta acción no se puede deshacer.');
+  if (!confirmar) return;
+
+  try {
+    await quitarFotoProyecto(PROYECTO_ACTUAL.codigo, foto);
+    await eliminarFotoStorage(foto.storagePath);
+    PROYECTO_ACTUAL.fotos = (PROYECTO_ACTUAL.fotos || []).filter(f => f.storagePath !== foto.storagePath);
+    renderGaleriaDashboard(PROYECTO_ACTUAL.fotos);
+  } catch (err) {
+    console.error(err);
+    alert('No pudimos eliminar la fotografía. Intenta nuevamente.');
+  }
+}
+
+const dropzone = document.getElementById('dropzone');
+const inputFoto = document.getElementById('inputFoto');
+const progresoBox = document.getElementById('subidaProgreso');
+const barraFill = document.getElementById('barraFill');
+const subidaTexto = document.getElementById('subidaTexto');
+const fotoError = document.getElementById('fotoError');
+
+inputFoto.addEventListener('change', () => {
+  if (inputFoto.files[0]) manejarSubidaFoto(inputFoto.files[0]);
+});
+
+['dragover', 'dragenter'].forEach(evento => {
+  dropzone.addEventListener(evento, (e) => {
+    e.preventDefault();
+    dropzone.classList.add('arrastrando');
+  });
+});
+['dragleave', 'drop'].forEach(evento => {
+  dropzone.addEventListener(evento, (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('arrastrando');
+  });
+});
+dropzone.addEventListener('drop', (e) => {
+  const file = e.dataTransfer.files[0];
+  if (file) manejarSubidaFoto(file);
+});
+
+async function manejarSubidaFoto(file) {
+  fotoError.classList.remove('visible');
+
+  const errorValidacion = validarFoto(file);
+  if (errorValidacion) {
+    fotoError.textContent = errorValidacion;
+    fotoError.classList.add('visible');
+    inputFoto.value = '';
+    return;
+  }
+
+  progresoBox.style.display = 'block';
+  barraFill.style.width = '0%';
+  subidaTexto.textContent = 'Subiendo… 0%';
+
+  try {
+    const { url, storagePath } = await subirFoto(PROYECTO_ACTUAL.codigo, file, (pct) => {
+      barraFill.style.width = pct + '%';
+      subidaTexto.textContent = `Subiendo… ${pct}%`;
+    });
+
+    const foto = { url, storagePath, descripcion: '', fecha: new Date() };
+    await agregarFotoProyecto(PROYECTO_ACTUAL.codigo, foto);
+
+    PROYECTO_ACTUAL.fotos = [...(PROYECTO_ACTUAL.fotos || []), foto];
+    renderGaleriaDashboard(PROYECTO_ACTUAL.fotos);
+
+    subidaTexto.textContent = '¡Foto subida!';
+    setTimeout(() => { progresoBox.style.display = 'none'; }, 1200);
+  } catch (err) {
+    console.error(err);
+    fotoError.textContent = 'No pudimos subir la fotografía. Intenta nuevamente.';
+    fotoError.classList.add('visible');
+    progresoBox.style.display = 'none';
+  } finally {
+    inputFoto.value = '';
   }
 }
