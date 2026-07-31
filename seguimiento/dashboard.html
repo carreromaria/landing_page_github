@@ -64,6 +64,89 @@
       </div>
     </div>
   </main>
+
+  <!-- ================= VISTA DE DETALLE ================= -->
+  <main class="dash-main" id="vistaDetalle" style="display:none;">
+    <button class="btn-volver" id="btnVolverListado">← Volver al listado</button>
+
+    <div class="detalle-header">
+      <div>
+        <span class="eyebrow" id="detalleCodigo">—</span>
+        <h1 id="detalleCliente">—</h1>
+        <p class="subtitulo" id="detalleTipo">—</p>
+      </div>
+      <a href="#" id="detalleEnlaceCliente" target="_blank" class="btn-secundario">Ver como cliente ↗</a>
+    </div>
+
+    <!-- ---- Control de etapa ---- -->
+    <section class="panel-seccion">
+      <h2>Avance del proyecto</h2>
+      <div class="etapa-actual-control">
+        <div>
+          <span class="eyebrow">Etapa actual</span>
+          <div class="etapa-nombre-grande" id="etapaNombreActual">—</div>
+          <span class="badge-estado" id="etapaEstadoBadge">—</span>
+        </div>
+        <div class="etapa-botones">
+          <button class="btn-secundario" id="btnRetroceder">← Retroceder etapa</button>
+          <button class="btn-secundario" id="btnIniciarEtapa">Marcar "En proceso"</button>
+          <button class="btn-primario" id="btnCompletarEtapa">Completar y avanzar →</button>
+        </div>
+      </div>
+      <ol class="mini-timeline" id="miniTimeline"></ol>
+    </section>
+
+    <!-- ---- Datos generales ---- -->
+    <section class="panel-seccion">
+      <h2>Datos del proyecto</h2>
+      <form id="formEditarProyecto">
+        <div class="form-grid">
+          <div class="campo">
+            <label for="eCliente">Cliente</label>
+            <input type="text" id="eCliente">
+          </div>
+          <div class="campo">
+            <label for="eTelefono">Teléfono</label>
+            <input type="tel" id="eTelefono">
+          </div>
+          <div class="campo campo-full">
+            <label for="eEmail">Correo electrónico</label>
+            <input type="email" id="eEmail">
+          </div>
+          <div class="campo">
+            <label for="eTipoProyecto">Tipo de proyecto</label>
+            <input type="text" id="eTipoProyecto">
+          </div>
+          <div class="campo">
+            <label for="eResponsable">Responsable</label>
+            <input type="text" id="eResponsable">
+          </div>
+          <div class="campo campo-full">
+            <label for="eDireccion">Dirección</label>
+            <input type="text" id="eDireccion">
+          </div>
+          <div class="campo campo-full">
+            <label for="eFechaEstimada">Fecha estimada de instalación</label>
+            <input type="date" id="eFechaEstimada">
+          </div>
+          <div class="campo campo-full">
+            <label for="eObservaciones">Observaciones (visibles para el cliente)</label>
+            <textarea id="eObservaciones"></textarea>
+          </div>
+        </div>
+        <div class="modal-error" id="editarError"></div>
+        <div class="modal-acciones">
+          <button type="submit" class="btn-primario" id="btnGuardarEdicion">Guardar cambios</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ---- Historial ---- -->
+    <section class="panel-seccion">
+      <h2>Historial</h2>
+      <ul class="historial-dashboard" id="historialDashboard"></ul>
+    </section>
+  </main>
 </div>
 
 <!-- ================= MODAL: NUEVO PROYECTO ================= -->
