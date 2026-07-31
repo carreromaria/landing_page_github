@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Interno · LINENCE</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+<!-- ================= GUARDIA DE SESIÓN ================= -->
+<div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
+
+<!-- ================= LAYOUT PRINCIPAL ================= -->
+<div class="dash-layout" id="dashLayout" style="display:none;">
+
+  <aside class="dash-sidebar">
+    <img src="assets/img/logo-wordmark-claro.png" alt="Linence">
+    <ul class="dash-nav">
+      <li><a href="dashboard.html" class="activo">📋 <span class="texto">Proyectos</span></a></li>
+      <li><span class="dash-nav-disabled">👥 <span class="texto">CRM</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📄 <span class="texto">Cotizaciones</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
+    </ul>
+    <div class="dash-user">
+      <div class="nombre" id="staffNombre">—</div>
+      <div class="rol" id="staffRol">—</div>
+      <button id="btnCerrarSesion">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <h1>Proyectos</h1>
+    <p class="subtitulo">Gestiona el seguimiento de todos los proyectos activos de Linence.</p>
+
+    <div class="dash-toolbar">
+      <input type="search" id="buscador" placeholder="Buscar por código o cliente…">
+      <select id="filtroEstado">
+        <option value="">Todos los estados</option>
+        <option value="pendiente">Pendiente</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="completada">Completada</option>
+      </select>
+      <button class="btn-nuevo-proyecto" id="btnNuevoProyecto">+ Nuevo proyecto</button>
+    </div>
+
+    <div class="tabla-proyectos">
+      <div class="fila-proyecto encabezado">
+        <span>Código</span>
+        <span>Cliente</span>
+        <span class="tipo-col">Tipo</span>
+        <span>Etapa actual</span>
+        <span>Avance</span>
+        <span></span>
+      </div>
+      <div id="listaProyectos"></div>
+      <div class="dash-vacio" id="dashVacio" style="display:none;">
+        Aún no hay proyectos creados. Haz clic en "+ Nuevo proyecto" para agregar el primero.
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ================= MODAL: NUEVO PROYECTO ================= -->
+<div class="modal-overlay" id="modalNuevo">
+  <div class="modal-box">
+    <h2>Nuevo proyecto</h2>
+    <p class="subtitulo">Usa el mismo código que ya generó el formulario de cotización de la landing.</p>
+
+    <form id="formNuevoProyecto">
+      <div class="form-grid">
+        <div class="campo campo-full">
+          <label for="fCodigo">Código de proyecto (ej. LIN-59147)</label>
+          <input type="text" id="fCodigo" required placeholder="LIN-59147">
+        </div>
+        <div class="campo">
+          <label for="fCliente">Cliente</label>
+          <input type="text" id="fCliente" required>
+        </div>
+        <div class="campo">
+          <label for="fTelefono">Teléfono</label>
+          <input type="tel" id="fTelefono">
+        </div>
+        <div class="campo campo-full">
+          <label for="fEmail">Correo electrónico</label>
+          <input type="email" id="fEmail">
+        </div>
+        <div class="campo">
+          <label for="fTipoProyecto">Tipo de proyecto</label>
+          <input type="text" id="fTipoProyecto" placeholder="Ej. Cocina moderna" required>
+        </div>
+        <div class="campo">
+          <label for="fResponsable">Responsable</label>
+          <input type="text" id="fResponsable" placeholder="Ej. Abraham Quintero">
+        </div>
+        <div class="campo campo-full">
+          <label for="fDireccion">Dirección</label>
+          <input type="text" id="fDireccion">
+        </div>
+        <div class="campo campo-full">
+          <label for="fFechaEstimada">Fecha estimada de instalación</label>
+          <input type="date" id="fFechaEstimada">
+        </div>
+        <div class="campo campo-full">
+          <label for="fObservaciones">Observaciones iniciales (opcional)</label>
+          <textarea id="fObservaciones"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-error" id="modalError"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn-secundario" id="btnCancelarNuevo">Cancelar</button>
+        <button type="submit" class="btn-primario" id="btnGuardarNuevo">Crear proyecto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= MODAL: ENLACE GENERADO ================= -->
+<div class="modal-overlay" id="modalExito">
+  <div class="modal-box modal-exito">
+    <div class="icono-ok">✓</div>
+    <h2>Proyecto creado</h2>
+    <p class="subtitulo">Comparte este enlace con el cliente para que pueda seguir su proyecto.</p>
+    <div class="enlace-generado">
+      <input type="text" id="enlaceGeneradoInput" readonly>
+      <button id="btnCopiarEnlace">Copiar</button>
+    </div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-primario" id="btnCerrarExito">Listo</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
