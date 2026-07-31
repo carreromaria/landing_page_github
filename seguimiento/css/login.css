@@ -1,0 +1,112 @@
+/* ============================================================
+   LINENCE — Seguimiento de Proyectos
+   Login de staff
+   ============================================================ */
+
+html, body{height:100%;}
+
+.login-wrap{
+  min-height:100vh;
+  background:var(--ink);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.login-card{
+  width:100%;
+  max-width:380px;
+  background:var(--ink-soft);
+  border:1px solid rgba(214,165,44,0.22);
+  border-radius:4px;
+  padding:44px 36px 36px;
+  text-align:center;
+}
+
+.login-card img{
+  height:44px;
+  margin:0 auto 22px;
+}
+
+.login-card h1{
+  color:var(--cream);
+  font-size:22px;
+  margin-bottom:6px;
+}
+
+.login-card .subtitulo{
+  color:var(--sand);
+  font-size:13px;
+  opacity:0.75;
+  margin-bottom:32px;
+}
+
+.login-field{
+  text-align:left;
+  margin-bottom:18px;
+}
+.login-field label{
+  display:block;
+  font-size:12px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--sand);
+  opacity:0.85;
+  margin-bottom:7px;
+}
+.login-field input{
+  width:100%;
+  padding:12px 14px;
+  background:rgba(250,247,242,0.05);
+  border:1px solid rgba(250,247,242,0.18);
+  border-radius:3px;
+  color:var(--cream);
+  font-family:'Poppins', sans-serif;
+  font-size:14px;
+}
+.login-field input:focus{
+  outline:none;
+  border-color:var(--gold);
+}
+.login-field input::placeholder{color:rgba(250,247,242,0.35);}
+
+.login-btn{
+  width:100%;
+  padding:13px;
+  margin-top:8px;
+  background:var(--gold);
+  color:var(--ink);
+  border:none;
+  border-radius:3px;
+  font-family:'Poppins', sans-serif;
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:0.03em;
+  cursor:pointer;
+  transition:opacity .2s ease;
+}
+.login-btn:hover{opacity:0.88;}
+.login-btn:disabled{opacity:0.5; cursor:not-allowed;}
+
+.login-error{
+  display:none;
+  margin-top:16px;
+  padding:11px 14px;
+  background:rgba(214,80,60,0.12);
+  border:1px solid rgba(214,80,60,0.4);
+  border-radius:3px;
+  color:#e8a89c;
+  font-size:13px;
+  text-align:left;
+}
+.login-error.visible{display:block;}
+
+.login-footer-link{
+  display:block;
+  margin-top:26px;
+  font-size:12px;
+  color:var(--sand);
+  opacity:0.55;
+}
+.login-footer-link:hover{opacity:0.9;}
