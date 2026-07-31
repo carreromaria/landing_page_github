@@ -10,6 +10,7 @@ import {
   agregarFotoProyecto, quitarFotoProyecto
 } from './firestore.js';
 import { validarFoto, subirFoto, eliminarFotoStorage } from './storage.js';
+import { notificarCambioEtapa } from './emailjs.js';
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS } from './etapas.js';
 
@@ -395,6 +396,20 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       usuarioNombre: STAFF_ACTUAL.nombre || STAFF_ACTUAL.email,
       observacion: esRetroceso ? 'Corrección: se retrocedió la etapa manualmente.' : ''
     });
+
+    if (!esRetroceso) {
+      const resultado = await notificarCambioEtapa({
+        email: PROYECTO_ACTUAL.email,
+        cliente: PROYECTO_ACTUAL.cliente,
+        etapaNombre,
+        codigo: PROYECTO_ACTUAL.codigo,
+        token: PROYECTO_ACTUAL.token
+      });
+      if (!resultado.enviado) {
+        console.warn('Notificación no enviada:', resultado.motivo);
+      }
+    }
+
     await abrirDetalle(PROYECTO_ACTUAL.codigo); // recarga con los datos frescos
   } catch (err) {
     console.error(err);
