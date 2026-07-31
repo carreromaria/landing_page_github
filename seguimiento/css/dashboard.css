@@ -260,6 +260,74 @@ html, body{height:100%; background:var(--cream);}
   color:var(--ink); opacity:0.6; font-size:14px;
 }
 
+/* ---------- Vista de detalle ---------- */
+.btn-volver{
+  background:none; border:none;
+  font-family:inherit; font-size:13px;
+  color:var(--ink); opacity:0.6;
+  cursor:pointer;
+  margin-bottom:18px;
+  padding:0;
+}
+.btn-volver:hover{opacity:1; color:var(--gold);}
+
+.detalle-header{
+  display:flex; justify-content:space-between; align-items:flex-start;
+  flex-wrap:wrap; gap:14px;
+  margin-bottom:30px;
+}
+.detalle-header h1{font-size:24px; margin:4px 0 2px;}
+
+.panel-seccion{
+  background:#fff;
+  border:1px solid var(--gold-line);
+  border-radius:6px;
+  padding:26px 28px;
+  margin-bottom:22px;
+}
+.panel-seccion h2{font-size:16px; margin-bottom:18px;}
+
+.etapa-actual-control{
+  display:flex; justify-content:space-between; align-items:center;
+  flex-wrap:wrap; gap:16px;
+  padding-bottom:22px;
+  margin-bottom:22px;
+  border-bottom:1px solid rgba(20,18,19,0.08);
+}
+.etapa-nombre-grande{
+  font-family:'Champagne & Limousines','Poppins', serif;
+  font-size:22px;
+  margin:4px 0 8px;
+}
+.etapa-botones{display:flex; gap:8px; flex-wrap:wrap;}
+.etapa-botones button:disabled{opacity:0.4; cursor:not-allowed;}
+
+.mini-timeline{
+  list-style:none;
+  display:flex; flex-wrap:wrap; gap:8px;
+}
+.mini-timeline li{
+  padding:6px 12px;
+  border-radius:999px;
+  font-size:11.5px;
+  background:rgba(20,18,19,0.05);
+  color:var(--ink); opacity:0.5;
+  white-space:nowrap;
+}
+.mini-timeline li.completada{background:rgba(214,165,44,0.16); color:#8a6a1a; opacity:1;}
+.mini-timeline li.actual{background:var(--gold); color:var(--ink); opacity:1; font-weight:600;}
+
+.historial-dashboard{list-style:none;}
+.historial-dashboard li{
+  padding:12px 0;
+  border-bottom:1px solid rgba(20,18,19,0.06);
+  font-size:13px;
+}
+.historial-dashboard li:last-child{border-bottom:none;}
+.historial-dashboard .linea-1{display:flex; justify-content:space-between; gap:10px;}
+.historial-dashboard .nombre-usuario{opacity:0.55; font-size:12px; margin-top:2px;}
+.historial-dashboard .obs{opacity:0.7; font-size:12.5px; margin-top:4px;}
+
 /* ---------- Responsive ---------- */
 @media (max-width:900px){
   .dash-sidebar{width:76px; padding:22px 10px;}
