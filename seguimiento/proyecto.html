@@ -20,6 +20,23 @@
   <span class="codigo">Proyecto <span id="codigoHeader">—</span></span>
 </header>
 
+<!-- ================= ESTADO DE CARGA ================= -->
+<div class="estado-carga" id="estadoCarga">
+  <div class="spinner"></div>
+  <p>Cargando el avance de tu proyecto…</p>
+</div>
+
+<!-- ================= ESTADO DE ERROR ================= -->
+<div class="estado-error" id="estadoError">
+  <span class="eyebrow">Seguimiento de Proyecto</span>
+  <h2>No pudimos mostrar tu proyecto</h2>
+  <p>Este enlace no es válido.</p>
+  <a href="https://wa.me/56957039988" target="_blank" rel="noopener" class="estado-error-cta">Escríbenos por WhatsApp</a>
+</div>
+
+<!-- ================= CONTENIDO DEL PROYECTO ================= -->
+<div id="contenidoProyecto" style="display:none;">
+
 <!-- ================= HERO ================= -->
 <section class="hero-proyecto reveal-target">
   <div class="eyebrow">Seguimiento en tiempo real</div>
@@ -79,10 +96,12 @@
 </section>
 
 <!-- ================= HISTORIAL ================= -->
-<section class="historial-section reveal-target">
+<section class="historial-section reveal-target" id="historialSectionWrap">
   <h2>Historial completo</h2>
   <ul id="historialList"></ul>
 </section>
+
+</div><!-- /#contenidoProyecto -->
 
 <!-- ================= FOOTER ================= -->
 <footer class="cliente-footer">
