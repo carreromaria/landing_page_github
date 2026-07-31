@@ -32,3 +32,14 @@ export async function obtenerHistorial(codigo) {
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
+/**
+ * Obtiene el registro de staff de un usuario autenticado (colección "usuarios").
+ * Devuelve null si el uid no tiene un registro ahí (no es staff autorizado).
+ */
+export async function obtenerUsuarioStaff(uid) {
+  const ref = doc(db, "usuarios", uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return { uid: snap.id, ...snap.data() };
+}
