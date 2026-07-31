@@ -96,6 +96,25 @@
       <ol class="mini-timeline" id="miniTimeline"></ol>
     </section>
 
+    <!-- ---- Fotografías ---- -->
+    <section class="panel-seccion">
+      <h2>Fotografías del avance</h2>
+      <label class="dropzone" id="dropzone" for="inputFoto">
+        <span class="dropzone-icono">＋</span>
+        <span>Arrastra una fotografía aquí, o haz clic para elegir un archivo</span>
+        <span class="dropzone-hint">JPG o PNG · máx. 10MB</span>
+      </label>
+      <input type="file" id="inputFoto" accept="image/*" hidden>
+
+      <div class="subida-progreso" id="subidaProgreso" style="display:none;">
+        <div class="barra"><div class="barra-fill" id="barraFill"></div></div>
+        <span id="subidaTexto">Subiendo… 0%</span>
+      </div>
+      <div class="modal-error" id="fotoError"></div>
+
+      <div class="galeria-dashboard" id="galeriaDashboard"></div>
+    </section>
+
     <!-- ---- Datos generales ---- -->
     <section class="panel-seccion">
       <h2>Datos del proyecto</h2>
