@@ -83,9 +83,9 @@ function renderLista() {
         <span class="codigo">${p.codigo}</span>
         <span class="cliente-nombre">${p.cliente || '—'}</span>
         <span class="tipo-col">${p.tipoProyecto || '—'}</span>
-        <span><span class="badge-estado ${p.estadoEtapaActual}">${etapa.nombre}</span></span>
+        <span class="etapa-col"><span class="badge-estado ${p.estadoEtapaActual}">${etapa.nombre}</span></span>
         <span class="porcentaje-mini">${etapa.porcentaje}%</span>
-        <span>${estadoLegible}</span>
+        <span class="estado-col">${estadoLegible}</span>
       </div>`;
   }).join('');
 
