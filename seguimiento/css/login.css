@@ -110,3 +110,7 @@ html, body{height:100%;}
   opacity:0.55;
 }
 .login-footer-link:hover{opacity:0.9;}
+
+@media (max-width:380px){
+  .login-card{padding:32px 22px 26px;}
+}
