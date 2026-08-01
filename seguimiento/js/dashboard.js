@@ -11,8 +11,9 @@ import {
 } from './firestore.js';
 import { validarFoto, subirFoto, eliminarFotoStorage } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
+import { generarEnlaceWhatsappManual } from './whatsapp.js';
 import { generarToken, formatearFecha } from './utils.js';
-import { ETAPAS } from './etapas.js';
+import { ETAPAS, calcularPorcentaje } from './etapas.js';
 
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
@@ -240,6 +241,21 @@ function renderDetalle(p, historial) {
   const enlace = `${window.location.origin}/seguimiento/proyecto.html?codigo=${encodeURIComponent(p.codigo)}&token=${encodeURIComponent(p.token || '')}`;
   document.getElementById('detalleEnlaceCliente').href = enlace;
 
+  const etapaActualNombre = (ETAPAS[p.etapaActualIndex] ?? ETAPAS[0]).nombre;
+  const enlaceWa = generarEnlaceWhatsappManual({
+    telefono: p.telefono,
+    cliente: p.cliente,
+    etapaNombre: etapaActualNombre,
+    enlaceProyecto: enlace
+  });
+  const btnWa = document.getElementById('detalleEnlaceWhatsapp');
+  if (enlaceWa) {
+    btnWa.href = enlaceWa;
+    btnWa.style.display = '';
+  } else {
+    btnWa.style.display = 'none'; // el proyecto no tiene teléfono cargado
+  }
+
   // ---- Control de etapa ----
   const etapa = ETAPAS[p.etapaActualIndex] ?? ETAPAS[0];
   const estadoLegible = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' }[p.estadoEtapaActual] || p.estadoEtapaActual;
@@ -398,12 +414,20 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
     });
 
     if (!esRetroceso) {
+      const porcentajeActual = calcularPorcentaje(nuevoEstado.etapaActualIndex, nuevoEstado.estadoEtapaActual);
+      const fechaEstimadaTexto = PROYECTO_ACTUAL.fechaEstimadaInstalacion
+        ? formatearFecha(PROYECTO_ACTUAL.fechaEstimadaInstalacion)
+        : 'Por confirmar';
+
       const resultado = await notificarCambioEtapa({
         email: PROYECTO_ACTUAL.email,
         cliente: PROYECTO_ACTUAL.cliente,
         etapaNombre,
         codigo: PROYECTO_ACTUAL.codigo,
-        token: PROYECTO_ACTUAL.token
+        token: PROYECTO_ACTUAL.token,
+        tipoProyecto: PROYECTO_ACTUAL.tipoProyecto,
+        porcentaje: porcentajeActual,
+        fechaEstimadaTexto
       });
       if (!resultado.enviado) {
         console.warn('Notificación no enviada:', resultado.motivo);
