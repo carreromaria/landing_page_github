@@ -406,6 +406,26 @@ html, body{height:100%; background:var(--cream);}
   .dash-nav span.texto, .dash-user .nombre, .dash-user .rol{display:none;}
   .dash-user button{font-size:0;}
   .dash-main{padding:24px 20px;}
-  .fila-proyecto{grid-template-columns:90px 1fr 90px; }
-  .fila-proyecto .tipo-col, .fila-proyecto .fecha-col{display:none;}
+  .fila-proyecto{grid-template-columns:90px 1fr 70px;}
+  .fila-proyecto .tipo-col, .fila-proyecto .etapa-col, .fila-proyecto .estado-col{display:none;}
+}
+
+@media (max-width:640px){
+  .dash-toolbar{flex-direction:column; align-items:stretch;}
+  .btn-nuevo-proyecto{width:100%;}
+
+  .form-grid{grid-template-columns:1fr;}
+  .form-grid .campo{grid-column:1 / -1;}
+
+  .modal-box{padding:22px 18px;}
+  .panel-seccion{padding:20px 18px;}
+
+  .detalle-header{flex-direction:column; align-items:stretch;}
+  .detalle-header a{text-align:center;}
+
+  .etapa-actual-control{flex-direction:column; align-items:stretch;}
+  .etapa-botones{flex-direction:column;}
+  .etapa-botones button{width:100%;}
+
+  .enlace-generado{flex-direction:column;}
 }
