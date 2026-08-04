@@ -178,17 +178,24 @@ html, body{height:100%; background:var(--cream);}
 
 .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
 .form-grid .campo-full{grid-column:1 / -1;}
+.campo{min-width:0;}
 .campo label{
   display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
   opacity:0.6; margin-bottom:6px;
 }
 .campo input, .campo textarea{
   width:100%;
+  box-sizing:border-box;
   padding:10px 12px;
   border:1px solid var(--gold-line);
   border-radius:4px;
   font-family:inherit; font-size:14px;
   color:var(--ink);
+  -webkit-appearance:none; appearance:none;
+}
+.campo input[type="date"]{
+  min-width:0;
+  max-width:100%;
 }
 .campo textarea{resize:vertical; min-height:70px;}
 
@@ -408,12 +415,12 @@ html, body{height:100%; background:var(--cream);}
 .dash-topbar-mobile{
   display:none;
   align-items:center;
-  gap:16px;
+  gap:18px;
   background:var(--ink);
-  padding:14px 18px;
+  padding:16px 18px 16px 24px;
   position:sticky; top:0; z-index:200;
 }
-.logo-topbar-mobile{height:20px;}
+.logo-topbar-mobile{height:22px;}
 .btn-burger-dash{
   background:none; border:none;
   width:26px; height:20px;
