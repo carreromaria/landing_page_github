@@ -37,6 +37,22 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
   window.location.href = 'login.html';
 });
 
+// ---------- Sidebar off-canvas (mobile) ----------
+const dashSidebar = document.getElementById('dashSidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+function abrirSidebar() {
+  dashSidebar.classList.add('abierto');
+  sidebarOverlay.classList.add('abierto');
+}
+function cerrarSidebarMobile() {
+  dashSidebar.classList.remove('abierto');
+  sidebarOverlay.classList.remove('abierto');
+}
+document.getElementById('btnAbrirSidebar').addEventListener('click', abrirSidebar);
+document.getElementById('btnCerrarSidebar').addEventListener('click', cerrarSidebarMobile);
+sidebarOverlay.addEventListener('click', cerrarSidebarMobile);
+
 // ---------- Cargar y renderizar listado ----------
 async function cargarProyectos() {
   const lista = document.getElementById('listaProyectos');
