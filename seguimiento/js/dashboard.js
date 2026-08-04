@@ -29,6 +29,7 @@ observarSesionStaff((staff) => {
   document.getElementById('staffRol').textContent = staff.rol === 'admin' ? 'Administrador' : 'Staff';
   document.getElementById('dashCargando').style.display = 'none';
   document.getElementById('dashLayout').style.display = 'flex';
+  document.getElementById('dashTopbarMobile').style.display = '';
   cargarProyectos();
 });
 
