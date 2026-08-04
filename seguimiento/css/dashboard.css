@@ -399,13 +399,62 @@ html, body{height:100%; background:var(--cream);}
 .historial-dashboard .nombre-usuario{opacity:0.55; font-size:12px; margin-top:2px;}
 .historial-dashboard .obs{opacity:0.7; font-size:12.5px; margin-top:4px;}
 
-/* ---------- Responsive ---------- */
+/* ---------- Topbar y sidebar off-canvas (mobile) ---------- */
+.dash-topbar-mobile{
+  display:none;
+  align-items:center;
+  gap:16px;
+  background:var(--ink);
+  padding:14px 18px;
+  position:sticky; top:0; z-index:200;
+}
+.logo-topbar-mobile{height:20px;}
+.btn-burger-dash{
+  background:none; border:none;
+  width:26px; height:20px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding:0; cursor:pointer;
+  flex-shrink:0;
+}
+.btn-burger-dash span{
+  display:block; height:2px; width:100%;
+  background:var(--cream);
+}
+.btn-cerrar-sidebar{
+  display:none;
+  position:absolute; top:14px; right:14px;
+  background:none; border:none;
+  color:var(--cream); font-size:22px;
+  line-height:1; cursor:pointer;
+}
+.logo-sidebar-desktop{height:30px; margin-bottom:34px;}
+.sidebar-overlay{
+  display:none;
+  position:fixed; inset:0;
+  background:rgba(20,18,19,0.5);
+  z-index:210;
+}
+
 @media (max-width:900px){
-  .dash-sidebar{width:76px; padding:22px 10px;}
-  .dash-sidebar img{margin-bottom:24px;}
-  .dash-nav span.texto, .dash-user .nombre, .dash-user .rol{display:none;}
-  .dash-user button{font-size:0;}
-  .dash-main{padding:24px 20px;}
+  .dash-topbar-mobile{display:flex;}
+
+  .dash-sidebar{
+    position:fixed; top:0; left:0; bottom:0;
+    width:250px;
+    z-index:220;
+    transform:translateX(-100%);
+    transition:transform .3s ease;
+    padding:22px 20px;
+  }
+  .dash-sidebar.abierto{transform:translateX(0);}
+  .btn-cerrar-sidebar{display:block;}
+  .logo-sidebar-desktop{margin-bottom:30px;}
+  .dash-nav span.texto, .dash-user .nombre, .dash-user .rol{display:inline;}
+  .dash-user button{font-size:12px;}
+
+  .sidebar-overlay.abierto{display:block;}
+
+  .dash-main{padding:22px 18px;}
   .fila-proyecto{grid-template-columns:90px 1fr 70px;}
   .fila-proyecto .tipo-col, .fila-proyecto .etapa-col, .fila-proyecto .estado-col{display:none;}
 }
