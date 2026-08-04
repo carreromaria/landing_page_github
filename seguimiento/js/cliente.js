@@ -10,7 +10,30 @@ import { ETAPAS, calcularPorcentaje } from './etapas.js';
 import { obtenerProyecto, obtenerHistorial } from './firestore.js';
 import { getQueryParams, formatearFecha } from './utils.js';
 
-const ICONOS_ETAPA = ['🤝', '💳', '🛒', '⚙️', '🔩', '🛠️', '🛡️', '📦', '📅', '🚚', '🏠'];
+const ICONOS_ETAPA = [
+  // Cotización aceptada — documento con check
+  '<rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><polyline points="8,13 11,16 16,10"/>',
+  // Abono del 50% — tarjeta
+  '<rect x="3" y="6" width="18" height="12" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  // Compra de materiales — carrito
+  '<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L21 8H6"/>',
+  // Corte de materiales — tijeras
+  '<circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><line x1="8.5" y1="7.5" x2="20" y2="19"/><line x1="8.5" y1="16.5" x2="20" y2="5"/>',
+  // Fabricación — engranaje
+  '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M21 12h-3M6 12H3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7 5.6 5.6"/>',
+  // Armado — llave
+  '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2 2.8-2.8z"/>',
+  // Control de Calidad — escudo con check
+  '<path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z"/><polyline points="9,12 11,14 15,10"/>',
+  // Embalaje — caja
+  '<path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v9l9 4 9-4V8"/><line x1="12" y1="12" x2="12" y2="21"/>',
+  // Coordinación de instalación — calendario
+  '<rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/>',
+  // Instalación — camión
+  '<rect x="1" y="7" width="13" height="10" rx="1"/><path d="M14 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="1.7"/><circle cx="17" cy="19" r="1.7"/>',
+  // Entrega del proyecto — casa con check
+  '<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><polyline points="9,15 11,17 15,13"/>'
+];
 
 async function init() {
   const { codigo, token } = getQueryParams();
@@ -99,12 +122,12 @@ function renderCinta(p){
 
   const iconosWrap = document.getElementById('tapeIcons');
   iconosWrap.innerHTML = ETAPAS.map((e, i) => {
-    let estadoClase = 'pendiente';
-    if (i < p.etapaActualIndex) estadoClase = 'completada';
-    if (i === p.etapaActualIndex) estadoClase = 'actual';
+    const esActual = i === p.etapaActualIndex;
     return `
-      <div class="tape-icon-item ${estadoClase}">
-        <div class="tape-icon-circle">${ICONOS_ETAPA[i]}</div>
+      <div class="tape-icon-item ${esActual ? 'actual' : ''}">
+        <div class="tape-icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONOS_ETAPA[i]}</svg>
+        </div>
         <div class="tape-dotted"></div>
         <div class="tape-icon-nombre">${e.nombre}</div>
         <div class="tape-icon-num">${e.index + 1}</div>
