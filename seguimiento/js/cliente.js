@@ -10,6 +10,8 @@ import { ETAPAS, calcularPorcentaje } from './etapas.js';
 import { obtenerProyecto, obtenerHistorial } from './firestore.js';
 import { getQueryParams, formatearFecha } from './utils.js';
 
+const ICONOS_ETAPA = ['🤝', '💳', '🛒', '⚙️', '🔩', '🛠️', '🛡️', '📦', '📅', '🚚', '🏠'];
+
 async function init() {
   const { codigo, token } = getQueryParams();
 
@@ -94,6 +96,20 @@ function renderCinta(p){
       <span class="num">${e.porcentaje}%</span>
     </div>
   `).join('');
+
+  const iconosWrap = document.getElementById('tapeIcons');
+  iconosWrap.innerHTML = ETAPAS.map((e, i) => {
+    let estadoClase = 'pendiente';
+    if (i < p.etapaActualIndex) estadoClase = 'completada';
+    if (i === p.etapaActualIndex) estadoClase = 'actual';
+    return `
+      <div class="tape-icon-item ${estadoClase}">
+        <div class="tape-icon-circle">${ICONOS_ETAPA[i]}</div>
+        <div class="tape-dotted"></div>
+        <div class="tape-icon-nombre">${e.nombre}</div>
+        <div class="tape-icon-num">${e.index + 1}</div>
+      </div>`;
+  }).join('');
 }
 
 function renderInfoGrid(p){
