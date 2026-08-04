@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Interno · LINENCE</title>
 <meta name="robots" content="noindex">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
@@ -15,16 +16,16 @@
 <!-- ================= GUARDIA DE SESIÓN ================= -->
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
 
+<!-- Topbar solo visible en mobile -->
+<div class="dash-topbar-mobile" id="dashTopbarMobile" style="display:none;">
+  <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
+    <span></span><span></span><span></span>
+  </button>
+  <img src="assets/img/logo-completo-dashboard-mobile.png" alt="Linence" class="logo-topbar-mobile">
+</div>
+
 <!-- ================= LAYOUT PRINCIPAL ================= -->
 <div class="dash-layout" id="dashLayout" style="display:none;">
-
-  <!-- Topbar solo visible en mobile -->
-  <div class="dash-topbar-mobile">
-    <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
-      <span></span><span></span><span></span>
-    </button>
-    <img src="assets/img/logo-completo-dashboard-mobile.png" alt="Linence" class="logo-topbar-mobile">
-  </div>
 
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
