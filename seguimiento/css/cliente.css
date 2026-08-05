@@ -209,46 +209,12 @@
 }
 .tape-case{
   position:absolute;
-  right:-30px; top:50%; transform:translateY(-50%);
-  width:76px; height:76px;
+  right:-34px; top:50%; transform:translateY(-50%);
+  width:118px;
   z-index:2;
+  filter:drop-shadow(0 6px 12px rgba(20,18,19,0.35));
 }
-.tape-case-clip{
-  position:absolute;
-  top:-7px; left:50%; transform:translateX(-50%);
-  width:22px; height:14px;
-  background:var(--ink);
-  border:1.5px solid var(--gold);
-  border-bottom:none;
-  border-radius:5px 5px 0 0;
-}
-.tape-case-body{
-  position:absolute; inset:0;
-  border-radius:50%;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(250,247,242,0.16), transparent 55%),
-    linear-gradient(155deg, #1c1a1b, var(--ink) 60%);
-  border:2px solid var(--gold);
-  box-shadow:0 4px 14px rgba(20,18,19,0.3), inset 0 0 0 5px rgba(214,165,44,0.08);
-  display:flex; align-items:center; justify-content:center;
-}
-.tape-case-window{
-  width:52%; height:52%;
-  border-radius:50%;
-  background:var(--ink);
-  border:1.5px solid var(--gold);
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:inset 0 1px 4px rgba(0,0,0,0.5);
-}
-.tape-case-window img{width:44%; height:auto;}
-.tape-case-slot{
-  position:absolute;
-  left:-3px; top:50%; transform:translateY(-50%);
-  width:8px; height:30px;
-  background:var(--ink);
-  border-radius:2px;
-  border:1px solid var(--gold);
-}
+.tape-case img{width:100%; height:auto; display:block;}
 
 .cinta-track{
   position:relative;
@@ -481,7 +447,5 @@
 
   .tape-tip{width:16px; height:16px; left:-7px;}
   .tape-tip svg{width:11px; height:11px;}
-  .tape-case{width:52px; height:52px; right:-20px;}
-  .tape-case-clip{width:16px; height:10px; top:-5px;}
-  .tape-case-slot{width:6px; height:20px;}
+  .tape-case{width:76px; right:-22px;}
 }
