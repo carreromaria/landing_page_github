@@ -10,7 +10,8 @@ import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
   collection, getDocs, query, orderBy,
-  serverTimestamp, writeBatch, arrayUnion, arrayRemove
+  serverTimestamp, writeBatch, arrayUnion, arrayRemove,
+  onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /**
@@ -48,34 +49,67 @@ export async function obtenerUsuarioStaff(uid) {
 // ---------- Funciones para el panel interno (dashboard) ----------
 
 /**
- * Lista todos los proyectos, más recientemente actualizados primero.
- * Requiere estar autenticado como staff (ver firestore.rules).
+ * Lista todos los usuarios de staff activos (para el desplegable de
+ * "Responsable"). Requiere la regla `allow list: if esStaff();` en
+ * la colección usuarios.
  */
-export async function listarProyectos() {
-  const ref = collection(db, "proyectos");
-  const q = query(ref, orderBy("actualizadoEn", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ codigo: d.id, ...d.data() }));
+export async function listarUsuariosStaff() {
+  const ref = collection(db, "usuarios");
+  const snap = await getDocs(ref);
+  return snap.docs
+    .map(d => ({ uid: d.id, ...d.data() }))
+    .filter(u => u.activo !== false);
 }
 
 /**
- * Crea un proyecto nuevo. El código (documento ID) debe ser el mismo
- * ID que ya entrega el formulario de cotización de la landing
- * (ej. LIN-59147). El token de acceso del cliente se genera en
- * dashboard.js (utils.js → generarToken) y se pasa dentro de `datos`.
+ * Igual que listarProyectos, pero en tiempo real: callback(proyectos)
+ * se ejecuta de inmediato y cada vez que algo cambia en Firestore
+ * (desde esta pestaña o cualquier otra). Devuelve una función para
+ * dejar de escuchar (llamarla al salir del listado).
  */
-export async function crearProyecto(codigo, datos, uid) {
-  const ref = doc(db, "proyectos", codigo);
-  await setDoc(ref, {
-    ...datos,
-    etapaActualIndex: 0,
-    estadoEtapaActual: "pendiente",
-    fotos: [],
-    activo: true,
-    creadoPor: uid,
-    creadoEn: serverTimestamp(),
-    actualizadoEn: serverTimestamp()
+export function escucharProyectos(callback, onError) {
+  const ref = collection(db, "proyectos");
+  const q = query(ref, orderBy("actualizadoEn", "desc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ codigo: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/**
+ * Crea un proyecto nuevo asignándole automáticamente el siguiente
+ * código secuencial (LIN-00001, LIN-00002...). Usa una transacción
+ * atómica: lee el último número usado, lo sube en 1, y crea el
+ * proyecto, todo junto — así nunca se repite ni se salta un número
+ * aunque dos personas creen un proyecto al mismo tiempo.
+ *
+ * Devuelve el código generado (ej. "LIN-00006").
+ */
+export async function crearProyectoConCodigoAutomatico(datos, uid) {
+  const refContador = doc(db, "contadores", "proyectos");
+
+  const codigo = await runTransaction(db, async (transaction) => {
+    const snapContador = await transaction.get(refContador);
+    const ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
+    const nuevoNumero = ultimo + 1;
+    const nuevoCodigo = "LIN-" + String(nuevoNumero).padStart(5, "0");
+
+    transaction.set(refContador, { ultimo: nuevoNumero });
+    transaction.set(doc(db, "proyectos", nuevoCodigo), {
+      ...datos,
+      etapaActualIndex: 0,
+      estadoEtapaActual: "pendiente",
+      fotos: [],
+      activo: true,
+      creadoPor: uid,
+      creadoEn: serverTimestamp(),
+      actualizadoEn: serverTimestamp()
+    });
+
+    return nuevoCodigo;
   });
+
+  return codigo;
 }
 
 /** Actualiza campos generales de un proyecto (no las etapas). */
@@ -85,6 +119,19 @@ export async function actualizarProyecto(codigo, datos) {
     ...datos,
     actualizadoEn: serverTimestamp()
   });
+}
+
+/**
+ * Elimina un proyecto por completo: su historial, y el documento
+ * principal. Requiere rol admin (ver firestore.rules). Las fotos en
+ * Storage se eliminan aparte, desde dashboard.js, usando storage.js.
+ */
+export async function eliminarProyecto(codigo) {
+  const historialSnap = await getDocs(collection(db, "proyectos", codigo, "historial"));
+  const batch = writeBatch(db);
+  historialSnap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(doc(db, "proyectos", codigo));
+  await batch.commit();
 }
 
 // ---------- Gestión de etapas (Fase 8) ----------
