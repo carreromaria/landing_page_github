@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel Interno · LINENCE</title>
 <meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="shortcut icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -83,12 +86,13 @@
 
     <div class="detalle-header">
       <div>
-        <span class="eyebrow" id="detalleCodigo">—</span>
+        <span class="codigo-badge-grande" id="detalleCodigo">—</span>
         <h1 id="detalleCliente">—</h1>
         <p class="subtitulo" id="detalleTipo">—</p>
       </div>
       <a href="#" id="detalleEnlaceCliente" target="_blank" class="btn-secundario">Ver como cliente ↗</a>
       <a href="#" id="detalleEnlaceWhatsapp" target="_blank" class="btn-secundario">Compartir por WhatsApp ↗</a>
+      <a href="#" id="detalleEnlaceBienvenida" target="_blank" class="btn-secundario btn-bienvenida">Enviar bienvenida a la plataforma ↗</a>
     </div>
 
     <!-- ---- Control de etapa ---- -->
@@ -106,6 +110,12 @@
           <button class="btn-primario" id="btnCompletarEtapa">Completar y avanzar →</button>
         </div>
       </div>
+
+      <div class="campo campo-obs-etapa">
+        <label for="obsEtapaInput">Observación de este cambio (opcional, visible para el cliente)</label>
+        <textarea id="obsEtapaInput" placeholder="Ej. Se recibieron los tableros con 2 días de anticipación."></textarea>
+      </div>
+
       <ol class="mini-timeline" id="miniTimeline"></ol>
     </section>
 
@@ -130,8 +140,14 @@
 
     <!-- ---- Datos generales ---- -->
     <section class="panel-seccion">
-      <h2>Datos del proyecto</h2>
-      <form id="formEditarProyecto">
+      <button type="button" class="datos-proyecto-toggle" id="datosProyectoToggle">
+        <h2>Datos del proyecto</h2>
+        <span class="flecha-datos" id="flechaDatos">⌄</span>
+      </button>
+
+      <ul class="resumen-datos" id="resumenDatos"></ul>
+
+      <form id="formEditarProyecto" style="display:none;">
         <div class="form-grid">
           <div class="campo">
             <label for="eCliente">Cliente</label>
@@ -139,7 +155,7 @@
           </div>
           <div class="campo">
             <label for="eTelefono">Teléfono</label>
-            <input type="tel" id="eTelefono">
+            <input type="tel" id="eTelefono" inputmode="numeric">
           </div>
           <div class="campo campo-full">
             <label for="eEmail">Correo electrónico</label>
@@ -150,8 +166,19 @@
             <input type="text" id="eTipoProyecto">
           </div>
           <div class="campo">
+            <label for="eCategoria">Categoría</label>
+            <select id="eCategoria">
+              <option value="">Selecciona…</option>
+              <option value="Bronze">Bronze</option>
+              <option value="Gold">Gold</option>
+              <option value="Black">Black</option>
+            </select>
+          </div>
+          <div class="campo campo-full">
             <label for="eResponsable">Responsable</label>
-            <input type="text" id="eResponsable">
+            <select id="eResponsable">
+              <option value="">Selecciona…</option>
+            </select>
           </div>
           <div class="campo campo-full">
             <label for="eDireccion">Dirección</label>
@@ -168,6 +195,7 @@
         </div>
         <div class="modal-error" id="editarError"></div>
         <div class="modal-acciones">
+          <button type="button" class="btn-secundario" id="btnCancelarEdicion">Cancelar</button>
           <button type="submit" class="btn-primario" id="btnGuardarEdicion">Guardar cambios</button>
         </div>
       </form>
@@ -178,6 +206,31 @@
       <h2>Historial</h2>
       <ul class="historial-dashboard" id="historialDashboard"></ul>
     </section>
+
+    <!-- ---- Zona de eliminación (solo admin) ---- -->
+    <section class="panel-seccion panel-peligro" id="zonaPeligro" style="display:none;">
+      <h2>Eliminar proyecto</h2>
+      <p class="peligro-texto">
+        Esto borra el proyecto, su historial y sus fotografías <strong>de forma permanente</strong>.
+        No se puede deshacer. El cliente perderá acceso a su enlace de seguimiento de inmediato.
+      </p>
+
+      <div id="pasoUnoEliminar">
+        <button type="button" class="btn-peligro" id="btnIniciarEliminacion">Eliminar este proyecto</button>
+      </div>
+
+      <div id="pasoDosEliminar" style="display:none;">
+        <label class="campo-eliminar-label">
+          Para confirmar, escribe el código del proyecto (<strong id="codigoConfirmacion"></strong>):
+        </label>
+        <input type="text" id="inputConfirmacionCodigo" class="input-confirmacion" autocomplete="off">
+        <div class="modal-error" id="eliminarError"></div>
+        <div class="modal-acciones">
+          <button type="button" class="btn-secundario" id="btnCancelarEliminacion">Cancelar</button>
+          <button type="button" class="btn-peligro" id="btnConfirmarEliminacion" disabled>Eliminar definitivamente</button>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -185,13 +238,12 @@
 <div class="modal-overlay" id="modalNuevo">
   <div class="modal-box">
     <h2>Nuevo proyecto</h2>
-    <p class="subtitulo">Usa el mismo código que ya generó el formulario de cotización de la landing.</p>
+    <p class="subtitulo">El código de proyecto se genera automáticamente y en orden.</p>
 
     <form id="formNuevoProyecto">
       <div class="form-grid">
         <div class="campo campo-full">
-          <label for="fCodigo">Código de proyecto (ej. LIN-59147)</label>
-          <input type="text" id="fCodigo" required placeholder="LIN-59147">
+          <p class="nota-codigo-automatico">El código del proyecto (LIN-00001, LIN-00002…) se asigna automáticamente al guardar.</p>
         </div>
         <div class="campo">
           <label for="fCliente">Cliente</label>
@@ -210,8 +262,19 @@
           <input type="text" id="fTipoProyecto" placeholder="Ej. Cocina moderna" required>
         </div>
         <div class="campo">
+          <label for="fCategoria">Categoría</label>
+          <select id="fCategoria">
+            <option value="">Selecciona…</option>
+            <option value="Bronze">Bronze</option>
+            <option value="Gold">Gold</option>
+            <option value="Black">Black</option>
+          </select>
+        </div>
+        <div class="campo campo-full">
           <label for="fResponsable">Responsable</label>
-          <input type="text" id="fResponsable" placeholder="Ej. Abraham Quintero">
+          <select id="fResponsable">
+            <option value="">Selecciona…</option>
+          </select>
         </div>
         <div class="campo campo-full">
           <label for="fDireccion">Dirección</label>
