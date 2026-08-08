@@ -210,12 +210,12 @@
 }
 .tape-case{
   position:absolute;
-  right:-52px; top:50%; transform:translateY(-50%);
-  width:180px;
+  right:-32px; top:50%; transform:translateY(-50%);
+  width:108px;
+  height:85px;
   z-index:2;
-  filter:drop-shadow(0 8px 16px rgba(20,18,19,0.4));
 }
-.tape-case img{width:100%; height:auto; display:block;}
+.tape-case svg{display:block;}
 
 .cinta-track{
   position:relative;
@@ -451,5 +451,5 @@
 
   .tape-tip{width:16px; height:16px; left:-7px;}
   .tape-tip svg{width:11px; height:11px;}
-  .tape-case{width:118px; right:-34px;}
+  .tape-case{width:70px; height:55px; right:-20px;}
 }
