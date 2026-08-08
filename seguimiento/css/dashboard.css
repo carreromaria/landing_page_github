@@ -343,6 +343,139 @@ html, body{height:100%; background:var(--cream);}
   font-size:13px;
 }
 
+/* ---------- Zona de peligro (eliminar proyecto) ---------- */
+.panel-peligro{
+  border-color:rgba(184,69,47,0.35);
+  background:rgba(184,69,47,0.04);
+}
+.panel-peligro h2{color:#b8452f;}
+.peligro-texto{
+  font-size:13px;
+  opacity:0.75;
+  line-height:1.6;
+  margin-bottom:18px;
+  max-width:520px;
+}
+.btn-peligro{
+  padding:10px 20px;
+  background:#b8452f;
+  color:#fff;
+  border:none; border-radius:4px;
+  font-family:inherit; font-size:13px; font-weight:600;
+  cursor:pointer;
+}
+.btn-peligro:hover{opacity:0.9;}
+.btn-peligro:disabled{opacity:0.4; cursor:not-allowed;}
+.campo-eliminar-label{
+  display:block;
+  font-size:13px;
+  margin-bottom:8px;
+}
+.input-confirmacion{
+  width:100%; max-width:280px;
+  padding:10px 12px;
+  border:1px solid rgba(184,69,47,0.4);
+  border-radius:4px;
+  font-family:inherit; font-size:14px;
+  margin-bottom:6px;
+}
+
+.campo-obs-etapa{margin-top:20px;}
+
+/* ---- Punto 1: código más visible ---- */
+.codigo-badge-grande{
+  display:inline-block;
+  font-size:16px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  color:var(--ink);
+  background:var(--gold);
+  padding:5px 14px;
+  border-radius:4px;
+  margin-bottom:6px;
+}
+
+/* ---- Punto 6: prefijo LIN- fijo ---- */
+.campo-codigo-prefijo{
+  display:flex;
+  border:1px solid var(--gold-line);
+  border-radius:4px;
+  overflow:hidden;
+}
+.campo-codigo-prefijo .prefijo-lin{
+  display:flex; align-items:center;
+  padding:0 12px;
+  background:var(--sand-soft);
+  font-weight:600;
+  font-size:14px;
+  color:var(--ink);
+  border-right:1px solid var(--gold-line);
+}
+.campo-codigo-prefijo input{
+  border:none; border-radius:0;
+  flex:1;
+}
+
+.nota-codigo-automatico{
+  font-size:13px;
+  opacity:0.6;
+  background:var(--sand-soft);
+  padding:10px 14px;
+  border-radius:4px;
+}
+
+/* ---- Select (categoría / responsable) ---- */
+.campo select{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--gold-line);
+  border-radius:4px;
+  font-family:inherit; font-size:14px;
+  color:var(--ink);
+  background:#fff;
+  -webkit-appearance:none; appearance:none;
+}
+
+/* ---- Punto 8: resumen tipo lista, colapsable ---- */
+.datos-proyecto-toggle{
+  width:100%;
+  display:flex; align-items:center; justify-content:space-between;
+  background:none; border:none;
+  padding:0; margin-bottom:16px;
+  cursor:pointer;
+  font-family:inherit;
+}
+.datos-proyecto-toggle h2{margin-bottom:0;}
+.flecha-datos{
+  color:var(--gold);
+  font-size:16px;
+  transition:transform .25s ease;
+}
+.flecha-datos.abierta{transform:rotate(180deg);}
+
+.resumen-datos{
+  list-style:none;
+}
+.resumen-datos li{
+  display:flex; justify-content:space-between; gap:14px;
+  padding:11px 0;
+  border-bottom:1px solid rgba(20,18,19,0.06);
+  font-size:13.5px;
+}
+.resumen-datos li:last-child{border-bottom:none;}
+.resumen-datos .resumen-label{opacity:0.55;}
+.resumen-datos .resumen-valor{font-weight:500; text-align:right;}
+.badge-categoria{
+  padding:2px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:0.03em;
+}
+.badge-categoria.bronze{background:rgba(176,120,60,0.18); color:#8a5a26;}
+.badge-categoria.gold{background:rgba(214,165,44,0.2); color:#8a6a1a;}
+.badge-categoria.black{background:rgba(20,18,19,0.14); color:var(--ink);}
+
 /* ---------- Vista de detalle ---------- */
 .btn-volver{
   background:none; border:none;
@@ -360,6 +493,11 @@ html, body{height:100%; background:var(--cream);}
   margin-bottom:30px;
 }
 .detalle-header h1{font-size:24px; margin:4px 0 2px;}
+.btn-bienvenida{
+  background:var(--sand-soft);
+  border-color:var(--gold);
+  font-weight:500;
+}
 
 .panel-seccion{
   background:#fff;
@@ -385,6 +523,7 @@ html, body{height:100%; background:var(--cream);}
 .etapa-botones{display:flex; gap:8px; flex-wrap:wrap;}
 .etapa-botones button:disabled{opacity:0.4; cursor:not-allowed;}
 
+.campo-observacion-etapa{margin-bottom:20px;}
 .mini-timeline{
   list-style:none;
   display:flex; flex-wrap:wrap; gap:8px;
