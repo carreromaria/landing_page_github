@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Seguimiento de Proyecto · LINENCE</title>
 <meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="shortcut icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
@@ -15,16 +18,25 @@
     padding:24px;
     text-align:center;
   }
-  .modulo-card{max-width:440px;}
-  .modulo-card img{height:40px; margin:0 auto 26px;}
+  .modulo-card{max-width:480px;}
+  .modulo-card .logo-icono{height:64px; margin:0 auto 8px;}
+  .modulo-card .logo-wordmark{height:22px; margin:0 auto 30px;}
   .modulo-card h1{
     font-family:'Champagne & Limousines','Poppins', serif;
-    font-size:26px;
-    margin-bottom:14px;
+    font-size:30px;
+    line-height:1.25;
+    margin-bottom:16px;
   }
   .modulo-card p{
-    font-size:15px; line-height:1.6; opacity:0.75;
-    margin-bottom:28px;
+    font-size:15.5px; line-height:1.65; opacity:0.75;
+    margin-bottom:22px;
+  }
+  .modulo-card .modulo-pregunta{
+    font-weight:600;
+    opacity:1;
+    color:var(--ink);
+    margin-top:26px;
+    margin-bottom:6px;
   }
   .modulo-cta{
     display:inline-block;
@@ -47,10 +59,16 @@
 
 <div class="modulo-wrap">
   <div class="modulo-card">
-    <img src="assets/img/logo-icono-oscuro.png" alt="Linence">
-    <h1>Seguimiento de tu Proyecto</h1>
-    <p>Para ver el avance de tu proyecto, usa el enlace personal que te enviamos por correo o WhatsApp al aceptar tu cotización. Si no lo encuentras, escríbenos y te lo reenviamos al instante.</p>
-    <a href="https://wa.me/56957039988" target="_blank" rel="noopener" class="modulo-cta">Escríbenos por WhatsApp</a>
+    <img src="assets/img/logo-icono-oscuro.png" alt="Linence" class="logo-icono">
+    <img src="assets/img/logo-wordmark-oscuro-solo.png" alt="Linence" class="logo-wordmark">
+
+    <h1>Mantente informado en cada etapa de tu proyecto.</h1>
+    <p>Consulta el avance, conoce el estado actual y sigue todo el proceso de fabricación e instalación con total transparencia.</p>
+
+    <p class="modulo-pregunta">¿Aún no tienes tu enlace de seguimiento?</p>
+    <p>Solicítalo por WhatsApp y te lo enviaremos de inmediato.</p>
+
+    <a href="https://wa.me/56957039988" target="_blank" rel="noopener" class="modulo-cta">📲 Solicitar mi enlace de seguimiento</a>
     <a href="https://linence.cl" class="modulo-secundario">← Volver al sitio de Linence</a>
   </div>
 </div>
