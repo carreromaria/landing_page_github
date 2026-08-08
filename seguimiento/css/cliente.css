@@ -64,7 +64,8 @@
   border-bottom:1px solid var(--gold-line);
 }
 .cliente-header .logo-mini{height:38px; width:auto;}
-.cliente-header .logo-mini-link{display:flex; align-items:center;}
+.cliente-header .logo-mini-link{display:flex; align-items:center; gap:12px;}
+.cliente-header .logo-wordmark-mini{height:17px; width:auto;}
 .cliente-header .codigo{
   font-size:12px;
   letter-spacing:0.16em;
@@ -209,10 +210,10 @@
 }
 .tape-case{
   position:absolute;
-  right:-34px; top:50%; transform:translateY(-50%);
-  width:118px;
+  right:-52px; top:50%; transform:translateY(-50%);
+  width:180px;
   z-index:2;
-  filter:drop-shadow(0 6px 12px rgba(20,18,19,0.35));
+  filter:drop-shadow(0 8px 16px rgba(20,18,19,0.4));
 }
 .tape-case img{width:100%; height:auto; display:block;}
 
@@ -434,6 +435,9 @@
 }
 @media (max-width:640px){
   .cliente-header{padding:18px 5vw;}
+  .cliente-header .logo-mini{height:28px;}
+  .cliente-header .logo-wordmark-mini{height:12px;}
+  .cliente-header .logo-mini-link{gap:8px;}
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
@@ -447,5 +451,5 @@
 
   .tape-tip{width:16px; height:16px; left:-7px;}
   .tape-tip svg{width:11px; height:11px;}
-  .tape-case{width:76px; right:-22px;}
+  .tape-case{width:118px; right:-34px;}
 }
