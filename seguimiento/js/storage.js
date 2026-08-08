@@ -56,3 +56,14 @@ export async function eliminarFotoStorage(storagePath) {
   const storageRef = ref(storage, storagePath);
   await deleteObject(storageRef);
 }
+
+/**
+ * Elimina TODAS las fotografías de un proyecto en Storage (se usa
+ * al borrar el proyecto completo). Si alguna falla, sigue con las
+ * demás — no queremos que una foto ya borrada trabe todo el proceso.
+ */
+export async function eliminarTodasLasFotos(fotos) {
+  await Promise.allSettled(
+    (fotos || []).map(f => eliminarFotoStorage(f.storagePath))
+  );
+}
