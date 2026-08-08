@@ -5,18 +5,20 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  listarProyectos, crearProyecto, obtenerProyecto,
+  escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
   obtenerHistorial, actualizarProyecto, cambiarEtapaProyecto,
-  agregarFotoProyecto, quitarFotoProyecto
+  agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
+  listarUsuariosStaff
 } from './firestore.js';
-import { validarFoto, subirFoto, eliminarFotoStorage } from './storage.js';
+import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
-import { generarEnlaceWhatsappManual } from './whatsapp.js';
+import { generarEnlaceWhatsappManual, generarEnlaceWhatsappBienvenida } from './whatsapp.js';
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
 
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
+let USUARIOS_STAFF = [];
 
 // ---------- Guardia de sesión ----------
 observarSesionStaff((staff) => {
@@ -31,6 +33,7 @@ observarSesionStaff((staff) => {
   document.getElementById('dashLayout').style.display = 'flex';
   document.getElementById('dashTopbarMobile').style.display = '';
   cargarProyectos();
+  listarUsuariosStaff().then(lista => { USUARIOS_STAFF = lista; }).catch(err => console.error(err));
 });
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
@@ -54,17 +57,20 @@ document.getElementById('btnAbrirSidebar').addEventListener('click', abrirSideba
 document.getElementById('btnCerrarSidebar').addEventListener('click', cerrarSidebarMobile);
 sidebarOverlay.addEventListener('click', cerrarSidebarMobile);
 
-// ---------- Cargar y renderizar listado ----------
-async function cargarProyectos() {
+// ---------- Cargar y renderizar listado (tiempo real) ----------
+function cargarProyectos() {
   const lista = document.getElementById('listaProyectos');
   lista.innerHTML = '<div class="dash-vacio">Cargando proyectos…</div>';
-  try {
-    TODOS_LOS_PROYECTOS = await listarProyectos();
-    renderLista();
-  } catch (err) {
-    console.error(err);
-    lista.innerHTML = '<div class="dash-vacio">No pudimos cargar los proyectos. Intenta recargar la página.</div>';
-  }
+
+  escucharProyectos(
+    (proyectos) => {
+      TODOS_LOS_PROYECTOS = proyectos;
+      renderLista();
+    },
+    () => {
+      lista.innerHTML = '<div class="dash-vacio">No pudimos cargar los proyectos. Intenta recargar la página.</div>';
+    }
+  );
 }
 
 function renderLista() {
@@ -123,6 +129,7 @@ const btnGuardar = document.getElementById('btnGuardarNuevo');
 document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   formNuevo.reset();
   modalError.classList.remove('visible');
+  poblarSelectResponsable(document.getElementById('fResponsable'));
   modalNuevo.classList.add('open');
 });
 document.getElementById('btnCancelarNuevo').addEventListener('click', () => {
@@ -136,31 +143,25 @@ formNuevo.addEventListener('submit', async (e) => {
   e.preventDefault();
   modalError.classList.remove('visible');
 
-  const codigo = document.getElementById('fCodigo').value.trim().toUpperCase();
   const fechaEstimadaValor = document.getElementById('fFechaEstimada').value;
+  const telefono = document.getElementById('fTelefono').value.trim();
 
-  if (!/^LIN-\d+$/.test(codigo)) {
-    modalError.textContent = 'El código debe tener el formato LIN- seguido de números (igual al del formulario de cotización).';
-    modalError.classList.add('visible');
-    return;
-  }
-
-  const yaExiste = TODOS_LOS_PROYECTOS.some(p => p.codigo === codigo);
-  if (yaExiste) {
-    modalError.textContent = 'Ya existe un proyecto con ese código.';
+  if (telefono && !/^[\d\s()+-]+$/.test(telefono)) {
+    modalError.textContent = 'El teléfono solo puede contener números (y +, espacios o guiones).';
     modalError.classList.add('visible');
     return;
   }
 
   const datos = {
-    cliente: document.getElementById('fCliente').value.trim(),
-    telefono: document.getElementById('fTelefono').value.trim(),
-    email: document.getElementById('fEmail').value.trim(),
-    tipoProyecto: document.getElementById('fTipoProyecto').value.trim(),
-    responsable: document.getElementById('fResponsable').value.trim(),
-    direccion: document.getElementById('fDireccion').value.trim(),
+    cliente: document.getElementById('fCliente').value.trim().toUpperCase(),
+    telefono: telefono,
+    email: document.getElementById('fEmail').value.trim().toUpperCase(),
+    tipoProyecto: document.getElementById('fTipoProyecto').value.trim().toUpperCase(),
+    categoria: document.getElementById('fCategoria').value,
+    responsable: document.getElementById('fResponsable').value,
+    direccion: document.getElementById('fDireccion').value.trim().toUpperCase(),
     fechaEstimadaInstalacion: fechaEstimadaValor ? new Date(fechaEstimadaValor) : null,
-    observaciones: document.getElementById('fObservaciones').value.trim(),
+    observaciones: document.getElementById('fObservaciones').value.trim().toUpperCase(),
     token: generarToken()
   };
 
@@ -168,10 +169,9 @@ formNuevo.addEventListener('submit', async (e) => {
   btnGuardar.textContent = 'Creando…';
 
   try {
-    await crearProyecto(codigo, datos, STAFF_ACTUAL.uid);
+    const codigo = await crearProyectoConCodigoAutomatico(datos, STAFF_ACTUAL.uid);
     modalNuevo.classList.remove('open');
     mostrarEnlaceGenerado(codigo, datos.token);
-    await cargarProyectos();
   } catch (err) {
     console.error(err);
     modalError.textContent = 'No pudimos crear el proyecto. Intenta nuevamente.';
@@ -204,13 +204,55 @@ document.getElementById('btnCerrarExito').addEventListener('click', () => {
   modalExito.classList.remove('open');
 });
 
+// ---------- Helpers: responsables, mayúsculas automáticas, teléfono ----------
+
+function poblarSelectResponsable(selectEl, valorActual) {
+  const opciones = USUARIOS_STAFF.map(u => {
+    const nombre = u.nombre || u.email;
+    return `<option value="${nombre}">${nombre}</option>`;
+  }).join('');
+  selectEl.innerHTML = '<option value="">Selecciona…</option>' + opciones;
+  if (valorActual) {
+    const existe = USUARIOS_STAFF.some(u => (u.nombre || u.email) === valorActual);
+    if (!existe) {
+      selectEl.insertAdjacentHTML('beforeend', `<option value="${valorActual}">${valorActual} (no está en la lista)</option>`);
+    }
+    selectEl.value = valorActual;
+  }
+}
+
+/** Convierte a mayúsculas mientras se escribe, en todos los inputs/textarea con la clase .campo-mayusculas. */
+function activarMayusculasAutomaticas(contenedor) {
+  contenedor.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      const cursor = el.selectionStart;
+      el.value = el.value.toUpperCase();
+      el.setSelectionRange(cursor, cursor);
+    });
+  });
+}
+activarMayusculasAutomaticas(document.getElementById('formNuevoProyecto'));
+activarMayusculasAutomaticas(document.getElementById('formEditarProyecto'));
+
+/** Solo permite dígitos y algunos símbolos válidos de teléfono mientras se escribe. */
+function activarValidacionTelefono(inputEl) {
+  inputEl.addEventListener('input', () => {
+    inputEl.value = inputEl.value.replace(/[^\d\s()+-]/g, '');
+  });
+}
+activarValidacionTelefono(document.getElementById('fTelefono'));
+activarValidacionTelefono(document.getElementById('eTelefono'));
+
 // ============================================================
 // VISTA DE DETALLE (Fase 8)
 // ============================================================
 
+
+
 const vistaListado = document.querySelector('.dash-main'); // el primer .dash-main = listado
 const vistaDetalle = document.getElementById('vistaDetalle');
 let PROYECTO_ACTUAL = null;
+let ultimoHistorialCargado = [];
 
 async function abrirDetalle(codigo) {
   vistaListado.style.display = 'none';
@@ -232,6 +274,7 @@ async function abrirDetalle(codigo) {
       return;
     }
     PROYECTO_ACTUAL = proyecto;
+    ultimoHistorialCargado = historial;
     renderDetalle(proyecto, historial);
   } catch (err) {
     console.error(err);
@@ -247,7 +290,6 @@ function volverAlListado() {
 }
 document.getElementById('btnVolverListado').addEventListener('click', () => {
   volverAlListado();
-  cargarProyectos(); // refresca por si hubo cambios
 });
 
 function renderDetalle(p, historial) {
@@ -271,6 +313,19 @@ function renderDetalle(p, historial) {
     btnWa.style.display = '';
   } else {
     btnWa.style.display = 'none'; // el proyecto no tiene teléfono cargado
+  }
+
+  const enlaceBienvenida = generarEnlaceWhatsappBienvenida({
+    telefono: p.telefono,
+    cliente: p.cliente,
+    enlaceProyecto: enlace
+  });
+  const btnBienvenida = document.getElementById('detalleEnlaceBienvenida');
+  if (enlaceBienvenida) {
+    btnBienvenida.href = enlaceBienvenida;
+    btnBienvenida.style.display = '';
+  } else {
+    btnBienvenida.style.display = 'none';
   }
 
   // ---- Control de etapa ----
@@ -302,12 +357,39 @@ function renderDetalle(p, historial) {
   document.getElementById('eTelefono').value = p.telefono || '';
   document.getElementById('eEmail').value = p.email || '';
   document.getElementById('eTipoProyecto').value = p.tipoProyecto || '';
-  document.getElementById('eResponsable').value = p.responsable || '';
   document.getElementById('eDireccion').value = p.direccion || '';
   document.getElementById('eFechaEstimada').value = p.fechaEstimadaInstalacion
     ? (p.fechaEstimadaInstalacion.toDate ? p.fechaEstimadaInstalacion.toDate() : new Date(p.fechaEstimadaInstalacion)).toISOString().slice(0, 10)
     : '';
   document.getElementById('eObservaciones').value = p.observaciones || '';
+  document.getElementById('eCategoria').value = p.categoria || '';
+  poblarSelectResponsable(document.getElementById('eResponsable'), p.responsable || '');
+
+  // ---- Resumen tipo lista (colapsado por defecto) ----
+  const categoriaClase = (p.categoria || '').toLowerCase();
+  const filaCategoria = p.categoria
+    ? `<span class="badge-categoria ${categoriaClase}">${p.categoria}</span>`
+    : '<span class="resumen-valor" style="opacity:0.4;">Sin asignar</span>';
+
+  document.getElementById('resumenDatos').innerHTML = `
+    <li><span class="resumen-label">Cliente</span><span class="resumen-valor">${p.cliente || '—'}</span></li>
+    <li><span class="resumen-label">Teléfono</span><span class="resumen-valor">${p.telefono || '—'}</span></li>
+    <li><span class="resumen-label">Correo</span><span class="resumen-valor">${p.email || '—'}</span></li>
+    <li><span class="resumen-label">Tipo de proyecto</span><span class="resumen-valor">${p.tipoProyecto || '—'}</span></li>
+    <li><span class="resumen-label">Categoría</span>${filaCategoria}</li>
+    <li><span class="resumen-label">Responsable</span><span class="resumen-valor">${p.responsable || 'Por asignar'}</span></li>
+    <li><span class="resumen-label">Dirección</span><span class="resumen-valor">${p.direccion || '—'}</span></li>
+    <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${p.fechaEstimadaInstalacion ? formatearFecha(p.fechaEstimadaInstalacion) : 'Por confirmar'}</span></li>
+  `;
+  // Siempre vuelve a mostrarse colapsado al entrar/recargar el detalle
+  document.getElementById('formEditarProyecto').style.display = 'none';
+  document.getElementById('resumenDatos').style.display = 'block';
+  document.getElementById('flechaDatos').classList.remove('abierta');
+
+  // ---- Zona de eliminación (solo admin) ----
+  document.getElementById('zonaPeligro').style.display = STAFF_ACTUAL.rol === 'admin' ? 'block' : 'none';
+  document.getElementById('codigoConfirmacion').textContent = p.codigo;
+  resetearPasosEliminacion();
 
   // ---- Historial ----
   const listaHist = document.getElementById('historialDashboard');
@@ -327,25 +409,51 @@ function renderDetalle(p, historial) {
   }
 }
 
+// ---- Expandir/colapsar "Datos del proyecto" ----
+document.getElementById('datosProyectoToggle').addEventListener('click', () => {
+  const form = document.getElementById('formEditarProyecto');
+  const resumen = document.getElementById('resumenDatos');
+  const flecha = document.getElementById('flechaDatos');
+  const abrir = form.style.display === 'none';
+  form.style.display = abrir ? 'block' : 'none';
+  resumen.style.display = abrir ? 'none' : 'block';
+  flecha.classList.toggle('abierta', abrir);
+});
+
+document.getElementById('btnCancelarEdicion').addEventListener('click', () => {
+  document.getElementById('formEditarProyecto').style.display = 'none';
+  document.getElementById('resumenDatos').style.display = 'block';
+  document.getElementById('flechaDatos').classList.remove('abierta');
+});
+
 // ---- Guardar datos generales ----
 document.getElementById('formEditarProyecto').addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById('editarError');
   errorBox.classList.remove('visible');
   const btn = document.getElementById('btnGuardarEdicion');
+
+  const telefono = document.getElementById('eTelefono').value.trim();
+  if (telefono && !/^[\d\s()+-]+$/.test(telefono)) {
+    errorBox.textContent = 'El teléfono solo puede contener números (y +, espacios o guiones).';
+    errorBox.classList.add('visible');
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Guardando…';
 
   const fechaValor = document.getElementById('eFechaEstimada').value;
   const datos = {
-    cliente: document.getElementById('eCliente').value.trim(),
-    telefono: document.getElementById('eTelefono').value.trim(),
-    email: document.getElementById('eEmail').value.trim(),
-    tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
-    responsable: document.getElementById('eResponsable').value.trim(),
-    direccion: document.getElementById('eDireccion').value.trim(),
+    cliente: document.getElementById('eCliente').value.trim().toUpperCase(),
+    telefono: telefono,
+    email: document.getElementById('eEmail').value.trim().toUpperCase(),
+    tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toUpperCase(),
+    categoria: document.getElementById('eCategoria').value,
+    responsable: document.getElementById('eResponsable').value,
+    direccion: document.getElementById('eDireccion').value.trim().toUpperCase(),
     fechaEstimadaInstalacion: fechaValor ? new Date(fechaValor) : null,
-    observaciones: document.getElementById('eObservaciones').value.trim()
+    observaciones: document.getElementById('eObservaciones').value.trim().toUpperCase()
   };
 
   try {
@@ -353,6 +461,7 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     PROYECTO_ACTUAL = { ...PROYECTO_ACTUAL, ...datos };
     document.getElementById('detalleCliente').textContent = datos.cliente || 'Sin nombre';
     document.getElementById('detalleTipo').textContent = datos.tipoProyecto || '';
+    renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
     btn.textContent = '¡Guardado!';
     setTimeout(() => { btn.textContent = 'Guardar cambios'; btn.disabled = false; }, 1500);
   } catch (err) {
@@ -371,19 +480,21 @@ document.getElementById('btnIniciarEtapa').addEventListener('click', async () =>
     estadoEtapaActual: 'en_proceso'
   }, {
     estadoAnterior: 'pendiente',
-    estadoNuevo: 'en_proceso'
+    estadoNuevo: 'en_proceso',
+    observacionManual: document.getElementById('obsEtapaInput').value.trim()
   });
 });
 
 document.getElementById('btnCompletarEtapa').addEventListener('click', async () => {
   const esUltima = PROYECTO_ACTUAL.etapaActualIndex === ETAPAS.length - 1;
   const estadoAnterior = PROYECTO_ACTUAL.estadoEtapaActual;
+  const observacionManual = document.getElementById('obsEtapaInput').value.trim();
 
   if (esUltima) {
     await ejecutarCambioEtapa({
       etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex,
       estadoEtapaActual: 'completada'
-    }, { estadoAnterior, estadoNuevo: 'completada' });
+    }, { estadoAnterior, estadoNuevo: 'completada', observacionManual });
     return;
   }
 
@@ -393,7 +504,8 @@ document.getElementById('btnCompletarEtapa').addEventListener('click', async () 
   }, {
     estadoAnterior,
     estadoNuevo: 'completada',
-    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre
+    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre,
+    observacionManual
   });
 });
 
@@ -402,6 +514,8 @@ document.getElementById('btnRetroceder').addEventListener('click', async () => {
   const confirmar = confirm('¿Retroceder a la etapa anterior? Esto quedará registrado en el historial.');
   if (!confirmar) return;
 
+  const observacionManual = document.getElementById('obsEtapaInput').value.trim();
+
   await ejecutarCambioEtapa({
     etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex - 1,
     estadoEtapaActual: 'en_proceso'
@@ -409,15 +523,19 @@ document.getElementById('btnRetroceder').addEventListener('click', async () => {
     estadoAnterior: PROYECTO_ACTUAL.estadoEtapaActual,
     estadoNuevo: 'en_proceso',
     etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex - 1].nombre,
-    esRetroceso: true
+    esRetroceso: true,
+    observacionManual
   });
 });
 
-async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, etapaNombreOverride, esRetroceso }) {
+async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, etapaNombreOverride, esRetroceso, observacionManual }) {
   const botones = ['btnIniciarEtapa', 'btnCompletarEtapa', 'btnRetroceder'].map(id => document.getElementById(id));
   botones.forEach(b => b.disabled = true);
 
   const etapaNombre = etapaNombreOverride || ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre;
+  const observacionFinal = observacionManual
+    ? observacionManual
+    : (esRetroceso ? 'Corrección: se retrocedió la etapa manualmente.' : '');
 
   try {
     await cambiarEtapaProyecto(PROYECTO_ACTUAL.codigo, nuevoEstado, {
@@ -427,7 +545,7 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       estadoNuevo,
       usuario: STAFF_ACTUAL.uid,
       usuarioNombre: STAFF_ACTUAL.nombre || STAFF_ACTUAL.email,
-      observacion: esRetroceso ? 'Corrección: se retrocedió la etapa manualmente.' : ''
+      observacion: observacionFinal
     });
 
     if (!esRetroceso) {
@@ -562,3 +680,49 @@ async function manejarSubidaFoto(file) {
     inputFoto.value = '';
   }
 }
+
+// ============================================================
+// ELIMINAR PROYECTO (solo admin)
+// ============================================================
+
+function resetearPasosEliminacion() {
+  document.getElementById('pasoUnoEliminar').style.display = 'block';
+  document.getElementById('pasoDosEliminar').style.display = 'none';
+  document.getElementById('inputConfirmacionCodigo').value = '';
+  document.getElementById('eliminarError').classList.remove('visible');
+  document.getElementById('btnConfirmarEliminacion').disabled = true;
+}
+
+document.getElementById('btnIniciarEliminacion').addEventListener('click', () => {
+  document.getElementById('pasoUnoEliminar').style.display = 'none';
+  document.getElementById('pasoDosEliminar').style.display = 'block';
+  document.getElementById('inputConfirmacionCodigo').focus();
+});
+
+document.getElementById('btnCancelarEliminacion').addEventListener('click', resetearPasosEliminacion);
+
+document.getElementById('inputConfirmacionCodigo').addEventListener('input', (e) => {
+  const coincide = e.target.value.trim() === PROYECTO_ACTUAL.codigo;
+  document.getElementById('btnConfirmarEliminacion').disabled = !coincide;
+});
+
+document.getElementById('btnConfirmarEliminacion').addEventListener('click', async () => {
+  const btn = document.getElementById('btnConfirmarEliminacion');
+  const errorBox = document.getElementById('eliminarError');
+  errorBox.classList.remove('visible');
+  btn.disabled = true;
+  btn.textContent = 'Eliminando…';
+
+  try {
+    await eliminarTodasLasFotos(PROYECTO_ACTUAL.fotos);
+    await eliminarProyecto(PROYECTO_ACTUAL.codigo);
+    alert('El proyecto ' + PROYECTO_ACTUAL.codigo + ' fue eliminado permanentemente.');
+    volverAlListado();
+  } catch (err) {
+    console.error(err);
+    errorBox.textContent = 'No pudimos eliminar el proyecto. Intenta nuevamente.';
+    errorBox.classList.add('visible');
+    btn.disabled = false;
+    btn.textContent = 'Eliminar definitivamente';
+  }
+});
