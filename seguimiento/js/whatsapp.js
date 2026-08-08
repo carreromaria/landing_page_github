@@ -33,6 +33,46 @@ export function generarEnlaceWhatsappManual({ telefono, cliente, etapaNombre, en
 }
 
 /**
+ * Genera un enlace de wa.me con el mensaje de BIENVENIDA a la plataforma,
+ * para clientes nuevos que recién reciben su enlace de seguimiento
+ * (distinto del mensaje de avance de etapa).
+ */
+export function generarEnlaceWhatsappBienvenida({ telefono, cliente, enlaceProyecto }) {
+  if (!telefono) return null;
+
+  const telefonoLimpio = telefono.replace(/[^\d]/g, '');
+  const nombre = cliente || '';
+
+  const mensaje = `Hola, ${nombre}. 👋
+
+Esperamos que te encuentres muy bien.
+
+Nos complace darte la bienvenida al sistema de seguimiento de proyectos de LINENCE. A partir de este momento podrás conocer el avance de tu proyecto en cada una de sus etapas, desde el inicio de la fabricación hasta su instalación y entrega.
+
+Para consultar el estado de tu proyecto, solo debes ingresar al siguiente enlace:
+
+🔗 ${enlaceProyecto}
+
+En esta plataforma podrás revisar:
+
+• Estado actual del proyecto.
+• Porcentaje de avance.
+• Etapas completadas y en proceso.
+• Fotografías del avance (cuando corresponda).
+• Fecha estimada de instalación.
+• Actualizaciones realizadas por nuestro equipo.
+
+Además, te notificaremos al email cada vez que tu proyecto avance de etapa, para que siempre estés informado durante todo el proceso.
+
+Agradecemos la confianza que has depositado en LINENCE. Será un placer acompañarte hasta la entrega de tu proyecto.
+
+LINENCE
+Línea y Esencia`;
+
+  return `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`;
+}
+
+/**
  * FUTURO (cuando se conecte la API oficial de WhatsApp Business):
  * Esta función quedará lista para llamarse desde dashboard.js
  * exactamente donde hoy se llama a notificarCambioEtapa() en
