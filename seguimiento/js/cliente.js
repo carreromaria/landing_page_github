@@ -123,8 +123,11 @@ function renderCinta(p){
   const iconosWrap = document.getElementById('tapeIcons');
   iconosWrap.innerHTML = ETAPAS.map((e, i) => {
     const esActual = i === p.etapaActualIndex;
+    let alineacion = 'left:' + e.porcentaje + '%; transform:translateX(-50%);';
+    if (i === 0) alineacion = 'left:0%; transform:translateX(0);';
+    if (i === ETAPAS.length - 1) alineacion = 'left:100%; transform:translateX(-100%);';
     return `
-      <div class="tape-icon-item ${esActual ? 'actual' : ''}">
+      <div class="tape-icon-item ${esActual ? 'actual' : ''}" style="${alineacion}">
         <div class="tape-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONOS_ETAPA[i]}</svg>
         </div>
