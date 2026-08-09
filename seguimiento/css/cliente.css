@@ -206,18 +206,17 @@
 .tape-tip{
   position:absolute;
   left:-9px; top:50%; transform:translateY(-50%);
-  width:20px; height:20px;
-  border-radius:5px;
+  width:16px; height:16px;
+  border-radius:50%;
   background:var(--ink);
   border:1.5px solid var(--gold);
-  display:flex; align-items:center; justify-content:center;
   z-index:2;
 }
 .tape-case{
   position:absolute;
-  right:-46px; top:50%; transform:translateY(-50%);
-  width:150px;
-  height:87px;
+  right:-38px; top:50%; transform:translateY(-50%);
+  width:96px;
+  height:96px;
   z-index:2;
 }
 .tape-case svg{display:block;}
@@ -475,7 +474,6 @@
   .tape-dotted{height:8px;}
   .tape-icons{margin-bottom:4px;}
 
-  .tape-tip{width:16px; height:16px; left:-7px;}
-  .tape-tip svg{width:11px; height:11px;}
-  .tape-case{width:96px; height:56px; right:-30px;}
+  .tape-tip{width:12px; height:12px; left:-6px;}
+  .tape-case{width:64px; height:64px; right:-24px;}
 }
