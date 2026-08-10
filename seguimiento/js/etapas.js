@@ -15,7 +15,7 @@ export const ETAPAS = [
   { index: 6,  nombre: "Control de Calidad",             porcentaje: 55  },
   { index: 7,  nombre: "Embalaje",                       porcentaje: 64  },
   { index: 8,  nombre: "Coordinación de instalación",    porcentaje: 73  },
-  { index: 9,  nombre: "Instalación",                    porcentaje: 91  },
+  { index: 9,  nombre: "Instalación",                    porcentaje: 82  },
   { index: 10, nombre: "Entrega del proyecto",           porcentaje: 100 }
 ];
 
