@@ -63,9 +63,9 @@
   justify-content:space-between;
   border-bottom:1px solid var(--gold-line);
 }
-.cliente-header .logo-mini{height:38px; width:auto;}
-.cliente-header .logo-mini-link{display:flex; align-items:center; gap:12px;}
-.cliente-header .logo-wordmark-mini{height:17px; width:auto;}
+.cliente-header .logo-mini{height:52px; width:auto;}
+.cliente-header .logo-mini-link{display:flex; align-items:center; gap:16px; padding-left:2vw;}
+.cliente-header .logo-wordmark-mini{height:22px; width:auto;}
 .cliente-header .codigo{
   font-size:12px;
   letter-spacing:0.16em;
@@ -79,6 +79,21 @@
   max-width:980px;
 }
 .hero-proyecto .eyebrow{margin-bottom:10px;}
+.eyebrow-row{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  margin-bottom:10px;
+}
+.eyebrow-row .eyebrow{margin-bottom:0;}
+.codigo-badge-hero{
+  display:inline-block;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0.04em;
+  color:var(--ink);
+  background:var(--gold);
+  padding:4px 12px;
+  border-radius:999px;
+}
 .hero-proyecto h1{
   font-size:clamp(30px, 5vw, 46px);
   line-height:1.15;
@@ -115,7 +130,7 @@
 /* ---------- Cinta métrica de progreso (elemento firma) ---------- */
 .medida-progreso{
   padding:8px 6vw 48px;
-  max-width:1040px;
+  max-width:1800px;
 }
 .medida-progreso .medida-head{
   display:flex;
@@ -142,7 +157,7 @@
 .tape-icons{
   position:relative;
   height:92px;
-  margin-bottom:22px;
+  margin-bottom:46px;
 }
 .tape-icon-item{
   position:absolute;
@@ -458,9 +473,9 @@
 }
 @media (max-width:640px){
   .cliente-header{padding:18px 5vw;}
-  .cliente-header .logo-mini{height:28px;}
-  .cliente-header .logo-wordmark-mini{height:12px;}
-  .cliente-header .logo-mini-link{gap:8px;}
+  .cliente-header .logo-mini{height:36px;}
+  .cliente-header .logo-wordmark-mini{height:15px;}
+  .cliente-header .logo-mini-link{gap:10px; padding-left:0;}
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
@@ -470,7 +485,7 @@
   .tape-icon-circle{width:22px; height:22px; font-size:11px;}
   .tape-icon-nombre, .tape-icon-num{display:none;}
   .tape-icon-item{width:34px;}
-  .tape-icons{height:40px; margin-bottom:14px;}
+  .tape-icons{height:40px; margin-bottom:22px;}
   .tape-dotted{height:8px;}
 
   .tape-tip{width:12px; height:12px; left:-6px;}
