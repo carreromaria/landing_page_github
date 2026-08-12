@@ -20,23 +20,13 @@ export const ETAPAS = [
 ];
 
 /**
- * Calcula el porcentaje de avance real según la etapa actual y su estado.
- * Si la etapa está "en_proceso", se muestra el % de la etapa anterior
- * más la mitad del tramo hacia la etapa actual (avance visual, nunca
- * se ingresa a mano).
+ * El porcentaje de avance corresponde directamente al de la etapa
+ * actual (sin importar si está pendiente, en proceso o completada).
+ * Es una tabla fija: cada etapa "vale" su propio porcentaje.
  */
 export function calcularPorcentaje(etapaActualIndex, estadoEtapaActual) {
   const actual = ETAPAS[etapaActualIndex];
-  const anterior = ETAPAS[etapaActualIndex - 1];
-
-  if (!actual) return 0;
-  if (estadoEtapaActual === "completada") return actual.porcentaje;
-
-  if (estadoEtapaActual === "en_proceso" && anterior) {
-    return Math.round(anterior.porcentaje + (actual.porcentaje - anterior.porcentaje) / 2);
-  }
-
-  return anterior ? anterior.porcentaje : 0;
+  return actual ? actual.porcentaje : 0;
 }
 
 export function nombreEtapa(index) {
