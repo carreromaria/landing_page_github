@@ -100,6 +100,7 @@ function renderLista() {
 
   lista.innerHTML = filtrados.map(p => {
     const etapa = ETAPAS[p.etapaActualIndex] || ETAPAS[0];
+    const porcentajeReal = calcularPorcentaje(p.etapaActualIndex, p.estadoEtapaActual);
     const estadoLegible = { pendiente: 'Pendiente', en_proceso: 'En proceso', completada: 'Completada' }[p.estadoEtapaActual] || p.estadoEtapaActual;
     return `
       <div class="fila-proyecto" data-codigo="${p.codigo}">
@@ -107,7 +108,7 @@ function renderLista() {
         <span class="cliente-nombre">${p.cliente || '—'}</span>
         <span class="tipo-col">${p.tipoProyecto || '—'}</span>
         <span class="etapa-col"><span class="badge-estado ${p.estadoEtapaActual}">${etapa.nombre}</span></span>
-        <span class="porcentaje-mini">${etapa.porcentaje}%</span>
+        <span class="porcentaje-mini">${porcentajeReal}%</span>
         <span class="estado-col">${estadoLegible}</span>
       </div>`;
   }).join('');
