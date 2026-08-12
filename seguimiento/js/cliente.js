@@ -116,7 +116,7 @@ function renderCinta(p){
 
   const marcasWrap = document.getElementById('cintaMarcas');
   marcasWrap.innerHTML = ETAPAS.map((e, i) => `
-    <div class="marca ${i <= p.etapaActualIndex ? 'activa' : ''}" style="left:${e.porcentaje}%;">
+    <div class="marca ${e.porcentaje <= porcentaje ? 'activa' : ''}" style="left:${e.porcentaje}%;">
       <span class="num">${e.porcentaje}%</span>
     </div>
   `).join('');
