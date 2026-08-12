@@ -64,8 +64,8 @@
   border-bottom:1px solid var(--gold-line);
 }
 .cliente-header .logo-mini{height:62px; width:auto;}
-.cliente-header .logo-mini-link{display:flex; align-items:center; gap:18px; padding-left:4vw;}
-.cliente-header .logo-wordmark-mini{height:26px; width:auto;}
+.cliente-header .logo-mini-link{display:flex; align-items:center; gap:18px;}
+.cliente-header .logo-wordmark-mini{height:38px; width:auto;}
 .cliente-header .codigo{
   font-size:12px;
   letter-spacing:0.16em;
@@ -476,8 +476,8 @@
 @media (max-width:640px){
   .cliente-header{padding:18px 5vw;}
   .cliente-header .logo-mini{height:46px;}
-  .cliente-header .logo-wordmark-mini{height:19px;}
-  .cliente-header .logo-mini-link{gap:12px; padding-left:0;}
+  .cliente-header .logo-wordmark-mini{height:28px;}
+  .cliente-header .logo-mini-link{gap:12px;}
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
