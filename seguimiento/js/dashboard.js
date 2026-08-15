@@ -6,7 +6,7 @@
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
-  obtenerHistorial, actualizarProyecto, cambiarEtapaProyecto,
+  escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
   listarUsuariosStaff
 } from './firestore.js';
@@ -19,6 +19,23 @@ import { ETAPAS, calcularPorcentaje } from './etapas.js';
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
 let USUARIOS_STAFF = [];
+
+// ---------- Toast (mensajes flotantes) ----------
+function mostrarToast(mensaje, tipo = 'exito') {
+  if (!mensaje) return;
+  const contenedor = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + tipo;
+  toast.innerHTML = `<span class="toast-icono">${tipo === 'error' ? '⚠️' : '✓'}</span><span>${mensaje}</span>`;
+  contenedor.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add('visible'));
+
+  setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
 
 // ---------- Guardia de sesión ----------
 observarSesionStaff((staff) => {
@@ -254,8 +271,10 @@ const vistaListado = document.querySelector('.dash-main'); // el primer .dash-ma
 const vistaDetalle = document.getElementById('vistaDetalle');
 let PROYECTO_ACTUAL = null;
 let ultimoHistorialCargado = [];
+let unsubProyectoDetalle = null;
+let unsubHistorialDetalle = null;
 
-async function abrirDetalle(codigo) {
+function abrirDetalle(codigo) {
   vistaListado.style.display = 'none';
   vistaDetalle.style.display = 'block';
   vistaDetalle.scrollIntoView({ behavior: 'instant' });
@@ -264,27 +283,39 @@ async function abrirDetalle(codigo) {
   document.getElementById('detalleCliente').textContent = 'Cargando…';
   document.getElementById('detalleTipo').textContent = '';
 
-  try {
-    const [proyecto, historial] = await Promise.all([
-      obtenerProyecto(codigo),
-      obtenerHistorial(codigo)
-    ]);
+  detenerListenersDetalle();
+
+  let historialListo = false;
+
+  unsubHistorialDetalle = escucharHistorial(codigo, (historial) => {
+    ultimoHistorialCargado = historial;
+    historialListo = true;
+    if (PROYECTO_ACTUAL) renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
+  }, () => mostrarToast('No pudimos cargar el historial.', 'error'));
+
+  unsubProyectoDetalle = escucharProyecto(codigo, (proyecto) => {
     if (!proyecto) {
-      alert('No se encontró el proyecto ' + codigo + '.');
+      mostrarToast('No se encontró el proyecto ' + codigo + '.', 'error');
       volverAlListado();
       return;
     }
     PROYECTO_ACTUAL = proyecto;
-    ultimoHistorialCargado = historial;
-    renderDetalle(proyecto, historial);
-  } catch (err) {
-    console.error(err);
-    alert('No pudimos cargar el detalle del proyecto.');
+    if (historialListo) renderDetalle(proyecto, ultimoHistorialCargado);
+  }, () => {
+    mostrarToast('No pudimos cargar el proyecto.', 'error');
     volverAlListado();
-  }
+  });
+}
+
+function detenerListenersDetalle() {
+  unsubProyectoDetalle?.();
+  unsubHistorialDetalle?.();
+  unsubProyectoDetalle = null;
+  unsubHistorialDetalle = null;
 }
 
 function volverAlListado() {
+  detenerListenersDetalle();
   vistaDetalle.style.display = 'none';
   vistaListado.style.display = 'block';
   PROYECTO_ACTUAL = null;
@@ -463,6 +494,7 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     document.getElementById('detalleCliente').textContent = datos.cliente || 'Sin nombre';
     document.getElementById('detalleTipo').textContent = datos.tipoProyecto || '';
     renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
+    mostrarToast('Datos del proyecto guardados', 'exito');
     btn.textContent = '¡Guardado!';
     setTimeout(() => { btn.textContent = 'Guardar cambios'; btn.disabled = false; }, 1500);
   } catch (err) {
@@ -570,10 +602,17 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       }
     }
 
-    await abrirDetalle(PROYECTO_ACTUAL.codigo); // recarga con los datos frescos
+    document.getElementById('obsEtapaInput').value = '';
+
+    const mensajesToast = {
+      iniciar: 'Etapa marcada "En proceso"',
+      completar: esRetroceso ? '' : (nuevoEstado.estadoEtapaActual === 'completada' ? 'Proyecto marcado como entregado ✓' : 'Etapa completada, avanzó a la siguiente'),
+      retroceso: 'Etapa retrocedida'
+    };
+    mostrarToast(esRetroceso ? mensajesToast.retroceso : (estadoNuevo === 'en_proceso' ? mensajesToast.iniciar : mensajesToast.completar), 'exito');
   } catch (err) {
     console.error(err);
-    alert('No pudimos actualizar la etapa. Intenta nuevamente.');
+    mostrarToast('No pudimos actualizar la etapa. Intenta nuevamente.', 'error');
     botones.forEach(b => b.disabled = false);
   }
 }
