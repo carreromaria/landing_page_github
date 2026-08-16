@@ -261,7 +261,7 @@
 }
 .tape-case{
   position:absolute;
-  right:-18px; top:50%; transform:translateY(-50%);
+  right:-54px; top:50%; transform:translateY(-50%);
   width:90px;
   height:90px;
   z-index:2;
@@ -543,7 +543,7 @@
 
   .tape-icons,
   .tape-track-row{
-    min-width:760px; /* da más aire entre etapa y etapa dentro del scroll */
+    min-width:1100px; /* espacio real entre cada marca, evita que el texto de % se pise */
   }
 
   /* El círculo de Linence queda fijo como ancla visual, fuera del scroll */
@@ -553,16 +553,5 @@
     right:-24px;
     transform:translateY(-50%);
     z-index:3;
-  }
-
-  /* Evita que el 90% y el 100% se sobre monten: el 90% crece hacia la
-     izquierda (se aleja del final) y el 100% se corre hacia el espacio
-     reservado por el padding-right de .tape-scroll */
-  .cinta-marcas .marca:nth-last-child(2) .num{
-    left:auto;
-    right:8px;
-  }
-  .cinta-marcas .marca:last-child .num{
-    right:-38px;
   }
 }
