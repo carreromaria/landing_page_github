@@ -261,7 +261,9 @@
 }
 .tape-case{
   position:absolute;
-  right:-54px; top:50%; transform:translateY(-50%);
+  right:-54px;
+  top:calc(92px + 46px + 32px); /* alto de .tape-icons + margen + centro de .cinta-track (valores de escritorio) */
+  transform:translateY(-50%);
   width:90px;
   height:90px;
   z-index:2;
@@ -318,7 +320,7 @@
   padding:2px 6px;
   border-radius:3px;
 }
-.cinta-marcas .marca:last-child .num{left:auto; right:8px;}
+.cinta-marcas .marca:last-child .num{left:auto; right:14px;}
 .cinta-cursor{
   position:absolute; top:-6px;
   left:var(--avance, 0%);
@@ -543,7 +545,7 @@
 
   .tape-icons,
   .tape-track-row{
-    min-width:1100px; /* espacio real entre cada marca, evita que el texto de % se pise */
+    min-width:1300px; /* más aire real entre marcas: evita que los bloques de % se toquen */
   }
 
   /* El círculo de Linence queda fijo como ancla visual, fuera del scroll */
