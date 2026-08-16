@@ -80,6 +80,7 @@ async function init() {
   renderHistorial(historial);
   activarReveal();
   activarLightbox();
+  activarTooltipEtapas();
 }
 
 function estadoLegible(estado){
@@ -116,7 +117,7 @@ function renderCinta(p){
 
   const marcasWrap = document.getElementById('cintaMarcas');
   marcasWrap.innerHTML = ETAPAS.map((e, i) => `
-    <div class="marca ${e.porcentaje <= porcentaje ? 'activa' : ''}" style="left:${e.porcentaje}%;">
+    <div class="marca ${e.porcentaje <= porcentaje ? 'activa' : ''}" style="left:${e.porcentaje}%;" data-nombre="${e.nombre}">
       <span class="num">${e.porcentaje}%</span>
     </div>
   `).join('');
@@ -128,7 +129,7 @@ function renderCinta(p){
     if (i === 0) alineacion = 'left:0%; transform:translateX(0);';
     if (i === ETAPAS.length - 1) alineacion = 'left:100%; transform:translateX(-100%);';
     return `
-      <div class="tape-icon-item ${esActual ? 'actual' : ''}" style="${alineacion}">
+      <div class="tape-icon-item ${esActual ? 'actual' : ''}" style="${alineacion}" data-nombre="${e.nombre}">
         <div class="tape-icon-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${ICONOS_ETAPA[i]}</svg>
         </div>
@@ -251,6 +252,52 @@ function activarLightbox(){
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox) lightbox.classList.remove('open');
   });
+}
+
+function activarTooltipEtapas(){
+  const tapeComponent = document.querySelector('.tape-component');
+  const tapeScroll = document.getElementById('tapeScroll');
+  if (!tapeComponent || !tapeScroll) return;
+
+  const tooltip = document.createElement('div');
+  tooltip.className = 'etapa-tooltip';
+  tapeComponent.appendChild(tooltip);
+
+  let ocultarTimeout;
+
+  function mostrarTooltip(target){
+    const nombre = target.dataset.nombre;
+    if (!nombre) return;
+
+    const targetRect = target.getBoundingClientRect();
+    const wrapRect = tapeComponent.getBoundingClientRect();
+
+    tooltip.textContent = nombre;
+    tooltip.style.left = (targetRect.left - wrapRect.left + targetRect.width / 2) + 'px';
+    tooltip.style.top = (targetRect.top - wrapRect.top) + 'px';
+    tooltip.classList.add('visible');
+
+    clearTimeout(ocultarTimeout);
+    ocultarTimeout = setTimeout(() => tooltip.classList.remove('visible'), 2500);
+  }
+
+  function ocultarTooltip(){
+    clearTimeout(ocultarTimeout);
+    tooltip.classList.remove('visible');
+  }
+
+  tapeScroll.addEventListener('click', (e) => {
+    const item = e.target.closest('.marca, .tape-icon-item');
+    if (!item) return;
+    e.stopPropagation();
+    mostrarTooltip(item);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.marca, .tape-icon-item')) ocultarTooltip();
+  });
+
+  window.addEventListener('scroll', ocultarTooltip, true);
 }
 
 document.addEventListener('DOMContentLoaded', init);
