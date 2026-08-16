@@ -192,6 +192,7 @@
   position:relative;
   height:92px;
   margin-bottom:46px;
+  width:calc(100% - 104px); /* deja un carril fijo (90px círculo + 14px de aire) */
 }
 .tape-icon-item{
   position:absolute;
@@ -261,7 +262,7 @@
 }
 .tape-case{
   position:absolute;
-  right:-4px;
+  right:0;
   top:50%;
   transform:translateY(-50%);
   width:90px;
@@ -273,7 +274,7 @@
 .cinta-track{
   position:relative;
   height:64px;
-  width:100%;
+  width:calc(100% - 104px); /* deja el mismo carril fijo reservado para el círculo */
   background:var(--ink);
   border-radius:3px;
   overflow:hidden;
@@ -544,16 +545,22 @@
   }
   .tape-scroll::-webkit-scrollbar{display:none;}
 
-  .tape-icons,
   .tape-track-row{
-    min-width:1300px; /* más aire real entre marcas: evita que los bloques de % se toquen */
+    min-width:1300px; /* ancho total del carril (incluye el espacio del círculo) */
+  }
+  .tape-icons{
+    min-width:calc(1300px - 74px); /* mismo ancho útil que la cinta, para quedar alineados */
+  }
+  .cinta-track{
+    width:calc(100% - 74px); /* deja el carril fijo reservado para el círculo (64px + 10px de aire) */
   }
 
   /* El círculo ahora es parte del contenido de la cinta (se mueve con
-     el scroll), solo se ajusta su tamaño para móvil */
+     el scroll), queda pegado al borde real de la fila, dentro del
+     carril reservado — nunca se sale del margen de la página */
   .tape-case{
     width:64px;
     height:64px;
-    right:-4px;
+    right:0;
   }
 }
