@@ -77,6 +77,33 @@ export function escucharProyectos(callback, onError) {
 }
 
 /**
+ * Escucha en tiempo real un proyecto individual por su código.
+ * callback(proyecto) se ejecuta de inmediato y cada vez que cambia
+ * ese proyecto en Firestore. Si el proyecto no existe, callback(null).
+ * Devuelve una función para dejar de escuchar.
+ */
+export function escucharProyecto(codigo, callback, onError) {
+  const ref = doc(db, "proyectos", codigo);
+  return onSnapshot(ref,
+    (snap) => callback(snap.exists() ? { codigo: snap.id, ...snap.data() } : null),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/**
+ * Escucha en tiempo real el historial completo de un proyecto,
+ * más reciente primero. Devuelve una función para dejar de escuchar.
+ */
+export function escucharHistorial(codigo, callback, onError) {
+  const ref = collection(db, "proyectos", codigo, "historial");
+  const q = query(ref, orderBy("fecha", "desc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/**
  * Crea un proyecto nuevo asignándole automáticamente el siguiente
  * código secuencial (LIN-00001, LIN-00002...). Usa una transacción
  * atómica: lee el último número usado, lo sube en 1, y crea el
