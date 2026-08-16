@@ -309,6 +309,7 @@
   background:rgba(250,247,242,0.28);
 }
 .cinta-marcas .marca:first-child{background:transparent;}
+.cinta-marcas .marca:last-child{width:2px; background:var(--gold);}
 .cinta-marcas .marca .num{
   position:absolute; bottom:6px; left:8px;
   font-size:11.5px;
@@ -527,15 +528,17 @@
   .tape-icon-circle{width:22px; height:22px; font-size:11px;}
   .tape-icon-nombre, .tape-icon-num{display:none;}
   .tape-icon-item{width:34px;}
-  .tape-icons{height:40px; margin-bottom:22px;}
+  .tape-icons{height:52px; margin-bottom:22px; padding-top:6px;}
   .tape-dotted{height:8px;}
 
   .tape-tip{width:12px; height:12px; left:-6px;}
 
   /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
-     todo se desplaza junto con un solo gesto del cliente */
+     todo se desplaza junto con un solo gesto del cliente. overflow-y
+     explícito evita que se recorte verticalmente el diseño de las etapas */
   .tape-scroll{
     overflow-x:auto;
+    overflow-y:visible;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     padding-right:24px;
