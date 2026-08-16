@@ -1,5 +1,5 @@
 /* ============================================================
-   LINENCE — Seguimiento de Proyectos
+   LINENCE — Seguimiento de Proyectosfff
    Vista Cliente (proyecto.html)
    ============================================================ */
 
@@ -262,7 +262,7 @@
 .tape-case{
   position:absolute;
   right:-54px;
-  top:calc(92px + 46px + 32px); /* alto de .tape-icons + margen + centro de .cinta-track (valores de escritorio) */
+  top:50%;
   transform:translateY(-50%);
   width:90px;
   height:90px;
@@ -531,15 +531,14 @@
   .tape-dotted{height:8px;}
 
   .tape-tip{width:12px; height:12px; left:-6px;}
-  .tape-case{width:64px; height:64px;}
 
-  /* Contenedor con scroll horizontal: agrupa íconos + cinta para que
-     se desplacen juntos con un solo gesto del cliente */
+  /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
+     todo se desplaza junto con un solo gesto del cliente */
   .tape-scroll{
     overflow-x:auto;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
-    padding-right:56px; /* deja espacio para que el círculo no tape el final de la cinta */
+    padding-right:24px;
   }
   .tape-scroll::-webkit-scrollbar{display:none;}
 
@@ -548,12 +547,11 @@
     min-width:1300px; /* más aire real entre marcas: evita que los bloques de % se toquen */
   }
 
-  /* El círculo de Linence queda fijo como ancla visual, fuera del scroll */
+  /* El círculo ahora es parte del contenido de la cinta (se mueve con
+     el scroll), solo se ajusta su tamaño y separación para móvil */
   .tape-case{
-    position:absolute;
-    top:calc(40px + 22px + 23px); /* alto de .tape-icons + margen + centro de .cinta-track */
-    right:-24px;
-    transform:translateY(-50%);
-    z-index:3;
+    width:64px;
+    height:64px;
+    right:-40px;
   }
 }
