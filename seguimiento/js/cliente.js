@@ -112,19 +112,12 @@ function renderCinta(p){
   const porcentaje = calcularPorcentaje(p.etapaActualIndex, p.estadoEtapaActual);
   document.getElementById('porcentajeTexto').textContent = porcentaje;
 
-  // Se reserva el espacio de un bloque extra al final de la cinta (10/11
-  // en vez de 100%) para que la etiqueta "100%" tenga su propio bloque
-  // hacia adelante, igual que el resto de las etiquetas, antes de llegar
-  // al círculo. Se aplica el mismo factor a la barra de avance, el
-  // cursor, las marcas y los íconos para que todo quede alineado.
-  const ESCALA_CINTA = 10 / 11;
-
   const track = document.getElementById('cintaTrack');
-  track.style.setProperty('--avance', (porcentaje * ESCALA_CINTA) + '%');
+  track.style.setProperty('--avance', porcentaje + '%');
 
   const marcasWrap = document.getElementById('cintaMarcas');
   marcasWrap.innerHTML = ETAPAS.map((e, i) => `
-    <div class="marca ${e.porcentaje <= porcentaje ? 'activa' : ''}" style="left:${e.porcentaje * ESCALA_CINTA}%;" data-nombre="${e.nombre}">
+    <div class="marca ${e.porcentaje <= porcentaje ? 'activa' : ''}" style="left:${e.porcentaje}%;" data-nombre="${e.nombre}">
       <span class="num">${e.porcentaje}%</span>
     </div>
   `).join('');
@@ -132,9 +125,9 @@ function renderCinta(p){
   const iconosWrap = document.getElementById('tapeIcons');
   iconosWrap.innerHTML = ETAPAS.map((e, i) => {
     const esActual = i === p.etapaActualIndex;
-    let alineacion = 'left:' + (e.porcentaje * ESCALA_CINTA) + '%; transform:translateX(-50%);';
+    let alineacion = 'left:' + e.porcentaje + '%; transform:translateX(-50%);';
     if (i === 0) alineacion = 'left:0%; transform:translateX(0);';
-    if (i === ETAPAS.length - 1) alineacion = 'left:' + (100 * ESCALA_CINTA) + '%; transform:translateX(-50%);';
+    if (i === ETAPAS.length - 1) alineacion = 'left:100%; transform:translateX(-100%);';
     return `
       <div class="tape-icon-item ${esActual ? 'actual' : ''}" style="${alineacion}" data-nombre="${e.nombre}">
         <div class="tape-icon-circle">
