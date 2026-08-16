@@ -152,6 +152,40 @@
 
 .tape-component{width:100%; position:relative;}
 
+/* ---------- Tooltip: nombre de etapa al tocar el ícono o el % ---------- */
+.tape-icon-item, .cinta-marcas .marca{cursor:pointer;}
+.etapa-tooltip{
+  position:absolute;
+  left:0; top:0;
+  transform:translate(-50%, calc(-100% - 12px));
+  background:var(--ink);
+  color:var(--cream);
+  font-family:'Poppins', sans-serif;
+  font-size:12px;
+  font-weight:500;
+  letter-spacing:0.02em;
+  padding:8px 14px;
+  border-radius:6px;
+  white-space:nowrap;
+  box-shadow:0 6px 16px rgba(20,18,19,0.3);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s ease, transform .2s ease;
+  z-index:20;
+}
+.etapa-tooltip::after{
+  content:'';
+  position:absolute;
+  top:100%; left:50%;
+  transform:translateX(-50%);
+  border:5px solid transparent;
+  border-top-color:var(--ink);
+}
+.etapa-tooltip.visible{
+  opacity:1;
+  transform:translate(-50%, calc(-100% - 16px));
+}
+
 /* Fila de íconos de etapa, posicionada según el % real de cada etapa
    (igual que las marcas de la cinta, para que queden alineados) */
 .tape-icons{
@@ -519,5 +553,16 @@
     right:-24px;
     transform:translateY(-50%);
     z-index:3;
+  }
+
+  /* Evita que el 90% y el 100% se sobre monten: el 90% crece hacia la
+     izquierda (se aleja del final) y el 100% se corre hacia el espacio
+     reservado por el padding-right de .tape-scroll */
+  .cinta-marcas .marca:nth-last-child(2) .num{
+    left:auto;
+    right:8px;
+  }
+  .cinta-marcas .marca:last-child .num{
+    right:-38px;
   }
 }
