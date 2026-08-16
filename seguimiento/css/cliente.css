@@ -150,7 +150,7 @@
   margin-left:4px;
 }
 
-.tape-component{width:100%;}
+.tape-component{width:100%; position:relative;}
 
 /* Fila de íconos de etapa, posicionada según el % real de cada etapa
    (igual que las marcas de la cinta, para que queden alineados) */
@@ -481,6 +481,10 @@
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
+}
+
+/* ---------- Cinta y etapas: scroll horizontal sincronizado (tablet y teléfono) ---------- */
+@media (max-width:980px){
   .cinta-track{height:46px;}
   .cinta-cursor{height:54px;}
 
@@ -491,5 +495,29 @@
   .tape-dotted{height:8px;}
 
   .tape-tip{width:12px; height:12px; left:-6px;}
-  .tape-case{width:64px; height:64px; right:-24px;}
+  .tape-case{width:64px; height:64px;}
+
+  /* Contenedor con scroll horizontal: agrupa íconos + cinta para que
+     se desplacen juntos con un solo gesto del cliente */
+  .tape-scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding-right:56px; /* deja espacio para que el círculo no tape el final de la cinta */
+  }
+  .tape-scroll::-webkit-scrollbar{display:none;}
+
+  .tape-icons,
+  .tape-track-row{
+    min-width:760px; /* da más aire entre etapa y etapa dentro del scroll */
+  }
+
+  /* El círculo de Linence queda fijo como ancla visual, fuera del scroll */
+  .tape-case{
+    position:absolute;
+    top:calc(40px + 22px + 23px); /* alto de .tape-icons + margen + centro de .cinta-track */
+    right:-24px;
+    transform:translateY(-50%);
+    z-index:3;
+  }
 }
