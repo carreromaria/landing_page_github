@@ -66,11 +66,15 @@
 .cliente-header .logo-mini{height:62px; width:auto;}
 .cliente-header .logo-mini-link{display:flex; align-items:center; gap:18px;}
 .cliente-header .logo-wordmark-mini{height:38px; width:auto;}
-.cliente-header .codigo{
-  font-size:12px;
-  letter-spacing:0.16em;
+.codigo-badge-header{
+  display:inline-block;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:0.05em;
   color:var(--ink);
-  opacity:0.6;
+  background:var(--gold);
+  padding:6px 16px;
+  border-radius:999px;
 }
 
 /* ---------- Hero ---------- */
@@ -86,13 +90,17 @@
 .eyebrow-row .eyebrow{margin-bottom:0;}
 .codigo-badge-hero{
   display:inline-block;
-  font-size:15px;
-  font-weight:700;
+  font-size:13px;
+  font-weight:600;
   letter-spacing:0.05em;
   color:var(--ink);
-  background:var(--gold);
-  padding:6px 16px;
-  border-radius:999px;
+  opacity:0.7;
+  background:none;
+  padding:0;
+  border-radius:0;
+}
+.codigo-label-hero{
+  display:none;
 }
 .hero-proyecto h1{
   font-size:clamp(30px, 5vw, 46px);
@@ -474,10 +482,12 @@
 /* ---------- Historial (acordeón) ---------- */
 .historial-section{padding:0 6vw 80px; max-width:760px;}
 .historial-section h2{font-size:26px; margin-bottom:20px;}
+#historialList{list-style:none; margin:0; padding:0;}
 .historial-toggle{
   width:100%;
   display:flex; justify-content:space-between; align-items:center;
-  padding:16px 0;
+  gap:12px;
+  padding:16px 4px;
   border-top:1px solid var(--gold-line);
   background:none; border-left:none; border-right:none; border-bottom:none;
   font-family:inherit; font-size:14px; color:var(--ink);
@@ -509,12 +519,33 @@
 /* ---------- Responsive ---------- */
 @media (max-width:980px){
   .info-grid{grid-template-columns:1fr;}
+
+  /* El código del proyecto se deja solo abajo (hero), tal cual estaba;
+     arriba se quita para dar más aire entre los dos logos del header */
+  .codigo-badge-header{display:none;}
+  .cliente-header .logo-mini-link{gap:22px;}
+
+  .codigo-badge-hero{
+    font-size:15px;
+    font-weight:700;
+    color:var(--ink);
+    opacity:1;
+    background:var(--gold);
+    padding:6px 16px;
+    border-radius:999px;
+  }
+  .codigo-label-hero{
+    display:inline-block;
+    font-size:12px;
+    color:var(--ink);
+    opacity:0.55;
+  }
 }
 @media (max-width:640px){
   .cliente-header{padding:18px 5vw;}
   .cliente-header .logo-mini{height:46px;}
   .cliente-header .logo-wordmark-mini{height:28px;}
-  .cliente-header .logo-mini-link{gap:12px;}
+  .cliente-header .logo-mini-link{gap:16px;}
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
@@ -528,20 +559,23 @@
   .tape-icon-circle{width:22px; height:22px; font-size:11px;}
   .tape-icon-nombre, .tape-icon-num{display:none;}
   .tape-icon-item{width:34px;}
-  .tape-icons{height:48px; margin-bottom:22px;}
+  .tape-icons{height:60px; margin-bottom:22px;}
   .tape-dotted{height:8px;}
 
   .tape-tip{width:12px; height:12px; left:-6px;}
 
   /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
      todo se desplaza junto con un solo gesto del cliente. overflow-y
-     explícito evita que se recorte verticalmente el diseño de las etapas */
+     explícito evita que se recorte verticalmente el diseño de las etapas,
+     y el padding arriba/abajo da margen extra de seguridad */
   .tape-scroll{
     overflow-x:auto;
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
     padding-right:24px;
+    padding-top:12px;
+    padding-bottom:12px;
   }
   .tape-scroll::-webkit-scrollbar{display:none;}
 
