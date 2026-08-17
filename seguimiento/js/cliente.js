@@ -134,7 +134,6 @@ function renderCinta(p){
   iconosWrap.innerHTML = ETAPAS.map((e, i) => {
     const esActual = i === p.etapaActualIndex;
     let alineacion = 'left:' + (e.porcentaje * ESCALA_CINTA) + '%; transform:translateX(-50%);';
-    if (i === 0) alineacion = 'left:0%; transform:translateX(0);';
     if (i === ETAPAS.length - 1) alineacion = 'left:' + (100 * ESCALA_CINTA) + '%; transform:translateX(-50%);';
     return `
       <div class="tape-icon-item ${esActual ? 'actual' : ''}" style="${alineacion}" data-nombre="${e.nombre}">
