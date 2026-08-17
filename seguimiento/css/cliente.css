@@ -242,7 +242,7 @@
   line-height:1.25;
   color:var(--ink);
   opacity:0.45;
-  min-height:26px;
+  min-height:40px;
 }
 .tape-icon-item.actual .tape-icon-nombre{color:var(--gold); opacity:1; font-weight:600;}
 .tape-icon-num{
