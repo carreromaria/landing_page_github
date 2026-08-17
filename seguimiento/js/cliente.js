@@ -13,14 +13,16 @@ import { getQueryParams, formatearFecha } from './utils.js';
 const ICONOS_ETAPA = [
   // Cotización aceptada — documento con check
   '<rect x="5" y="4" width="14" height="17" rx="2"/><rect x="9" y="2" width="6" height="4" rx="1"/><polyline points="8,13 11,16 16,10"/>',
-  // Abono del 50% — tarjeta
+  // Recepción de abono — tarjeta
   '<rect x="3" y="6" width="18" height="12" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  // Rectificación de medida y renderizado 3D — regla con marcas
+  '<rect x="3" y="10" width="18" height="4" rx="1"/><line x1="6" y1="10" x2="6" y2="12"/><line x1="9" y1="10" x2="9" y2="13"/><line x1="12" y1="10" x2="12" y2="12"/><line x1="15" y1="10" x2="15" y2="13"/><line x1="18" y1="10" x2="18" y2="12"/>',
+  // Optimización de materiales — capas
+  '<path d="M12 2l9 5-9 5-9-5 9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/>',
   // Compra de materiales — carrito
   '<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.8h7.2a2 2 0 0 0 2-1.6L21 8H6"/>',
   // Corte de materiales — tijeras
   '<circle cx="7" cy="6" r="2.1"/><circle cx="7" cy="18" r="2.1"/><line x1="8.5" y1="7.5" x2="20" y2="19"/><line x1="8.5" y1="16.5" x2="20" y2="5"/>',
-  // Fabricación — engranaje
-  '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M21 12h-3M6 12H3M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1M18.4 18.4l-2.1-2.1M7.7 7.7 5.6 5.6"/>',
   // Armado — llave
   '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.8 2.8-2-2 2.8-2.8z"/>',
   // Control de Calidad — escudo con check
