@@ -6,17 +6,18 @@
 // Por ahora vive aquí como fuente única de verdad para el maquetado.
 
 export const ETAPAS = [
-  { index: 0,  nombre: "Cotización aceptada",          porcentaje: 0   },
-  { index: 1,  nombre: "Abono del 50%",                 porcentaje: 10  },
-  { index: 2,  nombre: "Compra de materiales",           porcentaje: 20  },
-  { index: 3,  nombre: "Corte de materiales",            porcentaje: 30  },
-  { index: 4,  nombre: "Fabricación",                    porcentaje: 40  },
-  { index: 5,  nombre: "Armado",                         porcentaje: 50  },
-  { index: 6,  nombre: "Control de Calidad",             porcentaje: 60  },
-  { index: 7,  nombre: "Embalaje",                       porcentaje: 70  },
-  { index: 8,  nombre: "Coordinación de instalación",    porcentaje: 80  },
-  { index: 9,  nombre: "Instalación",                    porcentaje: 90  },
-  { index: 10, nombre: "Entrega del proyecto",           porcentaje: 100 }
+  { index: 0,  nombre: "Cotización aceptada",                    porcentaje: 0   },
+  { index: 1,  nombre: "Recepción de abono",                     porcentaje: 9   },
+  { index: 2,  nombre: "Rectificación de medida y renderizado 3D", porcentaje: 18  },
+  { index: 3,  nombre: "Optimización de materiales",             porcentaje: 27  },
+  { index: 4,  nombre: "Compra de materiales",                   porcentaje: 36  },
+  { index: 5,  nombre: "Corte de materiales",                    porcentaje: 45  },
+  { index: 6,  nombre: "Armado",                                 porcentaje: 55  },
+  { index: 7,  nombre: "Control de Calidad",                     porcentaje: 64  },
+  { index: 8,  nombre: "Embalaje",                                porcentaje: 73  },
+  { index: 9,  nombre: "Coordinación de instalación",            porcentaje: 82  },
+  { index: 10, nombre: "Instalación",                             porcentaje: 91  },
+  { index: 11, nombre: "Entrega del proyecto",                   porcentaje: 100 }
 ];
 
 /**
