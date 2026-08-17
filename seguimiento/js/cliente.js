@@ -100,7 +100,7 @@ function mostrarError(mensaje){
 }
 
 function renderHero(p){
-  document.getElementById('codigoHeader').textContent = p.codigo;
+  document.getElementById('codigoBadgeHeader').textContent = p.codigo;
   document.getElementById('codigoBadgeHero').textContent = p.codigo;
   document.getElementById('clienteNombre').textContent = p.cliente;
   document.getElementById('tipoProyecto').textContent = p.tipoProyecto;
