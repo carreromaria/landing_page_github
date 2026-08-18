@@ -8,7 +8,7 @@ import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
-  listarUsuariosStaff, contarProyectosPorRut
+  listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut
 } from './firestore.js';
 import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
@@ -142,6 +142,38 @@ document.getElementById('eNumCotizacion').addEventListener('input', () => actual
 document.getElementById('eCanal').addEventListener('change', () => actualizarCotizacionPreview('e'));
 activarSoloDigitosCotizacion(document.getElementById('fNumCotizacion'));
 activarSoloDigitosCotizacion(document.getElementById('eNumCotizacion'));
+
+// ---- Autocompletar "Nuevo proyecto" si el RUT ya existe en Firestore ----
+let ultimoRutAutocompletado = '';
+
+async function autocompletarPorRut(rutLimpio) {
+  const avisoEl = document.getElementById('fRutAutocompletado');
+  if (rutLimpio === ultimoRutAutocompletado) return; // ya se buscó este mismo RUT
+  ultimoRutAutocompletado = rutLimpio;
+
+  try {
+    const proyectoExistente = await buscarProyectoPorRut(rutLimpio);
+    if (!proyectoExistente) {
+      avisoEl.textContent = '';
+      return;
+    }
+    document.getElementById('fCliente').value = proyectoExistente.cliente || '';
+    document.getElementById('fTelefono').value = proyectoExistente.telefono || '';
+    document.getElementById('fEmail').value = proyectoExistente.email || '';
+    document.getElementById('fDireccion').value = proyectoExistente.direccion || '';
+    avisoEl.textContent = 'Cliente ya registrado: completamos sus datos. Puedes modificarlos si algo cambió.';
+    mostrarToast('Encontramos a este cliente y completamos el formulario.', 'exito');
+  } catch (err) {
+    console.error('No pudimos buscar datos previos del cliente:', err);
+  }
+}
+
+document.getElementById('fRut').addEventListener('blur', () => {
+  const rutLimpio = limpiarRut(document.getElementById('fRut').value);
+  if (rutLimpio && validarRut(rutLimpio)) {
+    autocompletarPorRut(rutLimpio);
+  }
+});
 
 /** Convierte un Timestamp de Firestore (o Date) al formato yyyy-mm-dd que espera <input type="date">. */
 function timestampAValorInput(valor) {
@@ -293,6 +325,8 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   document.getElementById('fCategoriaBadge').className = 'badge-categoria bronce';
   document.getElementById('fCategoriaNota').textContent = 'Ingresa el RUT para calcular la categoría';
   document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-00000-00';
+  document.getElementById('fRutAutocompletado').textContent = '';
+  ultimoRutAutocompletado = '';
   modalNuevo.classList.add('open');
 });
 document.getElementById('btnCancelarNuevo').addEventListener('click', () => {
