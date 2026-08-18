@@ -9,7 +9,7 @@
 import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
-  collection, getDocs, query, orderBy,
+  collection, getDocs, query, orderBy, where,
   serverTimestamp, writeBatch, arrayUnion, arrayRemove,
   onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -44,6 +44,22 @@ export async function obtenerUsuarioStaff(uid) {
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
   return { uid: snap.id, ...snap.data() };
+}
+
+/**
+ * Cuenta cuántos proyectos existen ya en Firestore para un mismo RUT
+ * (cliente recurrente). Se usa para calcular la categoría del cliente
+ * de forma automática (Bronce / Oro / Élite).
+ *
+ * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
+ * @returns {Promise<number>} cantidad de proyectos existentes con ese RUT
+ */
+export async function contarProyectosPorRut(rut) {
+  if (!rut) return 0;
+  const ref = collection(db, "proyectos");
+  const q = query(ref, where("rut", "==", rut));
+  const snap = await getDocs(q);
+  return snap.size;
 }
 
 // ---------- Funciones para el panel interno (dashboard) ----------
