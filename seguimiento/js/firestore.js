@@ -9,7 +9,7 @@
 import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
-  collection, getDocs, query, orderBy, where,
+  collection, getDocs, query, orderBy, where, limit,
   serverTimestamp, writeBatch, arrayUnion, arrayRemove,
   onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -60,6 +60,23 @@ export async function contarProyectosPorRut(rut) {
   const q = query(ref, where("rut", "==", rut));
   const snap = await getDocs(q);
   return snap.size;
+}
+
+/**
+ * Busca el proyecto más reciente registrado con un RUT dado, para
+ * autocompletar el formulario de "Nuevo proyecto" cuando el cliente
+ * ya existe. Devuelve null si no hay ningún proyecto con ese RUT.
+ *
+ * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
+ */
+export async function buscarProyectoPorRut(rut) {
+  if (!rut) return null;
+  const ref = collection(db, "proyectos");
+  const q = query(ref, where("rut", "==", rut), orderBy("actualizadoEn", "desc"), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { codigo: d.id, ...d.data() };
 }
 
 // ---------- Funciones para el panel interno (dashboard) ----------
