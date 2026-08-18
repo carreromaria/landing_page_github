@@ -8,7 +8,7 @@ import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
-  listarUsuariosStaff
+  listarUsuariosStaff, contarProyectosPorRut
 } from './firestore.js';
 import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
@@ -19,6 +19,147 @@ import { ETAPAS, calcularPorcentaje } from './etapas.js';
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
 let USUARIOS_STAFF = [];
+
+// ============================================================
+// RUT, CATEGORÍA AUTOMÁTICA, CANAL Y CÓDIGO DE COTIZACIÓN
+// ============================================================
+
+const CANALES = {
+  REF: 'LANDING PAGE-REF',
+  '01': 'PRESENCIAL-01',
+  '02': 'WHATSAPP-02',
+  '03': 'INSTAGRAM-03',
+  '04': 'FACEBOOK-04',
+  '05': 'TIKTOK-05'
+};
+
+/** Normaliza un RUT: mayúsculas, sin puntos ni espacios (conserva el guión). */
+function limpiarRut(valor) {
+  return (valor || '').trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, '');
+}
+
+/** Valida un RUT chileno (formato NUMERO-DV) usando el algoritmo módulo 11. */
+function validarRut(rutLimpio) {
+  if (!/^\d{7,8}-[\dK]$/.test(rutLimpio)) return false;
+  const [numero, dv] = rutLimpio.split('-');
+  let suma = 0;
+  let multiplicador = 2;
+  for (let i = numero.length - 1; i >= 0; i--) {
+    suma += Number(numero[i]) * multiplicador;
+    multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
+  }
+  const resto = 11 - (suma % 11);
+  const dvEsperado = resto === 11 ? '0' : resto === 10 ? 'K' : String(resto);
+  return dvEsperado === dv;
+}
+
+/** Bronce: 0–1 proyecto · Oro: 2–4 proyectos · Élite: 5 o más. */
+function calcularCategoria(cantidadProyectos) {
+  if (cantidadProyectos >= 5) return 'Élite';
+  if (cantidadProyectos >= 2) return 'Oro';
+  return 'Bronce';
+}
+
+function claseCategoria(categoria) {
+  return { Bronce: 'bronce', Oro: 'oro', 'Élite': 'elite' }[categoria] || 'bronce';
+}
+
+/** Arma el código visible para el cliente, ej. COT-00004-03. */
+function construirCodigoCotizacion(numero, prefijoCanal) {
+  if (!numero || !prefijoCanal) return '';
+  return `COT-${numero.padStart(5, '0')}-${prefijoCanal}`;
+}
+
+function debounce(fn, esperaMs) {
+  let temporizador;
+  return (...args) => {
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => fn(...args), esperaMs);
+  };
+}
+
+/**
+ * Actualiza el badge de categoría en vivo mientras se escribe el RUT.
+ * @param {'f'|'e'} prefijo campo de "Nuevo proyecto" (f) o "Editar" (e)
+ * @param {number} extra 1 si es un proyecto nuevo aún no guardado, 0 si ya existe
+ */
+async function actualizarCategoriaPreview(prefijo, extra) {
+  const rutInput = document.getElementById(prefijo + 'Rut');
+  const badge = document.getElementById(prefijo + 'CategoriaBadge');
+  const nota = document.getElementById(prefijo + 'CategoriaNota');
+  if (!rutInput || !badge || !nota) return;
+
+  const rutLimpio = limpiarRut(rutInput.value);
+  if (!rutLimpio) {
+    badge.textContent = 'Bronce';
+    badge.className = 'badge-categoria bronce';
+    nota.textContent = 'Ingresa el RUT para calcular la categoría';
+    return;
+  }
+  if (!validarRut(rutLimpio)) {
+    badge.textContent = '—';
+    badge.className = 'badge-categoria';
+    nota.textContent = 'Ese RUT no parece válido';
+    return;
+  }
+
+  nota.textContent = 'Calculando…';
+  try {
+    const cantidadExistente = await contarProyectosPorRut(rutLimpio);
+    const total = cantidadExistente + extra;
+    const categoria = calcularCategoria(total);
+    badge.textContent = categoria;
+    badge.className = 'badge-categoria ' + claseCategoria(categoria);
+    nota.textContent = `Este cliente tiene ${total} proyecto${total === 1 ? '' : 's'} en total`;
+  } catch (err) {
+    console.error(err);
+    nota.textContent = 'No pudimos calcular la categoría automáticamente';
+  }
+}
+const actualizarCategoriaPreviewDebounced = debounce(actualizarCategoriaPreview, 500);
+
+function actualizarCotizacionPreview(prefijo) {
+  const numInput = document.getElementById(prefijo + 'NumCotizacion');
+  const canalSelect = document.getElementById(prefijo + 'Canal');
+  const preview = document.getElementById(prefijo + 'CotizacionPreview');
+  if (!numInput || !canalSelect || !preview) return;
+
+  const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
+  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: COT-00000-00';
+}
+
+function activarSoloDigitosCotizacion(inputEl) {
+  inputEl.addEventListener('input', () => {
+    inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 6);
+  });
+}
+
+document.getElementById('fRut').addEventListener('input', () => actualizarCategoriaPreviewDebounced('f', 1));
+document.getElementById('eRut').addEventListener('input', () => actualizarCategoriaPreviewDebounced('e', 0));
+document.getElementById('fNumCotizacion').addEventListener('input', () => actualizarCotizacionPreview('f'));
+document.getElementById('fCanal').addEventListener('change', () => actualizarCotizacionPreview('f'));
+document.getElementById('eNumCotizacion').addEventListener('input', () => actualizarCotizacionPreview('e'));
+document.getElementById('eCanal').addEventListener('change', () => actualizarCotizacionPreview('e'));
+activarSoloDigitosCotizacion(document.getElementById('fNumCotizacion'));
+activarSoloDigitosCotizacion(document.getElementById('eNumCotizacion'));
+
+/** Convierte un Timestamp de Firestore (o Date) al formato yyyy-mm-dd que espera <input type="date">. */
+function timestampAValorInput(valor) {
+  if (!valor) return '';
+  const fecha = valor.toDate ? valor.toDate() : new Date(valor);
+  if (isNaN(fecha.getTime())) return '';
+  return fecha.toISOString().slice(0, 10);
+}
+
+/** Texto legible del rango de instalación, con compatibilidad para proyectos antiguos de fecha única. */
+function formatearRangoFechas(inicio, fin) {
+  const i = inicio ? formatearFecha(inicio) : null;
+  const f = fin ? formatearFecha(fin) : null;
+  if (i && f && i !== f) return `${i} al ${f}`;
+  if (i) return i;
+  if (f) return f;
+  return 'Por confirmar';
+}
 
 // ---------- Toast (mensajes flotantes) ----------
 function mostrarToast(mensaje, tipo = 'exito') {
@@ -148,6 +289,10 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   formNuevo.reset();
   modalError.classList.remove('visible');
   poblarSelectResponsable(document.getElementById('fResponsable'));
+  document.getElementById('fCategoriaBadge').textContent = 'Bronce';
+  document.getElementById('fCategoriaBadge').className = 'badge-categoria bronce';
+  document.getElementById('fCategoriaNota').textContent = 'Ingresa el RUT para calcular la categoría';
+  document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-00000-00';
   modalNuevo.classList.add('open');
 });
 document.getElementById('btnCancelarNuevo').addEventListener('click', () => {
@@ -161,8 +306,12 @@ formNuevo.addEventListener('submit', async (e) => {
   e.preventDefault();
   modalError.classList.remove('visible');
 
-  const fechaEstimadaValor = document.getElementById('fFechaEstimada').value;
+  const fechaInicioValor = document.getElementById('fFechaInicio').value;
+  const fechaFinValor = document.getElementById('fFechaFin').value;
   const telefono = document.getElementById('fTelefono').value.trim();
+  const rutLimpio = limpiarRut(document.getElementById('fRut').value);
+  const canalOrigen = document.getElementById('fCanal').value;
+  const numCotizacion = document.getElementById('fNumCotizacion').value.trim();
 
   if (telefono && !/^[\d\s()+-]+$/.test(telefono)) {
     modalError.textContent = 'El teléfono solo puede contener números (y +, espacios o guiones).';
@@ -170,21 +319,43 @@ formNuevo.addEventListener('submit', async (e) => {
     return;
   }
 
-  const datos = {
-    cliente: document.getElementById('fCliente').value.trim().toUpperCase(),
-    telefono: telefono,
-    email: document.getElementById('fEmail').value.trim().toUpperCase(),
-    tipoProyecto: document.getElementById('fTipoProyecto').value.trim().toUpperCase(),
-    categoria: document.getElementById('fCategoria').value,
-    responsable: document.getElementById('fResponsable').value,
-    direccion: document.getElementById('fDireccion').value.trim().toUpperCase(),
-    fechaEstimadaInstalacion: fechaEstimadaValor ? new Date(fechaEstimadaValor) : null,
-    observaciones: document.getElementById('fObservaciones').value.trim().toUpperCase(),
-    token: generarToken()
-  };
+  if (rutLimpio && !validarRut(rutLimpio)) {
+    modalError.textContent = 'El RUT ingresado no es válido. Revisa el formato (ej. 12.345.678-9).';
+    modalError.classList.add('visible');
+    return;
+  }
 
   btnGuardar.disabled = true;
   btnGuardar.textContent = 'Creando…';
+
+  // La categoría se calcula sola según cuántos proyectos previos tiene ese RUT
+  let categoria = 'Bronce';
+  if (rutLimpio) {
+    try {
+      const cantidadExistente = await contarProyectosPorRut(rutLimpio);
+      categoria = calcularCategoria(cantidadExistente + 1);
+    } catch (err) {
+      console.error('No pudimos calcular la categoría automáticamente:', err);
+    }
+  }
+
+  const datos = {
+    cliente: document.getElementById('fCliente').value.trim().toUpperCase(),
+    rut: rutLimpio,
+    telefono: telefono,
+    email: document.getElementById('fEmail').value.trim().toUpperCase(),
+    tipoProyecto: document.getElementById('fTipoProyecto').value.trim().toUpperCase(),
+    categoria,
+    responsable: document.getElementById('fResponsable').value,
+    direccion: document.getElementById('fDireccion').value.trim().toUpperCase(),
+    fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
+    fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
+    canalOrigen,
+    numCotizacion,
+    codigoCotizacion: construirCodigoCotizacion(numCotizacion, canalOrigen),
+    observaciones: document.getElementById('fObservaciones').value.trim().toUpperCase(),
+    token: generarToken()
+  };
 
   try {
     const codigo = await crearProyectoConCodigoAutomatico(datos, STAFF_ACTUAL.uid);
@@ -386,32 +557,46 @@ function renderDetalle(p, historial) {
 
   // ---- Formulario de datos generales ----
   document.getElementById('eCliente').value = p.cliente || '';
+  document.getElementById('eRut').value = p.rut || '';
   document.getElementById('eTelefono').value = p.telefono || '';
   document.getElementById('eEmail').value = p.email || '';
   document.getElementById('eTipoProyecto').value = p.tipoProyecto || '';
   document.getElementById('eDireccion').value = p.direccion || '';
-  document.getElementById('eFechaEstimada').value = p.fechaEstimadaInstalacion
-    ? (p.fechaEstimadaInstalacion.toDate ? p.fechaEstimadaInstalacion.toDate() : new Date(p.fechaEstimadaInstalacion)).toISOString().slice(0, 10)
-    : '';
+  // Compatibilidad: proyectos antiguos solo tienen fechaEstimadaInstalacion (fecha única)
+  document.getElementById('eFechaInicio').value = timestampAValorInput(p.fechaEstimadaInicio || p.fechaEstimadaInstalacion);
+  document.getElementById('eFechaFin').value = timestampAValorInput(p.fechaEstimadaFin || p.fechaEstimadaInstalacion);
+  document.getElementById('eCanal').value = p.canalOrigen || '';
+  document.getElementById('eNumCotizacion').value = p.numCotizacion || '';
   document.getElementById('eObservaciones').value = p.observaciones || '';
-  document.getElementById('eCategoria').value = p.categoria || '';
   poblarSelectResponsable(document.getElementById('eResponsable'), p.responsable || '');
 
+  const categoriaActual = p.categoria || 'Bronce';
+  document.getElementById('eCategoriaBadge').textContent = categoriaActual;
+  document.getElementById('eCategoriaBadge').className = 'badge-categoria ' + claseCategoria(categoriaActual);
+  document.getElementById('eCategoriaNota').textContent = 'Categoría actual · se recalcula sola al guardar';
+  actualizarCotizacionPreview('e');
+
   // ---- Resumen tipo lista (colapsado por defecto) ----
-  const categoriaClase = (p.categoria || '').toLowerCase();
+  const categoriaClase = claseCategoria(p.categoria || '');
   const filaCategoria = p.categoria
     ? `<span class="badge-categoria ${categoriaClase}">${p.categoria}</span>`
     : '<span class="resumen-valor" style="opacity:0.4;">Sin asignar</span>';
+  const canalLegible = CANALES[p.canalOrigen] || '—';
+  const fechaInicioLegible = p.fechaEstimadaInicio || p.fechaEstimadaInstalacion;
+  const fechaFinLegible = p.fechaEstimadaFin || p.fechaEstimadaInstalacion;
 
   document.getElementById('resumenDatos').innerHTML = `
     <li><span class="resumen-label">Cliente</span><span class="resumen-valor">${p.cliente || '—'}</span></li>
+    <li><span class="resumen-label">RUT</span><span class="resumen-valor">${p.rut || '—'}</span></li>
     <li><span class="resumen-label">Teléfono</span><span class="resumen-valor">${p.telefono || '—'}</span></li>
     <li><span class="resumen-label">Correo</span><span class="resumen-valor">${p.email || '—'}</span></li>
     <li><span class="resumen-label">Tipo de proyecto</span><span class="resumen-valor">${p.tipoProyecto || '—'}</span></li>
     <li><span class="resumen-label">Categoría</span>${filaCategoria}</li>
     <li><span class="resumen-label">Responsable</span><span class="resumen-valor">${p.responsable || 'Por asignar'}</span></li>
     <li><span class="resumen-label">Dirección</span><span class="resumen-valor">${p.direccion || '—'}</span></li>
-    <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${p.fechaEstimadaInstalacion ? formatearFecha(p.fechaEstimadaInstalacion) : 'Por confirmar'}</span></li>
+    <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${formatearRangoFechas(fechaInicioLegible, fechaFinLegible)}</span></li>
+    <li><span class="resumen-label">Canal de origen</span><span class="resumen-valor">${canalLegible}</span></li>
+    <li><span class="resumen-label">N° de cotización</span><span class="resumen-valor">${p.codigoCotizacion || '—'}</span></li>
   `;
   // Siempre vuelve a mostrarse colapsado al entrar/recargar el detalle
   document.getElementById('formEditarProyecto').style.display = 'none';
@@ -472,19 +657,46 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     return;
   }
 
+  const rutLimpio = limpiarRut(document.getElementById('eRut').value);
+  if (rutLimpio && !validarRut(rutLimpio)) {
+    errorBox.textContent = 'El RUT ingresado no es válido. Revisa el formato (ej. 12.345.678-9).';
+    errorBox.classList.add('visible');
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = 'Guardando…';
 
-  const fechaValor = document.getElementById('eFechaEstimada').value;
+  // Recalcula la categoría por si el RUT cambió o hay proyectos nuevos del mismo cliente
+  let categoria = PROYECTO_ACTUAL.categoria || 'Bronce';
+  if (rutLimpio) {
+    try {
+      const cantidadTotal = await contarProyectosPorRut(rutLimpio);
+      categoria = calcularCategoria(cantidadTotal);
+    } catch (err) {
+      console.error('No pudimos recalcular la categoría automáticamente:', err);
+    }
+  }
+
+  const fechaInicioValor = document.getElementById('eFechaInicio').value;
+  const fechaFinValor = document.getElementById('eFechaFin').value;
+  const canalOrigen = document.getElementById('eCanal').value;
+  const numCotizacion = document.getElementById('eNumCotizacion').value.trim();
+
   const datos = {
     cliente: document.getElementById('eCliente').value.trim().toUpperCase(),
+    rut: rutLimpio,
     telefono: telefono,
     email: document.getElementById('eEmail').value.trim().toUpperCase(),
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toUpperCase(),
-    categoria: document.getElementById('eCategoria').value,
+    categoria,
     responsable: document.getElementById('eResponsable').value,
     direccion: document.getElementById('eDireccion').value.trim().toUpperCase(),
-    fechaEstimadaInstalacion: fechaValor ? new Date(fechaValor) : null,
+    fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
+    fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
+    canalOrigen,
+    numCotizacion,
+    codigoCotizacion: construirCodigoCotizacion(numCotizacion, canalOrigen),
     observaciones: document.getElementById('eObservaciones').value.trim().toUpperCase()
   };
 
