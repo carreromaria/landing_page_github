@@ -76,6 +76,19 @@
   padding:6px 16px;
   border-radius:999px;
 }
+.codigo-header-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:6px;
+}
+.codigo-label-header{
+  font-size:11px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--ink);
+  opacity:0.5;
+}
 
 /* ---------- Hero ---------- */
 .hero-proyecto{
@@ -375,7 +388,6 @@
 }
 .info-card .eyebrow{margin-bottom:8px; font-size:11px;}
 .info-card .valor{font-size:18px; font-weight:500;}
-.info-card .valor.grande{font-family:'Champagne & Limousines','Poppins', serif; font-size:24px;}
 
 /* ---- Categoría del cliente, mostrada como badge dentro de su info-card ---- */
 .info-card .badge-categoria{
@@ -530,12 +542,18 @@
 .reveal.visible{opacity:1; transform:none;}
 
 /* ---------- Responsive ---------- */
+@media (min-width:981px){
+  /* Escritorio: se quita el código duplicado junto a "Seguimiento en
+     tiempo real" — el código ya se ve arriba, en el header, con su
+     propia etiqueta "Código de proyecto". */
+  .codigo-badge-hero{display:none;}
+}
 @media (max-width:980px){
   .info-grid{grid-template-columns:1fr;}
 
   /* El código del proyecto se deja solo abajo (hero), tal cual estaba;
      arriba se quita para dar más aire entre los dos logos del header */
-  .codigo-badge-header{display:none;}
+  .codigo-header-wrap{display:none;}
   .cliente-header .logo-mini-link{gap:22px;}
 
   .codigo-badge-hero{
