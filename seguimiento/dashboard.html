@@ -150,12 +150,12 @@
       <form id="formEditarProyecto" style="display:none;">
         <div class="form-grid">
           <div class="campo">
-            <label for="eCliente">Cliente</label>
-            <input type="text" id="eCliente">
-          </div>
-          <div class="campo">
             <label for="eRut">RUT</label>
             <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
+          </div>
+          <div class="campo">
+            <label for="eCliente">Cliente</label>
+            <input type="text" id="eCliente">
           </div>
           <div class="campo">
             <label for="eTelefono">Teléfono</label>
@@ -269,12 +269,13 @@
           <p class="nota-codigo-automatico">El código del proyecto (LIN-00001, LIN-00002…) se asigna automáticamente al guardar.</p>
         </div>
         <div class="campo">
-          <label for="fCliente">Cliente</label>
-          <input type="text" id="fCliente" required>
-        </div>
-        <div class="campo">
           <label for="fRut">RUT</label>
           <input type="text" id="fRut" placeholder="12.345.678-9" autocomplete="off">
+          <span class="rut-autocompletado" id="fRutAutocompletado"></span>
+        </div>
+        <div class="campo">
+          <label for="fCliente">Cliente</label>
+          <input type="text" id="fCliente" required>
         </div>
         <div class="campo">
           <label for="fTelefono">Teléfono</label>
