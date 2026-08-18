@@ -9,7 +9,7 @@
 import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc,
-  collection, getDocs, query, orderBy, where, limit,
+  collection, getDocs, query, orderBy, where,
   serverTimestamp, writeBatch, arrayUnion, arrayRemove,
   onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -67,16 +67,20 @@ export async function contarProyectosPorRut(rut) {
  * autocompletar el formulario de "Nuevo proyecto" cuando el cliente
  * ya existe. Devuelve null si no hay ningún proyecto con ese RUT.
  *
+ * Nota: se ordena en el navegador (no con orderBy en Firestore) para
+ * no depender de un índice compuesto rut+actualizadoEn.
+ *
  * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
  */
 export async function buscarProyectoPorRut(rut) {
   if (!rut) return null;
   const ref = collection(db, "proyectos");
-  const q = query(ref, where("rut", "==", rut), orderBy("actualizadoEn", "desc"), limit(1));
+  const q = query(ref, where("rut", "==", rut));
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { codigo: d.id, ...d.data() };
+  const proyectos = snap.docs.map(d => ({ codigo: d.id, ...d.data() }));
+  proyectos.sort((a, b) => (b.actualizadoEn?.toMillis?.() || 0) - (a.actualizadoEn?.toMillis?.() || 0));
+  return proyectos[0];
 }
 
 /**
@@ -86,6 +90,9 @@ export async function buscarProyectoPorRut(rut) {
  * otras viviendas registradas (la dirección nunca se autocompleta sola,
  * porque un mismo cliente puede tener varias propiedades).
  *
+ * Nota: se ordena en el navegador (no con orderBy en Firestore) para
+ * no depender de un índice compuesto rut+actualizadoEn.
+ *
  * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
  * @param {string} [excluirCodigo] código de proyecto a excluir del resultado
  *   (para no listar la dirección del mismo proyecto que se está editando)
@@ -94,13 +101,14 @@ export async function buscarProyectoPorRut(rut) {
 export async function buscarDireccionesPorRut(rut, excluirCodigo) {
   if (!rut) return [];
   const ref = collection(db, "proyectos");
-  const q = query(ref, where("rut", "==", rut), orderBy("actualizadoEn", "desc"));
+  const q = query(ref, where("rut", "==", rut));
   const snap = await getDocs(q);
+  const proyectos = snap.docs.map(d => ({ codigo: d.id, ...d.data() }));
+  proyectos.sort((a, b) => (b.actualizadoEn?.toMillis?.() || 0) - (a.actualizadoEn?.toMillis?.() || 0));
   const direcciones = [];
-  snap.docs.forEach(d => {
-    if (excluirCodigo && d.id === excluirCodigo) return;
-    const direccion = d.data().direccion;
-    if (direccion && !direcciones.includes(direccion)) direcciones.push(direccion);
+  proyectos.forEach(p => {
+    if (excluirCodigo && p.codigo === excluirCodigo) return;
+    if (p.direccion && !direcciones.includes(p.direccion)) direcciones.push(p.direccion);
   });
   return direcciones;
 }
