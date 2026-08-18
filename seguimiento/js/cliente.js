@@ -147,11 +147,36 @@ function renderCinta(p){
   }).join('');
 }
 
+const CLASE_CATEGORIA = { Bronce: 'bronce', Oro: 'oro', 'Élite': 'elite' };
+
+function formatearRangoFechasCliente(p){
+  // Compatibilidad: proyectos antiguos solo tienen fechaEstimadaInstalacion (fecha única)
+  const inicio = p.fechaEstimadaInicio || p.fechaEstimadaInstalacion;
+  const fin = p.fechaEstimadaFin || p.fechaEstimadaInstalacion;
+  if (!inicio && !fin) return 'Por confirmar';
+  const i = inicio ? formatearFecha(inicio) : null;
+  const f = fin ? formatearFecha(fin) : null;
+  if (i && f && i !== f) return `${i} al ${f}`;
+  return i || f;
+}
+
 function renderInfoGrid(p){
-  document.getElementById('infoFecha').textContent =
-    p.fechaEstimadaInstalacion ? formatearFecha(p.fechaEstimadaInstalacion) : 'Por confirmar';
+  document.getElementById('infoFecha').textContent = formatearRangoFechasCliente(p);
   document.getElementById('infoResponsable').textContent = p.responsable || 'Por asignar';
   document.getElementById('infoCodigo').textContent = p.codigo;
+
+  const categoriaEl = document.getElementById('infoCategoria');
+  if (categoriaEl) {
+    if (p.categoria) {
+      const clase = CLASE_CATEGORIA[p.categoria] || 'bronce';
+      categoriaEl.innerHTML = `<span class="badge-categoria ${clase}">${p.categoria}</span>`;
+    } else {
+      categoriaEl.textContent = 'Por definir';
+    }
+  }
+
+  const cotizacionEl = document.getElementById('infoCotizacion');
+  if (cotizacionEl) cotizacionEl.textContent = p.codigoCotizacion || 'Por asignar';
 }
 
 function renderTimeline(p, historial){
