@@ -154,6 +154,10 @@
             <input type="text" id="eCliente">
           </div>
           <div class="campo">
+            <label for="eRut">RUT</label>
+            <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
+          </div>
+          <div class="campo">
             <label for="eTelefono">Teléfono</label>
             <input type="tel" id="eTelefono" inputmode="numeric">
           </div>
@@ -166,13 +170,11 @@
             <input type="text" id="eTipoProyecto">
           </div>
           <div class="campo">
-            <label for="eCategoria">Categoría</label>
-            <select id="eCategoria">
-              <option value="">Selecciona…</option>
-              <option value="Bronze">Bronze</option>
-              <option value="Gold">Gold</option>
-              <option value="Black">Black</option>
-            </select>
+            <label>Categoría del cliente</label>
+            <div class="categoria-auto" id="eCategoriaPreview">
+              <span class="badge-categoria" id="eCategoriaBadge">Bronce</span>
+              <span class="categoria-auto-nota" id="eCategoriaNota">Se calcula sola según el RUT</span>
+            </div>
           </div>
           <div class="campo campo-full">
             <label for="eResponsable">Responsable</label>
@@ -184,9 +186,30 @@
             <label for="eDireccion">Dirección</label>
             <input type="text" id="eDireccion">
           </div>
-          <div class="campo campo-full">
-            <label for="eFechaEstimada">Fecha estimada de instalación</label>
-            <input type="date" id="eFechaEstimada">
+          <div class="campo">
+            <label for="eFechaInicio">Fecha estimada de instalación — desde</label>
+            <input type="date" id="eFechaInicio">
+          </div>
+          <div class="campo">
+            <label for="eFechaFin">Fecha estimada de instalación — hasta</label>
+            <input type="date" id="eFechaFin">
+          </div>
+          <div class="campo">
+            <label for="eCanal">Canal de origen</label>
+            <select id="eCanal">
+              <option value="">Selecciona…</option>
+              <option value="REF">LANDING PAGE-REF</option>
+              <option value="01">PRESENCIAL-01</option>
+              <option value="02">WHATSAPP-02</option>
+              <option value="03">INSTAGRAM-03</option>
+              <option value="04">FACEBOOK-04</option>
+              <option value="05">TIKTOK-05</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eNumCotizacion">N° de cotización</label>
+            <input type="text" id="eNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
+            <span class="cotizacion-preview" id="eCotizacionPreview">Se verá como: COT-00000-00</span>
           </div>
           <div class="campo campo-full">
             <label for="eObservaciones">Observaciones (visibles para el cliente)</label>
@@ -250,6 +273,10 @@
           <input type="text" id="fCliente" required>
         </div>
         <div class="campo">
+          <label for="fRut">RUT</label>
+          <input type="text" id="fRut" placeholder="12.345.678-9" autocomplete="off">
+        </div>
+        <div class="campo">
           <label for="fTelefono">Teléfono</label>
           <input type="tel" id="fTelefono">
         </div>
@@ -262,13 +289,11 @@
           <input type="text" id="fTipoProyecto" placeholder="Ej. Cocina moderna" required>
         </div>
         <div class="campo">
-          <label for="fCategoria">Categoría</label>
-          <select id="fCategoria">
-            <option value="">Selecciona…</option>
-            <option value="Bronze">Bronze</option>
-            <option value="Gold">Gold</option>
-            <option value="Black">Black</option>
-          </select>
+          <label>Categoría del cliente</label>
+          <div class="categoria-auto" id="fCategoriaPreview">
+            <span class="badge-categoria" id="fCategoriaBadge">Bronce</span>
+            <span class="categoria-auto-nota" id="fCategoriaNota">Se calcula sola según el RUT</span>
+          </div>
         </div>
         <div class="campo campo-full">
           <label for="fResponsable">Responsable</label>
@@ -280,9 +305,30 @@
           <label for="fDireccion">Dirección</label>
           <input type="text" id="fDireccion">
         </div>
-        <div class="campo campo-full">
-          <label for="fFechaEstimada">Fecha estimada de instalación</label>
-          <input type="date" id="fFechaEstimada">
+        <div class="campo">
+          <label for="fFechaInicio">Fecha estimada de instalación — desde</label>
+          <input type="date" id="fFechaInicio">
+        </div>
+        <div class="campo">
+          <label for="fFechaFin">Fecha estimada de instalación — hasta</label>
+          <input type="date" id="fFechaFin">
+        </div>
+        <div class="campo">
+          <label for="fCanal">Canal de origen</label>
+          <select id="fCanal">
+            <option value="">Selecciona…</option>
+            <option value="REF">LANDING PAGE-REF</option>
+            <option value="01">PRESENCIAL-01</option>
+            <option value="02">WHATSAPP-02</option>
+            <option value="03">INSTAGRAM-03</option>
+            <option value="04">FACEBOOK-04</option>
+            <option value="05">TIKTOK-05</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fNumCotizacion">N° de cotización</label>
+          <input type="text" id="fNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
+          <span class="cotizacion-preview" id="fCotizacionPreview">Se verá como: COT-00000-00</span>
         </div>
         <div class="campo campo-full">
           <label for="fObservaciones">Observaciones iniciales (opcional)</label>
