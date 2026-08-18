@@ -471,10 +471,33 @@ html, body{height:100%; background:var(--cream);}
   font-size:11px;
   font-weight:700;
   letter-spacing:0.03em;
+  white-space:nowrap;
 }
-.badge-categoria.bronze{background:rgba(176,120,60,0.18); color:#8a5a26;}
-.badge-categoria.gold{background:rgba(214,165,44,0.2); color:#8a6a1a;}
-.badge-categoria.black{background:rgba(20,18,19,0.14); color:var(--ink);}
+.badge-categoria.bronce{background:rgba(176,120,60,0.18); color:#8a5a26;}
+.badge-categoria.oro{background:rgba(214,165,44,0.2); color:#8a6a1a;}
+.badge-categoria.elite{background:var(--ink); color:var(--gold);}
+
+/* ---- Categoría calculada en vivo (formularios Nuevo / Editar proyecto) ---- */
+.categoria-auto{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  min-height:38px;
+  padding:9px 0;
+}
+.categoria-auto-nota{
+  font-size:12px;
+  opacity:0.55;
+}
+
+/* ---- Vista previa del código de cotización (COT-00000-00) ---- */
+.cotizacion-preview{
+  display:block;
+  margin-top:6px;
+  font-size:12px;
+  opacity:0.55;
+}
 
 /* ---------- Vista de detalle ---------- */
 .btn-volver{
