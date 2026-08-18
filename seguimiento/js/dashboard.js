@@ -8,7 +8,7 @@ import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
-  listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut
+  listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut
 } from './firestore.js';
 import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
@@ -143,26 +143,56 @@ document.getElementById('eCanal').addEventListener('change', () => actualizarCot
 activarSoloDigitosCotizacion(document.getElementById('fNumCotizacion'));
 activarSoloDigitosCotizacion(document.getElementById('eNumCotizacion'));
 
-// ---- Autocompletar "Nuevo proyecto" si el RUT ya existe en Firestore ----
-let ultimoRutAutocompletado = '';
+// ---- Autocompletar datos de cliente si el RUT ya existe en Firestore ----
+// Nombre, teléfono y correo se autocompletan porque no cambian entre
+// proyectos del mismo cliente. La dirección NUNCA se autocompleta sola:
+// un cliente puede tener varias viviendas, así que sus direcciones
+// anteriores se ofrecen como opciones para elegir (o se escribe una nueva).
+let ultimoRutAutocompletadoNuevo = '';
+let ultimoRutAutocompletadoEdicion = '';
+let rutOriginalEdicion = '';
 
-async function autocompletarPorRut(rutLimpio) {
-  const avisoEl = document.getElementById('fRutAutocompletado');
-  if (rutLimpio === ultimoRutAutocompletado) return; // ya se buscó este mismo RUT
-  ultimoRutAutocompletado = rutLimpio;
+function poblarDireccionesPrevias(prefijo, direcciones) {
+  const wrap = document.getElementById(prefijo + 'DireccionesPreviasWrap');
+  const select = document.getElementById(prefijo + 'DireccionesPrevias');
+  if (!wrap || !select) return;
+  const placeholder = '<option value="">Selecciona una dirección o escribe una nueva abajo…</option>';
+  if (!direcciones.length) {
+    wrap.style.display = 'none';
+    select.innerHTML = placeholder;
+    return;
+  }
+  select.innerHTML = placeholder + direcciones
+    .map(d => `<option value="${d.replace(/"/g, '&quot;')}">${d}</option>`)
+    .join('');
+  wrap.style.display = 'block';
+}
+
+/**
+ * @param {'f'|'e'} prefijo formulario de "Nuevo proyecto" (f) o "Editar" (e)
+ * @param {string} rutLimpio
+ * @param {string|null} excluirCodigo código del proyecto actual (solo en edición, para no listar su propia dirección)
+ */
+async function autocompletarDatosCliente(prefijo, rutLimpio, excluirCodigo) {
+  const avisoEl = document.getElementById(prefijo + 'RutAutocompletado');
 
   try {
-    const proyectoExistente = await buscarProyectoPorRut(rutLimpio);
-    if (!proyectoExistente) {
+    const [proyectoExistente, direcciones] = await Promise.all([
+      buscarProyectoPorRut(rutLimpio),
+      buscarDireccionesPorRut(rutLimpio, excluirCodigo)
+    ]);
+
+    if (proyectoExistente) {
+      document.getElementById(prefijo + 'Cliente').value = proyectoExistente.cliente || '';
+      document.getElementById(prefijo + 'Telefono').value = proyectoExistente.telefono || '';
+      document.getElementById(prefijo + 'Email').value = proyectoExistente.email || '';
+      if (avisoEl) avisoEl.textContent = 'Cliente ya registrado: completamos su nombre, teléfono y correo. Elige la dirección abajo.';
+      mostrarToast('Encontramos a este cliente y completamos sus datos de contacto.', 'exito');
+    } else if (avisoEl) {
       avisoEl.textContent = '';
-      return;
     }
-    document.getElementById('fCliente').value = proyectoExistente.cliente || '';
-    document.getElementById('fTelefono').value = proyectoExistente.telefono || '';
-    document.getElementById('fEmail').value = proyectoExistente.email || '';
-    document.getElementById('fDireccion').value = proyectoExistente.direccion || '';
-    avisoEl.textContent = 'Cliente ya registrado: completamos sus datos. Puedes modificarlos si algo cambió.';
-    mostrarToast('Encontramos a este cliente y completamos el formulario.', 'exito');
+
+    poblarDireccionesPrevias(prefijo, direcciones);
   } catch (err) {
     console.error('No pudimos buscar datos previos del cliente:', err);
   }
@@ -170,9 +200,27 @@ async function autocompletarPorRut(rutLimpio) {
 
 document.getElementById('fRut').addEventListener('blur', () => {
   const rutLimpio = limpiarRut(document.getElementById('fRut').value);
-  if (rutLimpio && validarRut(rutLimpio)) {
-    autocompletarPorRut(rutLimpio);
+  if (rutLimpio && validarRut(rutLimpio) && rutLimpio !== ultimoRutAutocompletadoNuevo) {
+    ultimoRutAutocompletadoNuevo = rutLimpio;
+    autocompletarDatosCliente('f', rutLimpio, null);
   }
+});
+
+document.getElementById('fDireccionesPrevias').addEventListener('change', (e) => {
+  if (e.target.value) document.getElementById('fDireccion').value = e.target.value;
+});
+
+document.getElementById('eRut').addEventListener('blur', () => {
+  const rutLimpio = limpiarRut(document.getElementById('eRut').value);
+  // Solo busca de nuevo si el RUT cambió respecto al que traía el proyecto al abrirlo
+  if (rutLimpio && validarRut(rutLimpio) && rutLimpio !== rutOriginalEdicion && rutLimpio !== ultimoRutAutocompletadoEdicion) {
+    ultimoRutAutocompletadoEdicion = rutLimpio;
+    autocompletarDatosCliente('e', rutLimpio, PROYECTO_ACTUAL?.codigo || null);
+  }
+});
+
+document.getElementById('eDireccionesPrevias').addEventListener('change', (e) => {
+  if (e.target.value) document.getElementById('eDireccion').value = e.target.value;
 });
 
 /** Convierte un Timestamp de Firestore (o Date) al formato yyyy-mm-dd que espera <input type="date">. */
@@ -326,7 +374,8 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   document.getElementById('fCategoriaNota').textContent = 'Ingresa el RUT para calcular la categoría';
   document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-00000-00';
   document.getElementById('fRutAutocompletado').textContent = '';
-  ultimoRutAutocompletado = '';
+  poblarDireccionesPrevias('f', []);
+  ultimoRutAutocompletadoNuevo = '';
   modalNuevo.classList.add('open');
 });
 document.getElementById('btnCancelarNuevo').addEventListener('click', () => {
@@ -596,6 +645,10 @@ function renderDetalle(p, historial) {
   document.getElementById('eEmail').value = p.email || '';
   document.getElementById('eTipoProyecto').value = p.tipoProyecto || '';
   document.getElementById('eDireccion').value = p.direccion || '';
+  document.getElementById('eRutAutocompletado').textContent = '';
+  poblarDireccionesPrevias('e', []);
+  rutOriginalEdicion = limpiarRut(p.rut || '');
+  ultimoRutAutocompletadoEdicion = '';
   // Compatibilidad: proyectos antiguos solo tienen fechaEstimadaInstalacion (fecha única)
   document.getElementById('eFechaInicio').value = timestampAValorInput(p.fechaEstimadaInicio || p.fechaEstimadaInstalacion);
   document.getElementById('eFechaFin').value = timestampAValorInput(p.fechaEstimadaFin || p.fechaEstimadaInstalacion);
