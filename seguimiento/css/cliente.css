@@ -363,7 +363,7 @@
 /* ---------- Grid de info rápida ---------- */
 .info-grid{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
+  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
   gap:1px;
   background:var(--gold-line);
   margin:0 6vw 56px;
@@ -376,6 +376,19 @@
 .info-card .eyebrow{margin-bottom:8px; font-size:11px;}
 .info-card .valor{font-size:18px; font-weight:500;}
 .info-card .valor.grande{font-family:'Champagne & Limousines','Poppins', serif; font-size:24px;}
+
+/* ---- Categoría del cliente, mostrada como badge dentro de su info-card ---- */
+.info-card .badge-categoria{
+  display:inline-block;
+  padding:5px 14px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0.03em;
+}
+.info-card .badge-categoria.bronce{background:rgba(176,120,60,0.18); color:#8a5a26;}
+.info-card .badge-categoria.oro{background:rgba(214,165,44,0.2); color:#8a6a1a;}
+.info-card .badge-categoria.elite{background:var(--ink); color:var(--gold);}
 
 /* ---------- Línea de tiempo ---------- */
 .timeline-section{
