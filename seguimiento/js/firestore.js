@@ -79,6 +79,32 @@ export async function buscarProyectoPorRut(rut) {
   return { codigo: d.id, ...d.data() };
 }
 
+/**
+ * Devuelve las direcciones distintas usadas en proyectos anteriores con
+ * este RUT, de la más reciente a la más antigua. Se usa para ofrecerlas
+ * como opciones al crear/editar un proyecto de un cliente que ya tiene
+ * otras viviendas registradas (la dirección nunca se autocompleta sola,
+ * porque un mismo cliente puede tener varias propiedades).
+ *
+ * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
+ * @param {string} [excluirCodigo] código de proyecto a excluir del resultado
+ *   (para no listar la dirección del mismo proyecto que se está editando)
+ * @returns {Promise<string[]>}
+ */
+export async function buscarDireccionesPorRut(rut, excluirCodigo) {
+  if (!rut) return [];
+  const ref = collection(db, "proyectos");
+  const q = query(ref, where("rut", "==", rut), orderBy("actualizadoEn", "desc"));
+  const snap = await getDocs(q);
+  const direcciones = [];
+  snap.docs.forEach(d => {
+    if (excluirCodigo && d.id === excluirCodigo) return;
+    const direccion = d.data().direccion;
+    if (direccion && !direcciones.includes(direccion)) direcciones.push(direccion);
+  });
+  return direcciones;
+}
+
 // ---------- Funciones para el panel interno (dashboard) ----------
 
 /**
