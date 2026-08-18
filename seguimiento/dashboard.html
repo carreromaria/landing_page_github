@@ -152,6 +152,7 @@
           <div class="campo">
             <label for="eRut">RUT</label>
             <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
+            <span class="rut-autocompletado" id="eRutAutocompletado"></span>
           </div>
           <div class="campo">
             <label for="eCliente">Cliente</label>
@@ -180,6 +181,12 @@
             <label for="eResponsable">Responsable</label>
             <select id="eResponsable">
               <option value="">Selecciona…</option>
+            </select>
+          </div>
+          <div class="campo campo-full" id="eDireccionesPreviasWrap" style="display:none;">
+            <label for="eDireccionesPrevias">Direcciones anteriores de este cliente</label>
+            <select id="eDireccionesPrevias">
+              <option value="">Selecciona una dirección o escribe una nueva abajo…</option>
             </select>
           </div>
           <div class="campo campo-full">
@@ -300,6 +307,12 @@
           <label for="fResponsable">Responsable</label>
           <select id="fResponsable">
             <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo campo-full" id="fDireccionesPreviasWrap" style="display:none;">
+          <label for="fDireccionesPrevias">Direcciones anteriores de este cliente</label>
+          <select id="fDireccionesPrevias">
+            <option value="">Selecciona una dirección o escribe una nueva abajo…</option>
           </select>
         </div>
         <div class="campo campo-full">
