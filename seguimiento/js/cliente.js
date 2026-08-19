@@ -84,6 +84,7 @@ async function init() {
   activarReveal();
   activarLightbox();
   activarTooltipEtapas();
+  activarBotonVolverArriba();
 }
 
 function estadoLegible(estado){
@@ -292,6 +293,20 @@ function activarLightbox(){
   });
   lightbox.addEventListener('click', (e) => {
     if (e.target === lightbox) lightbox.classList.remove('open');
+  });
+}
+
+function activarBotonVolverArriba(){
+  const btn = document.getElementById('btnVolverArriba');
+  if (!btn) return;
+  const UMBRAL_SCROLL = 300;
+
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > UMBRAL_SCROLL);
+  });
+
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 }
 
