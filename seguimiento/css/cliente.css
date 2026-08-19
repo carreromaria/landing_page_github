@@ -373,19 +373,45 @@
   filter:drop-shadow(0 1px 1px rgba(20,18,19,0.3));
 }
 
+/* ---------- Dirección de instalación (tarjeta destacada) ---------- */
+.info-direccion-card{
+  display:flex;
+  align-items:flex-start;
+  gap:18px;
+  margin:0 6vw 20px;
+  padding:24px 26px;
+  background:var(--cream);
+  border:1px solid var(--gold-line);
+  border-left:3px solid var(--gold);
+}
+.info-direccion-icono{
+  flex-shrink:0;
+  width:42px; height:42px;
+  border-radius:50%;
+  background:var(--ink);
+  color:var(--gold);
+  display:flex; align-items:center; justify-content:center;
+}
+.info-direccion-icono svg{width:20px; height:20px;}
+.info-direccion-texto{flex:1; min-width:0;}
+.info-direccion-texto .valor{line-height:1.5;}
+
 /* ---------- Grid de info rápida ---------- */
 .info-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-  gap:1px;
-  background:var(--gold-line);
+  display:flex;
+  flex-wrap:wrap;
+  background:var(--cream);
   margin:0 6vw 56px;
   border:1px solid var(--gold-line);
 }
 .info-card{
+  flex:1 1 190px;
   background:var(--cream);
   padding:26px 24px;
+  border-right:1px solid var(--gold-line);
+  border-bottom:1px solid var(--gold-line);
 }
+.info-card:last-child{border-right:none;}
 .info-card .eyebrow{margin-bottom:8px; font-size:11px;}
 .info-card .valor{font-size:18px; font-weight:500;}
 
@@ -551,7 +577,8 @@
   .codigo-badge-hero{display:none;}
 }
 @media (max-width:980px){
-  .info-grid{grid-template-columns:1fr;}
+  .info-direccion-card{margin-left:5vw; margin-right:5vw;}
+  .info-grid{margin-left:5vw; margin-right:5vw;}
 
   /* El código del proyecto se deja solo abajo (hero), tal cual estaba;
      arriba se quita para dar más aire entre los dos logos del header */
@@ -582,6 +609,9 @@
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
+
+  .info-direccion-card{flex-direction:column; gap:12px;}
+  .info-card{flex:1 1 100%; border-right:none;}
 }
 
 /* ---------- Cinta y etapas: scroll horizontal sincronizado (tablet y teléfono) ---------- */
