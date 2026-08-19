@@ -34,7 +34,7 @@ function cargarSDK() {
  * Nunca lanza una excepción que interrumpa el flujo del dashboard:
  * si falla, solo se registra en consola.
  */
-export async function notificarCambioEtapa({ email, cliente, etapaNombre, codigo, token, tipoProyecto, porcentaje, fechaEstimadaTexto }) {
+export async function notificarCambioEtapa({ email, cliente, etapaNombre, codigo, token, tipoProyecto, porcentaje, fechaEstimadaTexto, direccionTexto }) {
   if (!email) {
     console.warn('El proyecto no tiene correo registrado, no se envía notificación.');
     return { enviado: false, motivo: 'sin_email' };
@@ -56,7 +56,8 @@ export async function notificarCambioEtapa({ email, cliente, etapaNombre, codigo
       codigo,
       nombre_proyecto: tipoProyecto || 'Tu proyecto',
       porcentaje: porcentaje ?? '',
-      fecha_estimada: fechaEstimadaTexto || 'Por confirmar'
+      fecha_estimada: fechaEstimadaTexto || 'Por confirmar',
+      direccion: direccionTexto || 'Por confirmar'
     });
     return { enviado: true };
   } catch (err) {
