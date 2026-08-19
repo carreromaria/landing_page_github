@@ -10,6 +10,7 @@ import {
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
   listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut
 } from './firestore.js';
+import { REGIONES_COMUNAS, comunasDeRegion, formatearDireccion } from './regiones-comunas.js';
 import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
 import { generarEnlaceWhatsappManual, generarEnlaceWhatsappBienvenida } from './whatsapp.js';
@@ -143,11 +144,74 @@ document.getElementById('eCanal').addEventListener('change', () => actualizarCot
 activarSoloDigitosCotizacion(document.getElementById('fNumCotizacion'));
 activarSoloDigitosCotizacion(document.getElementById('eNumCotizacion'));
 
+// ============================================================
+// DIRECCIÓN ESTRUCTURADA (Región / Comuna / Calle / Número / etc.)
+// ============================================================
+
+/** Llena el <select> de región con las 16 regiones de Chile (una sola vez). */
+function poblarSelectRegion(prefijo) {
+  const select = document.getElementById(prefijo + 'Region');
+  if (!select) return;
+  select.innerHTML = '<option value="">Selecciona…</option>' +
+    REGIONES_COMUNAS.map(r => `<option value="${r.region}">${r.region}</option>`).join('');
+}
+poblarSelectRegion('f');
+poblarSelectRegion('e');
+
+/** Llena el <select> de comuna según la región elegida; lo deja deshabilitado si no hay región. */
+function poblarSelectComuna(prefijo, regionSeleccionada, comunaAMarcar) {
+  const select = document.getElementById(prefijo + 'Comuna');
+  if (!select) return;
+  const comunas = comunasDeRegion(regionSeleccionada);
+  if (!regionSeleccionada || !comunas.length) {
+    select.innerHTML = '<option value="">Primero selecciona una región…</option>';
+    select.disabled = true;
+    return;
+  }
+  select.innerHTML = '<option value="">Selecciona…</option>' +
+    comunas.map(c => `<option value="${c}">${c}</option>`).join('');
+  select.disabled = false;
+  if (comunaAMarcar && comunas.includes(comunaAMarcar)) select.value = comunaAMarcar;
+}
+
+document.getElementById('fRegion').addEventListener('change', (e) => poblarSelectComuna('f', e.target.value));
+document.getElementById('eRegion').addEventListener('change', (e) => poblarSelectComuna('e', e.target.value));
+
+/** Lee los campos de dirección del formulario y arma el objeto que se guarda en Firestore. */
+function leerDireccionDelFormulario(prefijo) {
+  return {
+    region: document.getElementById(prefijo + 'Region').value,
+    comuna: document.getElementById(prefijo + 'Comuna').value,
+    calle: document.getElementById(prefijo + 'Calle').value.trim().toUpperCase(),
+    numero: document.getElementById(prefijo + 'Numero').value.trim(),
+    depto: document.getElementById(prefijo + 'Depto').value.trim().toUpperCase(),
+    sector: document.getElementById(prefijo + 'Sector').value.trim().toUpperCase(),
+    indicaciones: document.getElementById(prefijo + 'Indicaciones').value.trim().toUpperCase()
+  };
+}
+
+/** Escribe un objeto de dirección en los campos del formulario (con el encadenado región→comuna). */
+function escribirDireccionEnFormulario(prefijo, d) {
+  const region = d?.region || '';
+  document.getElementById(prefijo + 'Region').value = region;
+  poblarSelectComuna(prefijo, region, d?.comuna || '');
+  document.getElementById(prefijo + 'Calle').value = d?.calle || '';
+  document.getElementById(prefijo + 'Numero').value = d?.numero || '';
+  document.getElementById(prefijo + 'Depto').value = d?.depto || '';
+  document.getElementById(prefijo + 'Sector').value = d?.sector || '';
+  document.getElementById(prefijo + 'Indicaciones').value = d?.indicaciones || '';
+}
+
+/** Limpia por completo los campos de dirección (para al abrir el modal "Nuevo proyecto"). */
+function limpiarDireccionEnFormulario(prefijo) {
+  escribirDireccionEnFormulario(prefijo, null);
+}
+
 // ---- Autocompletar datos de cliente si el RUT ya existe en Firestore ----
 // Nombre, teléfono y correo se autocompletan porque no cambian entre
 // proyectos del mismo cliente. La dirección NUNCA se autocompleta sola:
 // un cliente puede tener varias viviendas, así que sus direcciones
-// anteriores se ofrecen como opciones para elegir (o se escribe una nueva).
+// anteriores se ofrecen como opciones para elegir (o se completa una nueva).
 let ultimoRutAutocompletadoNuevo = '';
 let ultimoRutAutocompletadoEdicion = '';
 let rutOriginalEdicion = '';
@@ -156,14 +220,14 @@ function poblarDireccionesPrevias(prefijo, direcciones) {
   const wrap = document.getElementById(prefijo + 'DireccionesPreviasWrap');
   const select = document.getElementById(prefijo + 'DireccionesPrevias');
   if (!wrap || !select) return;
-  const placeholder = '<option value="">Selecciona una dirección o escribe una nueva abajo…</option>';
+  const placeholder = '<option value="">Selecciona una dirección o completa una nueva abajo…</option>';
   if (!direcciones.length) {
     wrap.style.display = 'none';
     select.innerHTML = placeholder;
     return;
   }
   select.innerHTML = placeholder + direcciones
-    .map(d => `<option value="${d.replace(/"/g, '&quot;')}">${d}</option>`)
+    .map(d => `<option value='${JSON.stringify(d).replace(/'/g, '&#39;')}'>${formatearDireccion(d)}</option>`)
     .join('');
   wrap.style.display = 'block';
 }
@@ -207,7 +271,9 @@ document.getElementById('fRut').addEventListener('blur', () => {
 });
 
 document.getElementById('fDireccionesPrevias').addEventListener('change', (e) => {
-  if (e.target.value) document.getElementById('fDireccion').value = e.target.value;
+  if (!e.target.value) return;
+  try { escribirDireccionEnFormulario('f', JSON.parse(e.target.value)); }
+  catch (err) { console.error('No pudimos leer la dirección seleccionada:', err); }
 });
 
 document.getElementById('eRut').addEventListener('blur', () => {
@@ -220,7 +286,9 @@ document.getElementById('eRut').addEventListener('blur', () => {
 });
 
 document.getElementById('eDireccionesPrevias').addEventListener('change', (e) => {
-  if (e.target.value) document.getElementById('eDireccion').value = e.target.value;
+  if (!e.target.value) return;
+  try { escribirDireccionEnFormulario('e', JSON.parse(e.target.value)); }
+  catch (err) { console.error('No pudimos leer la dirección seleccionada:', err); }
 });
 
 /** Convierte un Timestamp de Firestore (o Date) al formato yyyy-mm-dd que espera <input type="date">. */
@@ -375,6 +443,7 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-00000-00';
   document.getElementById('fRutAutocompletado').textContent = '';
   poblarDireccionesPrevias('f', []);
+  limpiarDireccionEnFormulario('f');
   ultimoRutAutocompletadoNuevo = '';
   modalNuevo.classList.add('open');
 });
@@ -430,7 +499,7 @@ formNuevo.addEventListener('submit', async (e) => {
     tipoProyecto: document.getElementById('fTipoProyecto').value.trim().toUpperCase(),
     categoria,
     responsable: document.getElementById('fResponsable').value,
-    direccion: document.getElementById('fDireccion').value.trim().toUpperCase(),
+    direccion: leerDireccionDelFormulario('f'),
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
     fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
     canalOrigen,
@@ -644,7 +713,12 @@ function renderDetalle(p, historial) {
   document.getElementById('eTelefono').value = p.telefono || '';
   document.getElementById('eEmail').value = p.email || '';
   document.getElementById('eTipoProyecto').value = p.tipoProyecto || '';
-  document.getElementById('eDireccion').value = p.direccion || '';
+  // Compatibilidad: proyectos antiguos guardaban la dirección como texto plano.
+  // Si es así, se coloca en "Calle" para no perder el dato; se puede reordenar a mano.
+  const direccionProyecto = (p.direccion && typeof p.direccion === 'object')
+    ? p.direccion
+    : (p.direccion ? { calle: p.direccion } : null);
+  escribirDireccionEnFormulario('e', direccionProyecto);
   document.getElementById('eRutAutocompletado').textContent = '';
   poblarDireccionesPrevias('e', []);
   rutOriginalEdicion = limpiarRut(p.rut || '');
@@ -680,7 +754,7 @@ function renderDetalle(p, historial) {
     <li><span class="resumen-label">Tipo de proyecto</span><span class="resumen-valor">${p.tipoProyecto || '—'}</span></li>
     <li><span class="resumen-label">Categoría</span>${filaCategoria}</li>
     <li><span class="resumen-label">Responsable</span><span class="resumen-valor">${p.responsable || 'Por asignar'}</span></li>
-    <li><span class="resumen-label">Dirección</span><span class="resumen-valor">${p.direccion || '—'}</span></li>
+    <li><span class="resumen-label">Dirección</span><span class="resumen-valor">${(p.direccion && typeof p.direccion === 'object') ? (formatearDireccion(p.direccion) || '—') : (p.direccion || '—')}</span></li>
     <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${formatearRangoFechas(fechaInicioLegible, fechaFinLegible)}</span></li>
     <li><span class="resumen-label">Canal de origen</span><span class="resumen-valor">${canalLegible}</span></li>
     <li><span class="resumen-label">N° de cotización</span><span class="resumen-valor">${p.codigoCotizacion || '—'}</span></li>
@@ -778,7 +852,7 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toUpperCase(),
     categoria,
     responsable: document.getElementById('eResponsable').value,
-    direccion: document.getElementById('eDireccion').value.trim().toUpperCase(),
+    direccion: leerDireccionDelFormulario('e'),
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
     fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
     canalOrigen,
