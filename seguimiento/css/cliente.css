@@ -517,7 +517,9 @@
   background:none; border-left:none; border-right:none; border-bottom:none;
   font-family:inherit; font-size:14px; color:var(--ink);
   text-align:left;
+  cursor:pointer;
 }
+.historial-toggle:disabled{cursor:default;}
 .historial-section li:last-child .historial-toggle{border-bottom:1px solid var(--gold-line);}
 .historial-toggle .flecha{transition:transform .3s ease; color:var(--gold);}
 .historial-item.open .historial-toggle .flecha{transform:rotate(180deg);}
