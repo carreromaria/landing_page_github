@@ -424,6 +424,19 @@ html, body{height:100%; background:var(--cream);}
   border-radius:4px;
 }
 
+.form-section-title{
+  grid-column:1 / -1;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--gold);
+  border-bottom:1px solid var(--gold-line);
+  padding-bottom:8px;
+  margin:4px 0 2px;
+}
+.form-section-title:first-of-type{margin-top:0;}
+
 /* ---- Select (categoría / responsable) ---- */
 .campo select{
   width:100%;
