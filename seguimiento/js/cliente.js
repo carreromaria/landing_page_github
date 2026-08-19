@@ -9,6 +9,7 @@
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
 import { obtenerProyecto, obtenerHistorial } from './firestore.js';
 import { getQueryParams, formatearFecha } from './utils.js';
+import { formatearDireccion } from './regiones-comunas.js';
 
 const ICONOS_ETAPA = [
   // Cotización aceptada — documento con check
@@ -164,6 +165,14 @@ function renderInfoGrid(p){
   document.getElementById('infoFecha').textContent = formatearRangoFechasCliente(p);
   document.getElementById('infoResponsable').textContent = p.responsable || 'Por asignar';
   document.getElementById('infoCodigo').textContent = p.codigo;
+
+  const direccionEl = document.getElementById('infoDireccion');
+  if (direccionEl) {
+    const textoDireccion = (p.direccion && typeof p.direccion === 'object')
+      ? formatearDireccion(p.direccion)
+      : (p.direccion || '');
+    direccionEl.textContent = textoDireccion || 'Por confirmar';
+  }
 
   const categoriaEl = document.getElementById('infoCategoria');
   if (categoriaEl) {
