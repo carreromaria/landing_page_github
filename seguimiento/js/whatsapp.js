@@ -23,11 +23,13 @@
  * que el staff lo abra y lo envíe manualmente con un clic.
  * Esto es lo que se usa HOY, en la Fase 11.
  */
-export function generarEnlaceWhatsappManual({ telefono, cliente, etapaNombre, enlaceProyecto }) {
+export function generarEnlaceWhatsappManual({ telefono, cliente, etapaNombre, enlaceProyecto, direccionTexto }) {
   if (!telefono) return null;
 
   const telefonoLimpio = telefono.replace(/[^\d]/g, '');
-  const mensaje = `Hola ${cliente || ''}, tu proyecto con Linence avanzó a la etapa "${etapaNombre}". Puedes revisar el avance aquí: ${enlaceProyecto}`;
+  let mensaje = `Hola ${cliente || ''}, tu proyecto con Linence avanzó a la etapa "${etapaNombre}".`;
+  if (direccionTexto) mensaje += `\nDirección de instalación: ${direccionTexto}`;
+  mensaje += `\nPuedes revisar el avance aquí: ${enlaceProyecto}`;
 
   return `https://wa.me/${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`;
 }
@@ -37,7 +39,7 @@ export function generarEnlaceWhatsappManual({ telefono, cliente, etapaNombre, en
  * para clientes nuevos que recién reciben su enlace de seguimiento
  * (distinto del mensaje de avance de etapa).
  */
-export function generarEnlaceWhatsappBienvenida({ telefono, cliente, enlaceProyecto }) {
+export function generarEnlaceWhatsappBienvenida({ telefono, cliente, enlaceProyecto, direccionTexto }) {
   if (!telefono) return null;
 
   const telefonoLimpio = telefono.replace(/[^\d]/g, '');
@@ -48,6 +50,7 @@ export function generarEnlaceWhatsappBienvenida({ telefono, cliente, enlaceProye
 Esperamos que te encuentres muy bien.
 
 Nos complace darte la bienvenida al sistema de seguimiento de proyectos de LINENCE. A partir de este momento podrás conocer el avance de tu proyecto en cada una de sus etapas, desde el inicio de la fabricación hasta su instalación y entrega.
+${direccionTexto ? `\nDirección de instalación registrada: ${direccionTexto}\n` : ''}
 
 Para consultar el estado de tu proyecto, solo debes ingresar al siguiente enlace:
 
