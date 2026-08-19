@@ -1148,3 +1148,18 @@ document.getElementById('btnConfirmarEliminacion').addEventListener('click', asy
     btn.textContent = 'Eliminar definitivamente';
   }
 });
+
+// ---- Botón flotante: Volver arriba ----
+(function initBotonVolverArriba() {
+  const btn = document.getElementById('btnVolverArriba');
+  if (!btn) return;
+  const UMBRAL_SCROLL = 300;
+
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('visible', window.scrollY > UMBRAL_SCROLL);
+  });
+
+  btn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
