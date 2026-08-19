@@ -91,12 +91,15 @@ export async function buscarProyectoPorRut(rut) {
  * porque un mismo cliente puede tener varias propiedades).
  *
  * Nota: se ordena en el navegador (no con orderBy en Firestore) para
- * no depender de un índice compuesto rut+actualizadoEn.
+ * no depender de un índice compuesto rut+actualizadoEn. Los proyectos
+ * antiguos cuya dirección todavía sea texto plano (antes de la dirección
+ * estructurada) se omiten aquí, ya que no se pueden ofrecer como opción
+ * estructurada — su dato original no se pierde, sigue en el proyecto.
  *
  * @param {string} rut RUT normalizado (sin puntos, con guión, mayúsculas)
  * @param {string} [excluirCodigo] código de proyecto a excluir del resultado
  *   (para no listar la dirección del mismo proyecto que se está editando)
- * @returns {Promise<string[]>}
+ * @returns {Promise<object[]>} direcciones estructuradas {region, comuna, calle, numero, depto, sector, indicaciones}
  */
 export async function buscarDireccionesPorRut(rut, excluirCodigo) {
   if (!rut) return [];
@@ -105,10 +108,17 @@ export async function buscarDireccionesPorRut(rut, excluirCodigo) {
   const snap = await getDocs(q);
   const proyectos = snap.docs.map(d => ({ codigo: d.id, ...d.data() }));
   proyectos.sort((a, b) => (b.actualizadoEn?.toMillis?.() || 0) - (a.actualizadoEn?.toMillis?.() || 0));
+  const vistos = new Set();
   const direcciones = [];
   proyectos.forEach(p => {
     if (excluirCodigo && p.codigo === excluirCodigo) return;
-    if (p.direccion && !direcciones.includes(p.direccion)) direcciones.push(p.direccion);
+    const d = p.direccion;
+    if (!d || typeof d !== 'object') return; // omite direcciones antiguas en texto plano
+    if (!(d.calle || d.numero || d.comuna || d.region)) return; // dirección vacía
+    const clave = JSON.stringify(d);
+    if (vistos.has(clave)) return;
+    vistos.add(clave);
+    direcciones.push(d);
   });
   return direcciones;
 }
