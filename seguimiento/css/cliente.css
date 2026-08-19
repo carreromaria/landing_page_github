@@ -391,8 +391,9 @@
   background:var(--ink);
   color:var(--gold);
   display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
 }
-.info-direccion-icono svg{width:20px; height:20px;}
+.info-direccion-icono svg{width:20px; height:20px; display:block;}
 .info-direccion-texto{flex:1; min-width:0;}
 .info-direccion-texto .valor{line-height:1.5;}
 
