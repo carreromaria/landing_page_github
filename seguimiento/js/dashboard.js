@@ -656,11 +656,15 @@ function renderDetalle(p, historial) {
   document.getElementById('detalleEnlaceCliente').href = enlace;
 
   const etapaActualNombre = (ETAPAS[p.etapaActualIndex] ?? ETAPAS[0]).nombre;
+  const direccionTextoDetalle = (p.direccion && typeof p.direccion === 'object')
+    ? formatearDireccion(p.direccion)
+    : (p.direccion || '');
   const enlaceWa = generarEnlaceWhatsappManual({
     telefono: p.telefono,
     cliente: p.cliente,
     etapaNombre: etapaActualNombre,
-    enlaceProyecto: enlace
+    enlaceProyecto: enlace,
+    direccionTexto: direccionTextoDetalle
   });
   const btnWa = document.getElementById('detalleEnlaceWhatsapp');
   if (enlaceWa) {
@@ -673,7 +677,8 @@ function renderDetalle(p, historial) {
   const enlaceBienvenida = generarEnlaceWhatsappBienvenida({
     telefono: p.telefono,
     cliente: p.cliente,
-    enlaceProyecto: enlace
+    enlaceProyecto: enlace,
+    direccionTexto: direccionTextoDetalle
   });
   const btnBienvenida = document.getElementById('detalleEnlaceBienvenida');
   if (enlaceBienvenida) {
@@ -959,6 +964,9 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       const fechaEstimadaTexto = PROYECTO_ACTUAL.fechaEstimadaInstalacion
         ? formatearFecha(PROYECTO_ACTUAL.fechaEstimadaInstalacion)
         : 'Por confirmar';
+      const direccionTextoNotificacion = (PROYECTO_ACTUAL.direccion && typeof PROYECTO_ACTUAL.direccion === 'object')
+        ? formatearDireccion(PROYECTO_ACTUAL.direccion)
+        : (PROYECTO_ACTUAL.direccion || '');
 
       const resultado = await notificarCambioEtapa({
         email: PROYECTO_ACTUAL.email,
@@ -968,7 +976,8 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
         token: PROYECTO_ACTUAL.token,
         tipoProyecto: PROYECTO_ACTUAL.tipoProyecto,
         porcentaje: porcentajeActual,
-        fechaEstimadaTexto
+        fechaEstimadaTexto,
+        direccionTexto: direccionTextoNotificacion
       });
       if (!resultado.enviado) {
         console.warn('Notificación no enviada:', resultado.motivo);
