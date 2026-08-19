@@ -239,17 +239,19 @@ function renderHistorial(historial){
     document.getElementById('historialSectionWrap').style.display = 'none';
     return;
   }
-  list.innerHTML = historial.map(h => `
-    <li class="historial-item">
-      <button class="historial-toggle" aria-expanded="false">
+  list.innerHTML = historial.map(h => {
+    const tieneObservacion = !!(h.observacion && h.observacion.trim());
+    return `
+    <li class="historial-item ${tieneObservacion ? 'open' : ''}">
+      <button class="historial-toggle" aria-expanded="${tieneObservacion}" ${tieneObservacion ? '' : 'disabled'}>
         <span>${h.etapaNombre} — ${estadoLegible(h.estadoNuevo)} · ${formatearFecha(h.fecha)}</span>
-        <span class="flecha">⌄</span>
+        ${tieneObservacion ? '<span class="flecha">⌄</span>' : ''}
       </button>
-      <div class="historial-detalle">${h.observacion || 'Sin observaciones adicionales.'}</div>
-    </li>
-  `).join('');
+      ${tieneObservacion ? `<div class="historial-detalle"><strong>Observaciones adicionales:</strong> ${h.observacion}</div>` : ''}
+    </li>`;
+  }).join('');
 
-  list.querySelectorAll('.historial-toggle').forEach(btn => {
+  list.querySelectorAll('.historial-toggle:not([disabled])').forEach(btn => {
     btn.addEventListener('click', () => {
       const item = btn.closest('.historial-item');
       const isOpen = item.classList.toggle('open');
