@@ -629,3 +629,37 @@
     right:0;
   }
 }
+
+/* ---- Botón flotante: Volver arriba ---- */
+.btn-volver-arriba{
+  position:fixed;
+  right:20px;
+  bottom:24px;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:var(--ink);
+  border:1px solid var(--gold);
+  color:var(--gold);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  z-index:400;
+  opacity:0;
+  visibility:hidden;
+  transform:translateY(10px);
+  transition:opacity 0.25s ease, transform 0.25s ease, visibility 0.25s;
+  box-shadow:0 4px 14px rgba(20,18,19,0.25);
+}
+.btn-volver-arriba svg{width:20px; height:20px;}
+.btn-volver-arriba.visible{
+  opacity:1;
+  visibility:visible;
+  transform:translateY(0);
+}
+.btn-volver-arriba:hover{background:var(--gold); color:var(--ink);}
+
+@media (max-width:640px){
+  .btn-volver-arriba{right:14px; bottom:18px; width:42px; height:42px;}
+}
