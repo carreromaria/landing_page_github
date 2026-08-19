@@ -149,23 +149,64 @@
 
       <form id="formEditarProyecto" style="display:none;">
         <div class="form-grid">
+          <p class="form-section-title">Datos del cliente</p>
           <div class="campo">
             <label for="eRut">RUT</label>
             <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
             <span class="rut-autocompletado" id="eRutAutocompletado"></span>
           </div>
           <div class="campo">
-            <label for="eCliente">Cliente</label>
-            <input type="text" id="eCliente">
-          </div>
-          <div class="campo">
             <label for="eTelefono">Teléfono</label>
             <input type="tel" id="eTelefono" inputmode="numeric">
+          </div>
+          <div class="campo campo-full">
+            <label for="eCliente">Cliente</label>
+            <input type="text" id="eCliente">
           </div>
           <div class="campo campo-full">
             <label for="eEmail">Correo electrónico</label>
             <input type="email" id="eEmail">
           </div>
+          <div class="campo campo-full" id="eDireccionesPreviasWrap" style="display:none;">
+            <label for="eDireccionesPrevias">Direcciones anteriores de este cliente</label>
+            <select id="eDireccionesPrevias">
+              <option value="">Selecciona una dirección o completa una nueva abajo…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eRegion">Región</label>
+            <select id="eRegion">
+              <option value="">Selecciona…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eComuna">Comuna</label>
+            <select id="eComuna" disabled>
+              <option value="">Primero selecciona una región…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eCalle">Calle / Avenida / Pasaje</label>
+            <input type="text" id="eCalle">
+          </div>
+          <div class="campo">
+            <label for="eNumero">Número</label>
+            <input type="text" id="eNumero" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="eDepto">Depto / Oficina / Casa</label>
+            <input type="text" id="eDepto" placeholder="Opcional">
+          </div>
+          <div class="campo">
+            <label for="eSector">Sector / Población / Villa</label>
+            <input type="text" id="eSector" placeholder="Opcional">
+          </div>
+          <div class="campo campo-full">
+            <label for="eIndicaciones">Indicaciones adicionales</label>
+            <textarea id="eIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+          </div>
+
+          <p class="form-section-title">Datos internos de Linence</p>
           <div class="campo">
             <label for="eTipoProyecto">Tipo de proyecto</label>
             <input type="text" id="eTipoProyecto">
@@ -182,16 +223,6 @@
             <select id="eResponsable">
               <option value="">Selecciona…</option>
             </select>
-          </div>
-          <div class="campo campo-full" id="eDireccionesPreviasWrap" style="display:none;">
-            <label for="eDireccionesPrevias">Direcciones anteriores de este cliente</label>
-            <select id="eDireccionesPrevias">
-              <option value="">Selecciona una dirección o escribe una nueva abajo…</option>
-            </select>
-          </div>
-          <div class="campo campo-full">
-            <label for="eDireccion">Dirección</label>
-            <input type="text" id="eDireccion">
           </div>
           <div class="campo">
             <label for="eFechaInicio">Fecha estimada de instalación — desde</label>
@@ -275,23 +306,65 @@
         <div class="campo campo-full">
           <p class="nota-codigo-automatico">El código del proyecto (LIN-00001, LIN-00002…) se asigna automáticamente al guardar.</p>
         </div>
+
+        <p class="form-section-title">Datos del cliente</p>
         <div class="campo">
           <label for="fRut">RUT</label>
           <input type="text" id="fRut" placeholder="12.345.678-9" autocomplete="off">
           <span class="rut-autocompletado" id="fRutAutocompletado"></span>
         </div>
         <div class="campo">
-          <label for="fCliente">Cliente</label>
-          <input type="text" id="fCliente" required>
-        </div>
-        <div class="campo">
           <label for="fTelefono">Teléfono</label>
           <input type="tel" id="fTelefono">
+        </div>
+        <div class="campo campo-full">
+          <label for="fCliente">Cliente</label>
+          <input type="text" id="fCliente" required>
         </div>
         <div class="campo campo-full">
           <label for="fEmail">Correo electrónico</label>
           <input type="email" id="fEmail">
         </div>
+        <div class="campo campo-full" id="fDireccionesPreviasWrap" style="display:none;">
+          <label for="fDireccionesPrevias">Direcciones anteriores de este cliente</label>
+          <select id="fDireccionesPrevias">
+            <option value="">Selecciona una dirección o completa una nueva abajo…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fRegion">Región</label>
+          <select id="fRegion">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fComuna">Comuna</label>
+          <select id="fComuna" disabled>
+            <option value="">Primero selecciona una región…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fCalle">Calle / Avenida / Pasaje</label>
+          <input type="text" id="fCalle">
+        </div>
+        <div class="campo">
+          <label for="fNumero">Número</label>
+          <input type="text" id="fNumero" inputmode="numeric">
+        </div>
+        <div class="campo">
+          <label for="fDepto">Depto / Oficina / Casa</label>
+          <input type="text" id="fDepto" placeholder="Opcional">
+        </div>
+        <div class="campo">
+          <label for="fSector">Sector / Población / Villa</label>
+          <input type="text" id="fSector" placeholder="Opcional">
+        </div>
+        <div class="campo campo-full">
+          <label for="fIndicaciones">Indicaciones adicionales</label>
+          <textarea id="fIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+        </div>
+
+        <p class="form-section-title">Datos internos de Linence</p>
         <div class="campo">
           <label for="fTipoProyecto">Tipo de proyecto</label>
           <input type="text" id="fTipoProyecto" placeholder="Ej. Cocina moderna" required>
@@ -308,16 +381,6 @@
           <select id="fResponsable">
             <option value="">Selecciona…</option>
           </select>
-        </div>
-        <div class="campo campo-full" id="fDireccionesPreviasWrap" style="display:none;">
-          <label for="fDireccionesPrevias">Direcciones anteriores de este cliente</label>
-          <select id="fDireccionesPrevias">
-            <option value="">Selecciona una dirección o escribe una nueva abajo…</option>
-          </select>
-        </div>
-        <div class="campo campo-full">
-          <label for="fDireccion">Dirección</label>
-          <input type="text" id="fDireccion">
         </div>
         <div class="campo">
           <label for="fFechaInicio">Fecha estimada de instalación — desde</label>
