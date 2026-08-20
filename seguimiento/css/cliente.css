@@ -612,6 +612,17 @@
 
   .tape-tip{width:12px; height:12px; left:-6px;}
 
+  /* La cinta sangra hasta el borde real de la pantalla (cancela el padding
+     lateral de .medida-progreso) para que el círculo fijo (sticky) quede
+     pegado de verdad al borde, sin dejar un hueco por donde se asome la
+     cinta al deslizar. Se repone el aire a la izquierda con padding, para
+     que los íconos no arranquen pegados al borde. */
+  .tape-component{
+    margin-left:-6vw;
+    margin-right:-6vw;
+    width:calc(100% + 12vw);
+  }
+
   /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
      todo se desplaza junto con un solo gesto del cliente. overflow-y
      explícito evita que se recorte verticalmente el diseño de las etapas,
@@ -621,7 +632,8 @@
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
-    padding-right:8px;
+    padding-left:6vw;
+    padding-right:0;
     padding-top:12px;
     padding-bottom:12px;
   }
