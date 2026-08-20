@@ -283,7 +283,7 @@
 }
 .tape-case{
   position:absolute;
-  right:0;
+  right:22px;
   top:50%;
   transform:translateY(-50%);
   width:90px;
@@ -638,12 +638,12 @@
   }
 
   /* El círculo ahora es parte del contenido de la cinta (se mueve con
-     el scroll), queda pegado al borde real de la fila, dentro del
-     carril reservado — nunca tapa el bloque del 100% */
+     el scroll) y se monta levemente sobre el final de la cinta, para
+     que se vea en continuidad, como el carrete real de una huincha */
   .tape-case{
     width:64px;
     height:64px;
-    right:0;
+    right:16px;
   }
 }
 
