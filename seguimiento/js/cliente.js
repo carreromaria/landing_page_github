@@ -85,6 +85,7 @@ async function init() {
   activarLightbox();
   activarTooltipEtapas();
   activarBotonVolverArriba();
+  requestAnimationFrame(centrarEtapaActual);
 }
 
 function estadoLegible(estado){
@@ -310,6 +311,26 @@ function activarBotonVolverArriba(){
   btn.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+}
+
+/**
+ * Centra la etapa actual dentro del scroll horizontal de la cinta, para que
+ * al cargar la página el cliente vea de inmediato en qué va su proyecto,
+ * sin tener que deslizar. En escritorio la cinta no tiene scroll (entra
+ * completa), así que esto no tiene ningún efecto visible ahí.
+ */
+function centrarEtapaActual(){
+  const tapeScroll = document.getElementById('tapeScroll');
+  const actual = tapeScroll?.querySelector('.tape-icon-item.actual');
+  if (!tapeScroll || !actual) return;
+
+  const rectScroll = tapeScroll.getBoundingClientRect();
+  const rectItem = actual.getBoundingClientRect();
+  const centroItem = (rectItem.left - rectScroll.left) + tapeScroll.scrollLeft + rectItem.width / 2;
+  const scrollDeseado = centroItem - tapeScroll.clientWidth / 2;
+  const maxScroll = tapeScroll.scrollWidth - tapeScroll.clientWidth;
+
+  tapeScroll.scrollLeft = Math.max(0, Math.min(scrollDeseado, maxScroll));
 }
 
 function activarTooltipEtapas(){
