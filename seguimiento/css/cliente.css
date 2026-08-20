@@ -621,7 +621,7 @@
     overflow-y:visible;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
-    padding-right:24px;
+    padding-right:8px;
     padding-top:12px;
     padding-bottom:12px;
   }
@@ -637,13 +637,20 @@
     width:calc(100% - 64px); /* carril fijo reservado para el círculo, sin espacio extra */
   }
 
-  /* El círculo ahora es parte del contenido de la cinta (se mueve con
-     el scroll) y se monta levemente sobre el final de la cinta, para
-     que se vea en continuidad, como el carrete real de una huincha */
+  /* El círculo queda FIJO en el borde derecho del scroll (position:sticky),
+     como el carrete real de un metro: al deslizar la cinta hacia la
+     izquierda, se va "escondiendo" debajo del círculo, que no se mueve.
+     margin-left negativo lo monta un poco sobre la cinta para que nunca
+     se alcance a ver el corte/borde final de la cinta por debajo. */
   .tape-case{
+    position:sticky;
+    top:auto;
+    right:0;
+    transform:none;
     width:64px;
     height:64px;
-    right:16px;
+    margin-left:-18px;
+    z-index:5;
   }
 }
 
