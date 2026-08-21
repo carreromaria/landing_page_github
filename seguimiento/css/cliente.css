@@ -612,21 +612,21 @@
 
   .tape-tip{width:12px; height:12px; left:-6px;}
 
-  /* La cinta sangra hasta el borde real de la pantalla (cancela el padding
-     lateral de .medida-progreso) para que el círculo fijo (sticky) quede
-     pegado de verdad al borde, sin dejar un hueco por donde se asome la
-     cinta al deslizar. Se repone el aire a la izquierda con padding, para
-     que los íconos no arranquen pegados al borde. */
+  /* La cinta sangra hasta el borde REAL de la pantalla (fórmula estándar
+     de "full bleed": funciona sin importar cuánto padding tengan los
+     contenedores padre, porque se calcula sola contra el viewport real,
+     no contra un valor fijo adivinado). Así el círculo fijo (sticky)
+     queda pegado de verdad al borde, sin ningún hueco. */
   .tape-component{
-    margin-left:-6vw;
-    margin-right:-6vw;
-    width:calc(100% + 12vw);
+    width:100vw;
+    margin-left:calc(50% - 50vw);
   }
 
   /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
      todo se desplaza junto con un solo gesto del cliente. overflow-y
-     explícito evita que se recorte verticalmente el diseño de las etapas,
-     y el padding arriba/abajo da margen extra de seguridad */
+     explícito evita que se recorte verticalmente el diseño de las etapas.
+     padding-left repone el aire visual que se perdió con el sangrado,
+     para que los íconos no arranquen pegados al borde real. */
   .tape-scroll{
     overflow-x:auto;
     overflow-y:visible;
