@@ -86,6 +86,8 @@ async function init() {
   activarTooltipEtapas();
   activarBotonVolverArriba();
   requestAnimationFrame(centrarEtapaActual);
+  requestAnimationFrame(posicionarCirculoRibbon);
+  window.addEventListener('resize', posicionarCirculoRibbon);
 }
 
 function estadoLegible(estado){
@@ -331,6 +333,41 @@ function centrarEtapaActual(){
   const maxScroll = tapeScroll.scrollWidth - tapeScroll.clientWidth;
 
   tapeScroll.scrollLeft = Math.max(0, Math.min(scrollDeseado, maxScroll));
+}
+
+/**
+ * Posiciona el círculo de Linence (que vive FUERA del área con scroll,
+ * como hermano de #tapeScroll) usando medidas reales de pantalla, no
+ * cálculos con vw/porcentajes/top:50%. Así queda alineado con la cinta
+ * sin importar cuánto padding tengan los contenedores por encima — se
+ * mide lo que hay, no se adivina.
+ *
+ * El alto (top) se mide siempre, en escritorio y en tablet/teléfono.
+ * El ancho (right) solo se mide en tablet/teléfono, donde sí importa
+ * que quede exacto (por el scroll horizontal); en escritorio no hay
+ * scroll, así que ahí se usa el valor fijo definido en el CSS.
+ */
+function posicionarCirculoRibbon(){
+  const tapeComponent = document.querySelector('.tape-component');
+  const tapeScroll = document.getElementById('tapeScroll');
+  const cintaTrack = document.getElementById('cintaTrack');
+  const tapeCase = document.querySelector('.tape-case');
+  if (!tapeComponent || !tapeScroll || !cintaTrack || !tapeCase) return;
+
+  const rectComponent = tapeComponent.getBoundingClientRect();
+  const rectTrack = cintaTrack.getBoundingClientRect();
+  const centroVertical = (rectTrack.top - rectComponent.top) + rectTrack.height / 2;
+  tapeCase.style.top = centroVertical + 'px';
+  tapeCase.style.transform = 'translateY(-50%)';
+
+  if (window.innerWidth <= 980) {
+    const rectScroll = tapeScroll.getBoundingClientRect();
+    const SOBREMONTAR = 10; // se monta un poco sobre la cinta, para sellar bien la unión
+    const distanciaDerecha = (rectComponent.right - rectScroll.right) - SOBREMONTAR;
+    tapeCase.style.right = distanciaDerecha + 'px';
+  } else {
+    tapeCase.style.right = ''; // en escritorio se usa el valor fijo del CSS (22px)
+  }
 }
 
 function activarTooltipEtapas(){
