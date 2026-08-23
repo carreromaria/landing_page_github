@@ -666,6 +666,17 @@
     height:64px;
     z-index:5;
   }
+
+  /* La cinta es un rectángulo y el círculo es redondo: sin este
+     difuminado, la esquina recta de la cinta se asoma por fuera de la
+     curva del círculo. En vez de tapar con otro rectángulo negro (que
+     depende de que las medidas calcen exacto), se desvanece la propia
+     punta de la cinta a transparente — así nunca se ve una esquina
+     asomada, calce como calce el punto exacto de la cinta con el círculo. */
+  .cinta-track{
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 26px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 26px), transparent 100%);
+  }
 }
 
 /* ---- Botón flotante: Volver arriba ---- */
