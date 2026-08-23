@@ -596,6 +596,7 @@
   .hero-proyecto, .medida-progreso, .timeline-section, .galeria-section, .observaciones-section, .historial-section, .cliente-footer{
     padding-left:5vw; padding-right:5vw;
   }
+  .tape-component{padding-right:5vw;}
 }
 
 /* ---------- Cinta y etapas: scroll horizontal sincronizado (tablet y teléfono) ---------- */
@@ -612,14 +613,18 @@
 
   .tape-tip{width:12px; height:12px; left:-6px;}
 
-  /* La cinta sangra hasta el borde REAL de la pantalla (fórmula estándar
-     de "full bleed": funciona sin importar cuánto padding tengan los
-     contenedores padre, porque se calcula sola contra el viewport real,
-     no contra un valor fijo adivinado). Así el círculo fijo (sticky)
-     queda pegado de verdad al borde, sin ningún hueco. */
+  /* La cinta sangra hasta el borde REAL de la pantalla por el lado
+     izquierdo (fórmula estándar de "full bleed": funciona sin importar
+     cuánto padding tengan los contenedores padre, porque se calcula sola
+     contra el viewport real, no contra un valor fijo adivinado).
+     Por el lado derecho SÍ dejamos el margen normal de la página
+     (padding-right), para que el círculo no quede pegado al borde real
+     de la pantalla — así respira igual que el resto del contenido. */
   .tape-component{
     width:100vw;
     margin-left:calc(50% - 50vw);
+    padding-right:6vw;
+    box-sizing:border-box;
   }
 
   /* Contenedor con scroll horizontal: agrupa íconos + cinta + círculo,
