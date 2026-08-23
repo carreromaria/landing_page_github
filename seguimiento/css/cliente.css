@@ -669,13 +669,17 @@
 
   /* La cinta es un rectángulo y el círculo es redondo: sin este
      difuminado, la esquina recta de la cinta se asoma por fuera de la
-     curva del círculo. En vez de tapar con otro rectángulo negro (que
-     depende de que las medidas calcen exacto), se desvanece la propia
-     punta de la cinta a transparente — así nunca se ve una esquina
-     asomada, calce como calce el punto exacto de la cinta con el círculo. */
-  .cinta-track{
-    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 26px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 26px), transparent 100%);
+     curva del círculo. Se aplica al CONTENEDOR con scroll (.tape-scroll)
+     y no a la cinta misma (.cinta-track), a propósito: el contenedor no
+     se mueve de la pantalla aunque el cliente deslice el dedo, así que
+     el difuminado queda siempre fijo justo donde está el círculo — sin
+     importar en qué punto de la cinta esté parado el scroll en ese
+     momento. Si se aplicara sobre la cinta, el difuminado se movería
+     junto con ella y solo taparía la punta final (el 100%), dejando
+     todos los demás puntos de scroll sin protección. */
+  .tape-scroll{
+    -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 30px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 30px), transparent 100%);
   }
 }
 
