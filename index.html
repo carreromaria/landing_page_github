@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LINENCE | Prototipo Hero</title>
+<title>LINENCE | Prototipo Hero v2</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/champagne-limousines" rel="stylesheet">
 
 <style>
@@ -31,9 +31,8 @@
     color:var(--cream);
   }
   a{color:inherit; text-decoration:none;}
-  .wrap{max-width:1180px; margin:0 auto; padding:0 32px;}
+  .wrap{max-width:1180px; margin:0 auto; padding:0 32px; position:relative; z-index:3;}
 
-  /* ---------- barra superior simplificada solo para contexto ---------- */
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:5;
     padding:26px 0;
@@ -51,36 +50,101 @@
     background:rgba(20,18,19,0.35); backdrop-filter:blur(4px);
   }
 
-  /* ---------- Hero ---------- */
+  /* ---------- Hero a pantalla completa ---------- */
   .hero{
+    position:relative;
     min-height:100vh;
     display:flex;
     align-items:center;
-    background:
-      radial-gradient(ellipse 60% 50% at 85% 15%, rgba(214,165,44,0.20) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 45% at 10% 85%, rgba(211,187,140,0.14) 0%, transparent 65%),
-      linear-gradient(160deg, #1c1a1b 0%, #141213 55%, #1a1614 100%);
-    color:var(--cream);
-    position:relative;
     overflow:hidden;
+    background:#1a1614;
+    color:var(--cream);
   }
-  .hero-grid{
-    position:relative; z-index:2;
-    padding-top:120px;
-    display:grid;
-    grid-template-columns:1.05fr 0.95fr;
-    gap:60px;
-    align-items:center;
+
+  /* Reel de fondo — ocupa TODA la grilla */
+  .hero-reel{
+    position:absolute; inset:0; z-index:1;
+  }
+  .reel-slide{
+    position:absolute; inset:0;
+    opacity:0;
+    animation:reel-cycle 27s infinite;
+  }
+  .reel-slide img{
+    position:absolute; inset:0;
+    width:100%; height:100%; object-fit:cover;
+    animation:reel-zoom 3s infinite ease-out;
+  }
+  .reel-slide:nth-child(1){ animation-delay:0s; }
+  .reel-slide:nth-child(1) img{ animation-delay:0s; }
+  .reel-slide:nth-child(2){ animation-delay:3s; }
+  .reel-slide:nth-child(2) img{ animation-delay:3s; }
+  .reel-slide:nth-child(3){ animation-delay:6s; }
+  .reel-slide:nth-child(3) img{ animation-delay:6s; }
+  .reel-slide:nth-child(4){ animation-delay:9s; }
+  .reel-slide:nth-child(4) img{ animation-delay:9s; }
+  .reel-slide:nth-child(5){ animation-delay:12s; }
+  .reel-slide:nth-child(5) img{ animation-delay:12s; }
+  .reel-slide:nth-child(6){ animation-delay:15s; }
+  .reel-slide:nth-child(6) img{ animation-delay:15s; }
+  .reel-slide:nth-child(7){ animation-delay:18s; }
+  .reel-slide:nth-child(7) img{ animation-delay:18s; }
+  .reel-slide:nth-child(8){ animation-delay:21s; }
+  .reel-slide:nth-child(8) img{ animation-delay:21s; }
+  .reel-slide:nth-child(9){ animation-delay:24s; }
+  .reel-slide:nth-child(9) img{ animation-delay:24s; }
+
+  @keyframes reel-cycle{
+    0%{opacity:0;}
+    1.2%{opacity:1;}
+    9.9%{opacity:1;}
+    11.1%{opacity:0;}
+    100%{opacity:0;}
+  }
+  @keyframes reel-zoom{
+    0%{transform:scale(1.0);}
+    100%{transform:scale(1.08);}
+  }
+
+  /* Oscurecido general + viñeta cine, sobre toda la imagen */
+  .hero-reel::after{
+    content:'';
+    position:absolute; inset:0; z-index:2;
+    background:linear-gradient(180deg, rgba(20,18,19,0.55) 0%, rgba(20,18,19,0.08) 22%, rgba(20,18,19,0.10) 70%, rgba(20,18,19,0.6) 100%);
+    box-shadow:inset 0 0 140px rgba(20,18,19,0.55);
+    pointer-events:none;
+  }
+
+  /* Difuminado + oscurecido SOLO detrás del texto, para integrarlo */
+  .hero-scrim{
+    position:absolute; inset:0; z-index:2;
+    background:linear-gradient(100deg,
+      rgba(20,18,19,0.92) 0%,
+      rgba(20,18,19,0.86) 30%,
+      rgba(20,18,19,0.55) 52%,
+      rgba(20,18,19,0.12) 68%,
+      rgba(20,18,19,0) 80%);
+    backdrop-filter:blur(6px);
+    -webkit-mask-image:linear-gradient(100deg, #000 0%, #000 55%, transparent 78%);
+    mask-image:linear-gradient(100deg, #000 0%, #000 55%, transparent 78%);
+    pointer-events:none;
+  }
+
+  .hero-content{
+    position:relative; z-index:3;
+    padding-top:110px; padding-bottom:70px;
+    max-width:560px;
   }
   .hero h1{
-    font-size:clamp(38px, 5.4vw, 68px);
+    font-size:clamp(36px, 5vw, 64px);
     line-height:1.08;
-    margin-bottom:26px;
+    margin-bottom:24px;
+    text-shadow:0 2px 18px rgba(0,0,0,0.35);
   }
   .hero h1 em{ font-style:normal; color:var(--gold); }
   .hero p.lead{
-    max-width:480px; font-size:17px; color:rgba(250,247,242,0.82);
-    margin-bottom:44px; font-weight:300;
+    max-width:460px; font-size:16.5px; color:rgba(250,247,242,0.85);
+    margin-bottom:40px; font-weight:300;
   }
   .hero-actions{display:flex; gap:18px; flex-wrap:wrap;}
   .btn-primary{
@@ -89,109 +153,80 @@
     display:inline-block;
   }
   .btn-outline{
-    border:1px solid rgba(250,247,242,0.5); color:var(--cream); padding:16px 34px;
+    border:1px solid rgba(250,247,242,0.55); color:var(--cream); padding:16px 34px;
     font-size:13px; letter-spacing:0.08em; text-transform:uppercase; border-radius:2px;
+    backdrop-filter:blur(2px);
   }
 
-  /* ---------- Reel visual (reemplaza la imagen fija) ---------- */
-  .hero-reel{
-    position:relative;
-    aspect-ratio:4/5;
-    border-radius:6px;
-    overflow:hidden;
-    box-shadow:0 30px 70px rgba(0,0,0,0.35);
+  /* ---------- Texto gancho, escribiéndose en cursiva ---------- */
+  .hero-hook{
+    position:absolute;
+    right:6%; bottom:9%;
+    z-index:3;
+    max-width:420px;
+    text-align:right;
   }
-  .reel-slide{
-    position:absolute; inset:0;
-    opacity:0;
-    animation:reel-cycle 16s infinite;
+  .hero-hook span{
+    display:inline-block;
+    font-family:'Dancing Script', cursive;
+    font-weight:600;
+    font-size:clamp(26px, 3vw, 40px);
+    color:var(--sand);
+    text-shadow:0 2px 14px rgba(0,0,0,0.5);
+    clip-path:inset(0 100% 0 -6px);
+    animation:hook-write 27s infinite;
+    white-space:normal;
   }
-  .reel-slide img{
-    position:absolute; inset:0;
-    width:100%; height:100%; object-fit:cover;
-    animation:reel-zoom 16s infinite;
-  }
-  .reel-slide:nth-child(1){ animation-delay:0s; }
-  .reel-slide:nth-child(1) img{ animation-delay:0s; }
-  .reel-slide:nth-child(2){ animation-delay:4s; }
-  .reel-slide:nth-child(2) img{ animation-delay:4s; }
-  .reel-slide:nth-child(3){ animation-delay:8s; }
-  .reel-slide:nth-child(3) img{ animation-delay:8s; }
-  .reel-slide:nth-child(4){ animation-delay:12s; }
-  .reel-slide:nth-child(4) img{ animation-delay:12s; }
-
-  @keyframes reel-cycle{
-    0%{opacity:0;}
-    3%{opacity:1;}
-    23%{opacity:1;}
-    27%{opacity:0;}
-    100%{opacity:0;}
-  }
-  @keyframes reel-zoom{
-    0%{transform:scale(1.0);}
-    100%{transform:scale(1.12);}
+  @keyframes hook-write{
+    0%{ clip-path:inset(0 100% 0 -6px); opacity:1; }
+    4%{ opacity:1; }
+    86%{ clip-path:inset(0 0% 0 -6px); opacity:1; }
+    95%{ opacity:0; clip-path:inset(0 0% 0 -6px); }
+    100%{ opacity:0; clip-path:inset(0 100% 0 -6px); }
   }
 
-  .hero-reel::before{
-    content:'';
-    position:absolute; inset:0; z-index:2;
-    background:linear-gradient(200deg, rgba(214,165,44,0.22) 0%, rgba(20,18,19,0.10) 55%, rgba(20,18,19,0.6) 100%);
-    pointer-events:none;
-  }
-  /* viñeta suave arriba/abajo, look "cinematográfico" */
-  .hero-reel::after{
-    content:'';
-    position:absolute; inset:0; z-index:2;
-    box-shadow:inset 0 60px 60px -40px rgba(20,18,19,0.55), inset 0 -60px 60px -40px rgba(20,18,19,0.55);
-    pointer-events:none;
-  }
-
-  .reel-tag{
-    position:absolute; z-index:3; margin:28px;
-    color:var(--sand); font-size:12.5px; letter-spacing:0.1em; text-transform:uppercase;
-    border:1px solid var(--gold-line); padding:9px 15px;
-    background:rgba(20,18,19,0.4); backdrop-filter:blur(4px);
-    display:flex; align-items:center; gap:9px;
-  }
-  .reel-tag .dot{
-    width:6px; height:6px; border-radius:50%; background:var(--gold);
-    animation:dot-pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes dot-pulse{
-    0%,100%{opacity:0.4; transform:scale(0.85);}
-    50%{opacity:1; transform:scale(1.1);}
-  }
-
+  /* ---------- Barra de progreso, muy discreta ---------- */
   .reel-progress{
-    position:absolute; left:28px; right:28px; bottom:24px; z-index:3;
-    display:flex; gap:8px;
+    position:absolute; left:0; right:0; bottom:0; z-index:4;
+    display:flex; gap:2px; padding:0 2px 2px;
   }
   .reel-progress i{
-    flex:1; height:2px; background:rgba(250,247,242,0.28); position:relative; overflow:hidden; border-radius:2px;
+    flex:1; height:2px; background:rgba(250,247,242,0.18); position:relative; overflow:hidden;
   }
   .reel-progress i::after{
     content:''; position:absolute; inset:0; background:var(--gold);
-    transform:scaleX(0); transform-origin:left; animation:bar-fill 16s infinite;
+    transform:scaleX(0); transform-origin:left; animation:bar-fill 27s infinite;
   }
   .reel-progress i:nth-child(1)::after{ animation-delay:0s; }
-  .reel-progress i:nth-child(2)::after{ animation-delay:4s; }
-  .reel-progress i:nth-child(3)::after{ animation-delay:8s; }
-  .reel-progress i:nth-child(4)::after{ animation-delay:12s; }
+  .reel-progress i:nth-child(2)::after{ animation-delay:3s; }
+  .reel-progress i:nth-child(3)::after{ animation-delay:6s; }
+  .reel-progress i:nth-child(4)::after{ animation-delay:9s; }
+  .reel-progress i:nth-child(5)::after{ animation-delay:12s; }
+  .reel-progress i:nth-child(6)::after{ animation-delay:15s; }
+  .reel-progress i:nth-child(7)::after{ animation-delay:18s; }
+  .reel-progress i:nth-child(8)::after{ animation-delay:21s; }
+  .reel-progress i:nth-child(9)::after{ animation-delay:24s; }
   @keyframes bar-fill{
     0%{transform:scaleX(0);}
-    25%{transform:scaleX(1);}
+    11%{transform:scaleX(1);}
     100%{transform:scaleX(1);}
   }
 
   @media(max-width:860px){
-    .hero-grid{grid-template-columns:1fr; gap:36px; padding-top:110px; padding-bottom:60px;}
-    .hero-reel{aspect-ratio:16/10;}
+    .hero-content{max-width:100%; padding-top:100px;}
+    .hero-scrim{
+      background:linear-gradient(180deg, rgba(20,18,19,0.92) 0%, rgba(20,18,19,0.75) 45%, rgba(20,18,19,0.15) 75%, rgba(20,18,19,0) 100%);
+      -webkit-mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 85%);
+      mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 85%);
+    }
+    .hero-hook{ left:6%; right:6%; bottom:6%; text-align:left; max-width:100%; }
   }
 
   @media (prefers-reduced-motion: reduce){
-    .reel-slide, .reel-slide img, .reel-tag .dot, .reel-progress i::after{ animation:none !important; }
+    .reel-slide, .reel-slide img, .reel-progress i::after, .hero-hook span{ animation:none !important; }
     .reel-slide{ opacity:0; }
     .reel-slide:first-child{ opacity:1; }
+    .hero-hook span{ clip-path:inset(0 0% 0 -6px); opacity:1; }
   }
 </style>
 </head>
@@ -200,40 +235,41 @@
 <div class="topbar">
   <div class="wrap">
     <div class="logo">LIN<span>ENCE</span><small>LÍNEA &amp; ESENCIA</small></div>
-    <div class="note-pill">Prototipo — no publicado</div>
+    <div class="note-pill">Prototipo v2 — no publicado</div>
   </div>
 </div>
 
 <section class="hero" id="inicio">
+
+  <div class="hero-reel">
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1682662045815-9016c6225dd3?w=1400&q=80&auto=format&fit=crop" alt="Cocina moderna a medida"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1718939045285-b67f9e9f9f8b?w=1400&q=80&auto=format&fit=crop" alt="Walk-in closet iluminado de lujo"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1564540579594-0930edb6de43?w=1400&q=80&auto=format&fit=crop" alt="Vanitorio de lujo con doble lavamanos"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1628977614615-f5f4068361ed?w=1400&q=80&auto=format&fit=crop" alt="Tope cuarzo blanco galaxy"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1558346648-9757f2fa4474?w=1400&q=80&auto=format&fit=crop" alt="Tope cuarzo blanco luna"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1566041510394-cf7c8fe21800?w=1400&q=80&auto=format&fit=crop" alt="Tope cuarzo calacatta"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1704530953106-9cdd4342dd36?w=1400&q=80&auto=format&fit=crop" alt="Piedra sinterizada calacatta"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1550053808-52a75a05955d?w=1400&q=80&auto=format&fit=crop" alt="Piedra sinterizada basalto"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1761457815581-9674dcd50374?w=1400&q=80&auto=format&fit=crop" alt="Piedra sinterizada grey marina"></div>
+  </div>
+
+  <div class="hero-scrim"></div>
+
   <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
-        <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
-        <div class="hero-actions">
-          <a href="#" class="btn-primary">Solicitar Cotización</a>
-          <a href="#" class="btn-outline">Ver Portafolio</a>
-        </div>
-      </div>
-
-      <div class="hero-reel">
-        <div class="reel-slide">
-          <img src="https://images.unsplash.com/photo-1682662045815-9016c6225dd3?w=1000&q=80&auto=format&fit=crop" alt="Cocina moderna a medida">
-        </div>
-        <div class="reel-slide">
-          <img src="https://images.unsplash.com/photo-1722604532227-4b76797218aa?w=1000&q=80&auto=format&fit=crop" alt="Closet de lujo a medida">
-        </div>
-        <div class="reel-slide">
-          <img src="https://images.unsplash.com/photo-1754788358645-d6e6cca12e25?w=1000&q=80&auto=format&fit=crop" alt="Vanitorio con encimera de mármol">
-        </div>
-        <div class="reel-slide">
-          <img src="https://images.unsplash.com/photo-1720694025145-6f05b62fa334?w=1000&q=80&auto=format&fit=crop" alt="Encimera de mármol a medida">
-        </div>
-
-        <span class="reel-tag"><span class="dot"></span> Imagen referencial</span>
-        <div class="reel-progress"><i></i><i></i><i></i><i></i></div>
+    <div class="hero-content">
+      <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
+      <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn-primary">Solicitar Cotización</a>
+        <a href="#" class="btn-outline">Ver Portafolio</a>
       </div>
     </div>
+  </div>
+
+  <div class="hero-hook"><span>Hecho a tu medida, hecho para durar.</span></div>
+
+  <div class="reel-progress">
+    <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
   </div>
 </section>
 
