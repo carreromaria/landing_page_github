@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LINENCE | Prototipo Hero v2</title>
+<title>LINENCE | Prototipo Hero v3</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,13 +31,12 @@
     color:var(--cream);
   }
   a{color:inherit; text-decoration:none;}
-  .wrap{max-width:1180px; margin:0 auto; padding:0 32px; position:relative; z-index:3;}
 
   .topbar{
     position:absolute; top:0; left:0; right:0; z-index:5;
-    padding:26px 0;
+    padding:26px clamp(24px, 6vw, 90px);
+    display:flex; align-items:center; justify-content:space-between;
   }
-  .topbar .wrap{display:flex; align-items:center; justify-content:space-between;}
   .logo{
     font-family:'Champagne & Limousines','Poppins', serif;
     color:var(--cream); font-size:22px; letter-spacing:0.14em; font-weight:700;
@@ -67,12 +66,13 @@
   }
   .reel-slide{
     position:absolute; inset:0;
-    opacity:0;
+    opacity:0;                 /* estado base, evita que se amontonen mientras esperan su turno */
     animation:reel-cycle 27s infinite;
   }
   .reel-slide img{
     position:absolute; inset:0;
     width:100%; height:100%; object-fit:cover;
+    transform:scale(1.0);
     animation:reel-zoom 3s infinite ease-out;
   }
   .reel-slide:nth-child(1){ animation-delay:0s; }
@@ -106,40 +106,40 @@
     100%{transform:scale(1.08);}
   }
 
-  /* Oscurecido general + viñeta cine, sobre toda la imagen */
+  /* Viñeta cine general, muy sutil, sobre toda la imagen */
   .hero-reel::after{
     content:'';
     position:absolute; inset:0; z-index:2;
-    background:linear-gradient(180deg, rgba(20,18,19,0.55) 0%, rgba(20,18,19,0.08) 22%, rgba(20,18,19,0.10) 70%, rgba(20,18,19,0.6) 100%);
-    box-shadow:inset 0 0 140px rgba(20,18,19,0.55);
+    box-shadow:inset 0 0 140px rgba(20,18,19,0.5);
     pointer-events:none;
   }
 
-  /* Difuminado + oscurecido SOLO detrás del texto, para integrarlo */
+  /* Difuminado + oscurecido SOLO detrás del texto (columna izquierda) */
   .hero-scrim{
     position:absolute; inset:0; z-index:2;
-    background:linear-gradient(100deg,
-      rgba(20,18,19,0.92) 0%,
-      rgba(20,18,19,0.86) 30%,
-      rgba(20,18,19,0.55) 52%,
-      rgba(20,18,19,0.12) 68%,
-      rgba(20,18,19,0) 80%);
-    backdrop-filter:blur(6px);
-    -webkit-mask-image:linear-gradient(100deg, #000 0%, #000 55%, transparent 78%);
-    mask-image:linear-gradient(100deg, #000 0%, #000 55%, transparent 78%);
+    background:linear-gradient(90deg,
+      rgba(20,18,19,0.90) 0%,
+      rgba(20,18,19,0.86) 34%,
+      rgba(20,18,19,0.55) 46%,
+      rgba(20,18,19,0.15) 56%,
+      rgba(20,18,19,0) 64%);
+    backdrop-filter:blur(7px);
+    -webkit-mask-image:linear-gradient(90deg, #000 0%, #000 40%, transparent 62%);
+    mask-image:linear-gradient(90deg, #000 0%, #000 40%, transparent 62%);
     pointer-events:none;
   }
 
   .hero-content{
     position:relative; z-index:3;
-    padding-top:110px; padding-bottom:70px;
-    max-width:560px;
+    padding-left:clamp(24px, 6vw, 90px);
+    padding-right:24px;
+    max-width:540px;
   }
   .hero h1{
-    font-size:clamp(36px, 5vw, 64px);
+    font-size:clamp(34px, 4.6vw, 62px);
     line-height:1.08;
     margin-bottom:24px;
-    text-shadow:0 2px 18px rgba(0,0,0,0.35);
+    text-shadow:0 2px 18px rgba(0,0,0,0.4);
   }
   .hero h1 em{ font-style:normal; color:var(--gold); }
   .hero p.lead{
@@ -158,31 +158,35 @@
     backdrop-filter:blur(2px);
   }
 
-  /* ---------- Texto gancho, escribiéndose en cursiva ---------- */
+  /* ---------- Texto gancho, trazo tipo escritura a mano ---------- */
   .hero-hook{
     position:absolute;
-    right:6%; bottom:9%;
+    right:clamp(24px, 6vw, 90px); bottom:8%;
     z-index:3;
-    max-width:420px;
-    text-align:right;
+    width:min(46vw, 480px);
   }
-  .hero-hook span{
-    display:inline-block;
+  .hook-svg{ width:100%; height:auto; overflow:visible; }
+  .hook-path{
     font-family:'Dancing Script', cursive;
     font-weight:600;
-    font-size:clamp(26px, 3vw, 40px);
-    color:var(--sand);
-    text-shadow:0 2px 14px rgba(0,0,0,0.5);
-    clip-path:inset(0 100% 0 -6px);
+    fill:none;
+    stroke:var(--sand);
+    stroke-width:1.4px;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    stroke-dasharray:2400;
+    stroke-dashoffset:2400;
+    filter:drop-shadow(0 2px 10px rgba(0,0,0,0.45));
     animation:hook-write 27s infinite;
-    white-space:normal;
   }
   @keyframes hook-write{
-    0%{ clip-path:inset(0 100% 0 -6px); opacity:1; }
-    4%{ opacity:1; }
-    86%{ clip-path:inset(0 0% 0 -6px); opacity:1; }
-    95%{ opacity:0; clip-path:inset(0 0% 0 -6px); }
-    100%{ opacity:0; clip-path:inset(0 100% 0 -6px); }
+    0%{ stroke-dashoffset:2400; fill:transparent; opacity:1; }
+    3%{ opacity:1; }
+    72%{ stroke-dashoffset:0; fill:transparent; }
+    80%{ stroke-dashoffset:0; fill:var(--sand); }
+    92%{ stroke-dashoffset:0; fill:var(--sand); opacity:1; }
+    97%{ opacity:0; }
+    100%{ opacity:0; stroke-dashoffset:2400; fill:transparent; }
   }
 
   /* ---------- Barra de progreso, muy discreta ---------- */
@@ -213,30 +217,29 @@
   }
 
   @media(max-width:860px){
-    .hero-content{max-width:100%; padding-top:100px;}
+    .hero{ align-items:flex-end; padding-bottom:60px; }
+    .hero-content{ max-width:100%; padding-right:24px; }
     .hero-scrim{
-      background:linear-gradient(180deg, rgba(20,18,19,0.92) 0%, rgba(20,18,19,0.75) 45%, rgba(20,18,19,0.15) 75%, rgba(20,18,19,0) 100%);
-      -webkit-mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 85%);
-      mask-image:linear-gradient(180deg, #000 0%, #000 55%, transparent 85%);
+      background:linear-gradient(0deg, rgba(20,18,19,0.92) 0%, rgba(20,18,19,0.8) 42%, rgba(20,18,19,0.2) 72%, rgba(20,18,19,0) 100%);
+      -webkit-mask-image:linear-gradient(0deg, #000 0%, #000 46%, transparent 78%);
+      mask-image:linear-gradient(0deg, #000 0%, #000 46%, transparent 78%);
     }
-    .hero-hook{ left:6%; right:6%; bottom:6%; text-align:left; max-width:100%; }
+    .hero-hook{ display:none; } /* en mobile prioriza el mensaje principal, evita saturar */
   }
 
   @media (prefers-reduced-motion: reduce){
-    .reel-slide, .reel-slide img, .reel-progress i::after, .hero-hook span{ animation:none !important; }
+    .reel-slide, .reel-slide img, .reel-progress i::after, .hook-path{ animation:none !important; }
     .reel-slide{ opacity:0; }
     .reel-slide:first-child{ opacity:1; }
-    .hero-hook span{ clip-path:inset(0 0% 0 -6px); opacity:1; }
+    .hook-path{ stroke-dashoffset:0; fill:var(--sand); opacity:1; }
   }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div class="wrap">
-    <div class="logo">LIN<span>ENCE</span><small>LÍNEA &amp; ESENCIA</small></div>
-    <div class="note-pill">Prototipo v2 — no publicado</div>
-  </div>
+  <div class="logo">LIN<span>ENCE</span><small>LÍNEA &amp; ESENCIA</small></div>
+  <div class="note-pill">Prototipo v3 — no publicado</div>
 </div>
 
 <section class="hero" id="inicio">
@@ -255,18 +258,21 @@
 
   <div class="hero-scrim"></div>
 
-  <div class="wrap">
-    <div class="hero-content">
-      <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
-      <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
-      <div class="hero-actions">
-        <a href="#" class="btn-primary">Solicitar Cotización</a>
-        <a href="#" class="btn-outline">Ver Portafolio</a>
-      </div>
+  <div class="hero-content">
+    <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
+    <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
+    <div class="hero-actions">
+      <a href="#" class="btn-primary">Solicitar Cotización</a>
+      <a href="#" class="btn-outline">Ver Portafolio</a>
     </div>
   </div>
 
-  <div class="hero-hook"><span>Hecho a tu medida, hecho para durar.</span></div>
+  <div class="hero-hook">
+    <svg class="hook-svg" viewBox="0 0 480 130" xmlns="http://www.w3.org/2000/svg">
+      <text class="hook-path" x="4" y="52" font-size="34">Hecho a tu medida,</text>
+      <text class="hook-path" x="4" y="98" font-size="34">hecho para durar.</text>
+    </svg>
+  </div>
 
   <div class="reel-progress">
     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
