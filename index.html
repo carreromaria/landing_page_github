@@ -1150,7 +1150,7 @@
         <h2>Precisión, diseño atemporal y oficio chileno.</h2>
         <p>En Linence fabricamos mobiliario a medida pensado para durar: cada proyecto parte de una medición exacta del espacio y se traduce en piezas con líneas limpias y materiales nobles.</p>
         <p class="subhead">Respaldo y seguimiento</p>
-        <p>Cada proyecto cuenta con contrato de venta e instalación, ficha técnica, manual de uso y mantención, garantía, acta de entrega y postventa.</p>
+        <p>Cada proyecto cuenta con contrato de venta e instalación, ficha técnica, garantía, manual de uso y mantención, y acta de entrega.</p>
         <p>Además, dispones de nuestra página de seguimiento en tiempo real para consultar el avance de fabricación de tu proyecto en cada etapa, del inicio a la entrega.</p>
         <div class="about-values">
           <div class="value-item">
@@ -1315,23 +1315,23 @@
 
       <div class="process-step">
         <div class="step-rule"><span class="step-num">03</span><span class="step-line"></span></div>
-        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></div>
-        <h4>Diseñamos tu proyecto</h4>
-        <p>Creamos una propuesta personalizada con distribución, materiales, acabados y visualización 3D para que puedas imaginar el resultado antes de fabricar.</p>
-      </div>
-
-      <div class="process-step">
-        <div class="step-rule"><span class="step-num">04</span><span class="step-line"></span></div>
         <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 7l1 0"/><path d="M9 13l6 0"/><path d="M13 17l2 0"/></svg></div>
         <h4>Recibes tu cotización</h4>
         <p>Te entregamos una propuesta detallada con el diseño, materiales, tiempos de fabricación, instalación y formas de pago.</p>
       </div>
 
       <div class="process-step">
-        <div class="step-rule"><span class="step-num">05</span><span class="step-line"></span></div>
+        <div class="step-rule"><span class="step-num">04</span><span class="step-line"></span></div>
         <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M9 12l2 2l4 -4"/></svg></div>
         <h4>Aprobación e inicio</h4>
         <p>Una vez aprobada la propuesta y confirmado el proyecto, planificamos la fabricación y comenzamos a trabajar en tu mobiliario.</p>
+      </div>
+
+      <div class="process-step">
+        <div class="step-rule"><span class="step-num">05</span><span class="step-line"></span></div>
+        <div class="step-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M7.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M11.5 7.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M15.5 10.5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></div>
+        <h4>Diseñamos tu proyecto</h4>
+        <p>Creamos una propuesta personalizada con distribución, materiales, acabados y visualización 3D para que puedas imaginar el resultado antes de fabricar.</p>
       </div>
 
       <div class="process-step">
@@ -1648,49 +1648,6 @@
   const processPrev = document.getElementById('processPrev');
   const processNext = document.getElementById('processNext');
   setupScrollerNav(processScroller, processPrev, processNext, 300);
-
-  // ---- Cómo trabajamos: scroll automático lento ----
-  // Avanza solo cada cierto tiempo; se detiene si el usuario interactúa (click/touch) o pasa el mouse por encima.
-  if (processScroller) {
-    const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let autoplayTimer = null;
-    let autoplayStopped = false;
-
-    const stepEls = Array.from(processScroller.querySelectorAll('.process-step'));
-    let stepIndex = 0;
-
-    function autoplayTick(){
-      if (autoplayStopped || stepEls.length === 0) return;
-      stepIndex++;
-      if (stepIndex >= stepEls.length) stepIndex = 0;
-      processScroller.scrollTo({left: stepEls[stepIndex].offsetLeft, behavior:'smooth'});
-    }
-
-    function startAutoplay(){
-      if (autoplayStopped || prefersReducedMotion) return;
-      stopAutoplayTimer();
-      autoplayTimer = setInterval(autoplayTick, 3500);
-    }
-    function stopAutoplayTimer(){
-      if (autoplayTimer) { clearInterval(autoplayTimer); autoplayTimer = null; }
-    }
-    function stopAutoplayForGood(){
-      autoplayStopped = true;
-      stopAutoplayTimer();
-    }
-
-    // Pausa temporal al pasar el mouse (se reanuda al salir)
-    processScroller.addEventListener('mouseenter', stopAutoplayTimer);
-    processScroller.addEventListener('mouseleave', startAutoplay);
-
-    // Se detiene para siempre si el usuario interactúa activamente
-    processScroller.addEventListener('click', stopAutoplayForGood);
-    processScroller.addEventListener('touchstart', stopAutoplayForGood, {passive:true});
-    if (processPrev) processPrev.addEventListener('click', stopAutoplayForGood);
-    if (processNext) processNext.addEventListener('click', stopAutoplayForGood);
-
-    if (!prefersReducedMotion) startAutoplay();
-  }
 
   // ---- Año dinámico en footer ----
   document.getElementById('year').textContent = new Date().getFullYear();
