@@ -12,7 +12,7 @@
 <!-- Fuentes -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Dancing+Script:wght@500;700&display=swap" rel="stylesheet">
 <link href="https://fonts.cdnfonts.com/css/champagne-limousines" rel="stylesheet">
 
 <style>
@@ -195,86 +195,153 @@
 
   /* ---------- Hero ---------- */
   .hero{
+    position:relative;
     min-height:100vh;
     display:flex;
     align-items:center;
-    background:
-      radial-gradient(ellipse 60% 50% at 85% 15%, rgba(214,165,44,0.20) 0%, transparent 60%),
-      radial-gradient(ellipse 50% 45% at 10% 85%, rgba(211,187,140,0.14) 0%, transparent 65%),
-      linear-gradient(160deg, #1c1a1b 0%, #141213 55%, #1a1614 100%);
-    color:var(--cream);
-    position:relative;
     overflow:hidden;
+    background:#1a1614;
+    color:var(--cream);
   }
-  .hero::before{
+
+  /* Reel de fondo — ocupa toda la sección */
+  .hero-reel{ position:absolute; inset:0; z-index:1; }
+  .reel-slide{
+    position:absolute; inset:0;
+    opacity:0;                 /* estado base: evita que se amontonen mientras esperan turno */
+    animation:reel-cycle 12s infinite;
+  }
+  .reel-slide img{
+    position:absolute; inset:0;
+    width:100%; height:100%; object-fit:cover;
+    transform:scale(1.0);
+    animation:reel-zoom 4s infinite ease-out;
+  }
+  .reel-slide:nth-child(1){ animation-delay:0s; }
+  .reel-slide:nth-child(1) img{ animation-delay:0s; }
+  .reel-slide:nth-child(2){ animation-delay:4s; }
+  .reel-slide:nth-child(2) img{ animation-delay:4s; }
+  .reel-slide:nth-child(3){ animation-delay:8s; }
+  .reel-slide:nth-child(3) img{ animation-delay:8s; }
+
+  @keyframes reel-cycle{
+    0%{opacity:0;}
+    2%{opacity:1;}
+    31%{opacity:1;}
+    33.3%{opacity:0;}
+    100%{opacity:0;}
+  }
+  @keyframes reel-zoom{
+    0%{transform:scale(1.0);}
+    100%{transform:scale(1.08);}
+  }
+
+  .hero-reel::after{
     content:'';
-    position:absolute;
-    top:-20%; right:-10%;
-    width:640px; height:640px;
-    border-radius:50%;
-    background:radial-gradient(circle, rgba(214,165,44,0.16) 0%, transparent 70%);
-    filter:blur(10px);
+    position:absolute; inset:0; z-index:2;
+    box-shadow:inset 0 0 140px rgba(20,18,19,0.5);
     pointer-events:none;
   }
-  .hero-grid{
-    position:relative;
-    z-index:2;
-    padding-top:120px;
-    display:grid;
-    grid-template-columns:1.05fr 0.95fr;
-    gap:60px;
-    align-items:center;
+
+  /* Difuminado + oscurecido SOLO detrás del texto, para integrarlo con el video */
+  .hero-scrim{
+    position:absolute; inset:0; z-index:2;
+    background:linear-gradient(90deg,
+      rgba(20,18,19,0.90) 0%,
+      rgba(20,18,19,0.86) 34%,
+      rgba(20,18,19,0.55) 46%,
+      rgba(20,18,19,0.15) 56%,
+      rgba(20,18,19,0) 64%);
+    backdrop-filter:blur(7px);
+    -webkit-mask-image:linear-gradient(90deg, #000 0%, #000 40%, transparent 62%);
+    mask-image:linear-gradient(90deg, #000 0%, #000 40%, transparent 62%);
+    pointer-events:none;
+  }
+
+  .hero-content{
+    position:relative; z-index:3;
+    padding-left:clamp(24px, 6vw, 90px);
+    padding-right:24px;
+    max-width:540px;
   }
   .hero h1{
     color:var(--cream);
-    font-size:clamp(38px, 5.4vw, 68px);
+    font-size:clamp(34px, 4.6vw, 62px);
     line-height:1.08;
-    margin-bottom:26px;
+    margin-bottom:24px;
+    text-shadow:0 2px 18px rgba(0,0,0,0.4);
   }
   .hero h1 em{
     font-style:normal;
     color:var(--gold);
   }
   .hero p.lead{
-    max-width:480px;
-    font-size:17px;
-    color:rgba(250,247,242,0.82);
-    margin-bottom:44px;
+    max-width:460px;
+    font-size:16.5px;
+    color:rgba(250,247,242,0.85);
+    margin-bottom:40px;
     font-weight:300;
   }
   .hero-actions{display:flex; gap:18px; flex-wrap:wrap;}
 
-  .hero-visual{
-    position:relative;
-    aspect-ratio:4/5;
-    border-radius:6px;
-    overflow:hidden;
-    box-shadow:0 30px 70px rgba(0,0,0,0.35);
-    display:flex; align-items:flex-end;
+  /* Texto gancho: aparición en cascada, letra por letra */
+  .hero-hook{
+    position:absolute;
+    right:clamp(24px, 6vw, 90px); bottom:9%;
+    z-index:3;
+    max-width:420px;
+    text-align:right;
   }
-  .hero-visual img{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:cover;
-  }
-  .hero-visual::before{
-    content:'';
-    position:absolute; inset:0;
-    background:linear-gradient(200deg, rgba(214,165,44,0.22) 0%, rgba(20,18,19,0.15) 55%, rgba(20,18,19,0.55) 100%);
-    z-index:1;
-  }
-  .hero-visual .tag{
-    position:relative; z-index:2;
-    margin:28px;
+  .hook-line{
+    display:block;
+    font-family:'Dancing Script', cursive;
+    font-weight:600;
+    font-size:clamp(24px, 2.8vw, 38px);
     color:var(--sand);
-    font-size:12.5px;
-    letter-spacing:0.1em;
-    text-transform:uppercase;
-    border:1px solid var(--gold-line);
-    padding:9px 15px;
-    background:rgba(20,18,19,0.4);
-    backdrop-filter:blur(4px);
   }
+  .ch{
+    display:inline-block;
+    opacity:0;
+    transform:translateY(5px);
+    animation:ch-cycle 12s infinite;
+    text-shadow:0 2px 12px rgba(0,0,0,0.5);
+  }
+  @keyframes ch-cycle{
+    0%{ opacity:0; transform:translateY(5px); }
+    4%{ opacity:1; transform:translateY(0); }
+    86%{ opacity:1; transform:translateY(0); }
+    95%{ opacity:0; transform:translateY(-3px); }
+    100%{ opacity:0; transform:translateY(5px); }
+  }
+
+  /* Barra de progreso del reel, discreta */
+  .reel-progress{
+    position:absolute; left:0; right:0; bottom:0; z-index:4;
+    display:flex; gap:2px; padding:0 2px 2px;
+  }
+  .reel-progress i{
+    flex:1; height:2px; background:rgba(250,247,242,0.18); position:relative; overflow:hidden;
+  }
+  .reel-progress i::after{
+    content:''; position:absolute; inset:0; background:var(--gold);
+    transform:scaleX(0); transform-origin:left; animation:bar-fill 12s infinite;
+  }
+  .reel-progress i:nth-child(1)::after{ animation-delay:0s; }
+  .reel-progress i:nth-child(2)::after{ animation-delay:4s; }
+  .reel-progress i:nth-child(3)::after{ animation-delay:8s; }
+  @keyframes bar-fill{
+    0%{transform:scaleX(0);}
+    33%{transform:scaleX(1);}
+    100%{transform:scaleX(1);}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .reel-slide, .reel-slide img, .reel-progress i::after, .ch{ animation:none !important; }
+    .reel-slide{ opacity:0; }
+    .reel-slide:first-child{ opacity:1; }
+    .ch{ opacity:1; transform:none; }
+  }
+
   .btn-primary{
     background:var(--gold);
     color:var(--ink);
@@ -302,11 +369,11 @@
 
   .hero-scroll{
     position:absolute;
-    bottom:34px; left:32px;
+    bottom:34px; left:clamp(24px, 6vw, 90px);
     display:flex; align-items:center; gap:10px;
     color:rgba(250,247,242,0.6);
     font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
-    z-index:2;
+    z-index:3;
   }
   .hero-scroll .stick{
     width:1px; height:34px;
@@ -936,14 +1003,14 @@
     from{ opacity:0; transform:translateY(22px); }
     to{ opacity:1; transform:translateY(0); }
   }
-  .hero h1, .hero p.lead, .hero-actions, .hero-visual{
+  .hero h1, .hero p.lead, .hero-actions, .hero-reel{
     opacity:0;
     animation:hero-fade-up .8s ease forwards;
   }
   .hero h1{animation-delay:.15s;}
   .hero p.lead{animation-delay:.30s;}
   .hero-actions{animation-delay:.44s;}
-  .hero-visual{animation-delay:.20s;}
+  .hero-reel{animation-delay:0s; opacity:1; animation:none;}
 
   /* Subrayado animado bajo los títulos de sección al aparecer */
   .section-head h2{
@@ -1010,8 +1077,14 @@
     .footer-brand{text-align:center;}
     .footer-logo{margin-left:auto; margin-right:auto; height:130px; margin-bottom:38px;}
     .footer-brand p{margin-left:auto; margin-right:auto;}
-    .hero-grid{grid-template-columns:1fr; gap:36px; padding-top:110px; padding-bottom:20px;}
-    .hero-visual{aspect-ratio:16/10; order:-1;}
+    .hero{ align-items:flex-end; padding-bottom:60px; }
+    .hero-content{ max-width:100%; padding-right:24px; }
+    .hero-scrim{
+      background:linear-gradient(0deg, rgba(20,18,19,0.92) 0%, rgba(20,18,19,0.8) 42%, rgba(20,18,19,0.2) 72%, rgba(20,18,19,0) 100%);
+      -webkit-mask-image:linear-gradient(0deg, #000 0%, #000 46%, transparent 78%);
+      mask-image:linear-gradient(0deg, #000 0%, #000 46%, transparent 78%);
+    }
+    .hero-hook{ display:none; }
     .hero-scroll{display:none;}
     .showroom-visual{min-height:auto; aspect-ratio:16/10;}
     .showroom-copy{padding:40px;}
@@ -1079,23 +1152,31 @@
 
 <!-- ================= HERO / INICIO ================= -->
 <section class="hero" id="inicio">
-  <div class="wrap">
-    <div class="hero-grid">
-      <div>
-        <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
-        <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
-        <div class="hero-actions">
-          <a href="#cotizacion" class="btn-primary">Solicitar Cotización</a>
-          <a href="#portafolio" class="btn-outline">Ver Portafolio</a>
-        </div>
-      </div>
-      <div class="hero-visual">
-          <div class="skeleton" data-skeleton></div>
-        <img src="https://images.unsplash.com/photo-1682662045815-9016c6225dd3?w=1000&q=80&auto=format&fit=crop" alt="Cocina moderna con gabinetes en blanco y negro" loading="lazy">
-        <span class="tag">Imagen referencial</span>
-      </div>
+
+  <div class="hero-reel">
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1682662045815-9016c6225dd3?w=1400&q=80&auto=format&fit=crop" alt="Cocina moderna a medida"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1721742736286-a5eaeb4e5263?w=1400&q=80&auto=format&fit=crop" alt="Walk-in closet de lujo con lámpara colgante e isla central"></div>
+    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1595428774991-829cfeea6267?w=1400&q=80&auto=format&fit=crop" alt="Vanitorio con mueble de cajones a medida"></div>
+  </div>
+
+  <div class="hero-scrim"></div>
+
+  <div class="hero-content">
+    <h1>Mobiliario que se mide<br> a la <em>exactitud</em> de tu espacio.</h1>
+    <p class="lead">Diseñamos y fabricamos mobiliario a medida para proyectos residenciales y comerciales de alto estándar: cocinas, closets, mobiliario corporativo y más.</p>
+    <div class="hero-actions">
+      <a href="#cotizacion" class="btn-primary">Solicitar Cotización</a>
+      <a href="#portafolio" class="btn-outline">Ver Portafolio</a>
     </div>
   </div>
+
+  <div class="hero-hook">
+    <span class="hook-line" data-text="Hecho a tu medida,"></span>
+    <span class="hook-line" data-text="hecho para durar."></span>
+  </div>
+
+  <div class="reel-progress"><i></i><i></i><i></i></div>
+
   <div class="hero-scroll"><div class="stick"></div> Scroll</div>
 </section>
 
@@ -1576,6 +1657,25 @@
 
 <script>
 (function(){
+  // ---- Hero: texto gancho escribiéndose letra por letra ----
+  (function(){
+    const lines = document.querySelectorAll('.hero-hook .hook-line');
+    let globalIndex = 0;
+    const STEP = 0.14; // segundos entre letra y letra
+    lines.forEach(line => {
+      const text = line.getAttribute('data-text') || '';
+      for (let i = 0; i < text.length; i++){
+        const ch = text[i];
+        const span = document.createElement('span');
+        span.className = 'ch';
+        span.textContent = (ch === ' ') ? '\u00A0' : ch;
+        span.style.animationDelay = (globalIndex * STEP) + 's';
+        line.appendChild(span);
+        globalIndex++;
+      }
+    });
+  })();
+
   // ---- Header sólido al hacer scroll ----
   const header = document.getElementById('siteHeader');
   const onScroll = () => {
