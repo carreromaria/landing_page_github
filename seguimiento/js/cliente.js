@@ -222,8 +222,10 @@ function renderGaleria(p){
     return;
   }
   grid.innerHTML = fotos.map(f => `
-    <figure data-full="${f.url}">
-      <img src="${f.url}" alt="${f.descripcion || 'Fotografía del avance'}" loading="lazy">
+    <figure data-full="${f.url}" data-tipo="${f.tipo || 'foto'}">
+      ${f.tipo === 'video'
+        ? `<video src="${f.url}" muted loop playsinline autoplay></video><span class="badge-video" title="Video">▶</span>`
+        : `<img src="${f.url}" alt="${f.descripcion || 'Fotografía del avance'}" loading="lazy">`}
     </figure>
   `).join('');
 }
@@ -285,19 +287,35 @@ function activarReveal(){
 function activarLightbox(){
   const lightbox = document.getElementById('lightbox');
   const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxVideo = document.getElementById('lightboxVideo');
 
   document.getElementById('galeriaGrid').addEventListener('click', (e) => {
     const figure = e.target.closest('figure');
     if (!figure) return;
-    lightboxImg.src = figure.dataset.full;
+
+    if (figure.dataset.tipo === 'video') {
+      lightboxImg.style.display = 'none';
+      lightboxVideo.style.display = 'block';
+      lightboxVideo.src = figure.dataset.full;
+      lightboxVideo.play();
+    } else {
+      lightboxVideo.pause();
+      lightboxVideo.style.display = 'none';
+      lightboxImg.style.display = 'block';
+      lightboxImg.src = figure.dataset.full;
+    }
     lightbox.classList.add('open');
   });
 
   document.getElementById('lightboxClose').addEventListener('click', () => {
     lightbox.classList.remove('open');
+    lightboxVideo.pause();
   });
   lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) lightbox.classList.remove('open');
+    if (e.target === lightbox) {
+      lightbox.classList.remove('open');
+      lightboxVideo.pause();
+    }
   });
 }
 
