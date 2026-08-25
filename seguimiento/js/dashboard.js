@@ -11,7 +11,7 @@ import {
   listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut
 } from './firestore.js';
 import { REGIONES_COMUNAS, comunasDeRegion, formatearDireccion } from './regiones-comunas.js';
-import { validarFoto, subirFoto, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
+import { validarFoto, subirFoto, validarVideo, subirVideo, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
 import { notificarCambioEtapa } from './emailjs.js';
 import { generarEnlaceWhatsappManual, generarEnlaceWhatsappBienvenida } from './whatsapp.js';
 import { generarToken, formatearFecha } from './utils.js';
@@ -1011,8 +1011,10 @@ function renderGaleriaDashboard(fotos) {
   }
   grid.innerHTML = fotos.map((f, i) => `
     <figure>
-      <img src="${f.url}" alt="${f.descripcion || 'Fotografía del proyecto'}">
-      <button type="button" class="btn-eliminar-foto" data-indice="${i}" title="Eliminar fotografía">×</button>
+      ${f.tipo === 'video'
+        ? `<video src="${f.url}" muted loop playsinline></video><span class="badge-video" title="Video">▶</span>`
+        : `<img src="${f.url}" alt="${f.descripcion || 'Fotografía del proyecto'}">`}
+      <button type="button" class="btn-eliminar-foto" data-indice="${i}" title="${f.tipo === 'video' ? 'Eliminar video' : 'Eliminar fotografía'}">×</button>
     </figure>
   `).join('');
 
@@ -1022,7 +1024,8 @@ function renderGaleriaDashboard(fotos) {
 }
 
 async function eliminarFoto(foto) {
-  const confirmar = confirm('¿Eliminar esta fotografía? Esta acción no se puede deshacer.');
+  const esVideo = foto.tipo === 'video';
+  const confirmar = confirm(`¿Eliminar ${esVideo ? 'este video' : 'esta fotografía'}? Esta acción no se puede deshacer.`);
   if (!confirmar) return;
 
   try {
@@ -1067,7 +1070,8 @@ dropzone.addEventListener('drop', (e) => {
 async function manejarSubidaFoto(file) {
   fotoError.classList.remove('visible');
 
-  const errorValidacion = validarFoto(file);
+  const esVideo = file.type.startsWith('video/');
+  const errorValidacion = esVideo ? validarVideo(file) : validarFoto(file);
   if (errorValidacion) {
     fotoError.textContent = errorValidacion;
     fotoError.classList.add('visible');
@@ -1080,22 +1084,28 @@ async function manejarSubidaFoto(file) {
   subidaTexto.textContent = 'Subiendo… 0%';
 
   try {
-    const { url, storagePath } = await subirFoto(PROYECTO_ACTUAL.codigo, file, (pct) => {
+    const onProgreso = (pct) => {
       barraFill.style.width = pct + '%';
       subidaTexto.textContent = `Subiendo… ${pct}%`;
-    });
+    };
 
-    const foto = { url, storagePath, descripcion: '', fecha: new Date() };
+    const { url, storagePath } = esVideo
+      ? await subirVideo(PROYECTO_ACTUAL.codigo, file, onProgreso)
+      : await subirFoto(PROYECTO_ACTUAL.codigo, file, onProgreso);
+
+    const foto = esVideo
+      ? { url, storagePath, descripcion: '', fecha: new Date(), tipo: 'video' }
+      : { url, storagePath, descripcion: '', fecha: new Date() };
     await agregarFotoProyecto(PROYECTO_ACTUAL.codigo, foto);
 
     PROYECTO_ACTUAL.fotos = [...(PROYECTO_ACTUAL.fotos || []), foto];
     renderGaleriaDashboard(PROYECTO_ACTUAL.fotos);
 
-    subidaTexto.textContent = '¡Foto subida!';
+    subidaTexto.textContent = esVideo ? '¡Video subido!' : '¡Foto subida!';
     setTimeout(() => { progresoBox.style.display = 'none'; }, 1200);
   } catch (err) {
     console.error(err);
-    fotoError.textContent = 'No pudimos subir la fotografía. Intenta nuevamente.';
+    fotoError.textContent = `No pudimos subir ${esVideo ? 'el video' : 'la fotografía'}. Intenta nuevamente.`;
     fotoError.classList.add('visible');
     progresoBox.style.display = 'none';
   } finally {
