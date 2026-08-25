@@ -9,6 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const TAMANO_MAXIMO = 10 * 1024 * 1024; // 10MB, igual que storage.rules
+const TAMANO_MAXIMO_VIDEO = 15 * 1024 * 1024; // 15MB, para cuidar el plan gratuito de Storage
 
 /**
  * Valida el archivo en el cliente ANTES de subir (misma regla que
@@ -26,6 +27,21 @@ export function validarFoto(file) {
 }
 
 /**
+ * Valida un video antes de subir. La duración (máx. 20 segundos) no se
+ * valida automáticamente — se le pide al equipo que grabe clips cortos.
+ * El límite de tamaño sí se valida acá para cuidar el plan gratuito.
+ */
+export function validarVideo(file) {
+  if (!file.type.startsWith('video/')) {
+    return 'Solo se permiten archivos de video.';
+  }
+  if (file.size > TAMANO_MAXIMO_VIDEO) {
+    return 'El video supera el límite de 15MB. Recuerda: clips cortos, de máximo 20 segundos.';
+  }
+  return null;
+}
+
+/**
  * Sube una fotografía al proyecto. onProgreso(porcentaje) se llama
  * durante la subida para mostrar una barra de avance.
  * Devuelve { url, storagePath }.
@@ -34,6 +50,32 @@ export function subirFoto(codigo, file, onProgreso) {
   return new Promise((resolve, reject) => {
     const nombreArchivo = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
     const storagePath = `proyectos/${codigo}/${nombreArchivo}`;
+    const storageRef = ref(storage, storagePath);
+    const task = uploadBytesResumable(storageRef, file);
+
+    task.on('state_changed',
+      (snapshot) => {
+        const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        onProgreso?.(pct);
+      },
+      (error) => reject(error),
+      async () => {
+        const url = await getDownloadURL(task.snapshot.ref);
+        resolve({ url, storagePath });
+      }
+    );
+  });
+}
+
+/**
+ * Sube un video corto al proyecto. Misma lógica que subirFoto, pero
+ * se guarda en una subcarpeta separada (proyectos/{codigo}/videos/)
+ * para mantener ordenado el Storage. Devuelve { url, storagePath }.
+ */
+export function subirVideo(codigo, file, onProgreso) {
+  return new Promise((resolve, reject) => {
+    const nombreArchivo = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    const storagePath = `proyectos/${codigo}/videos/${nombreArchivo}`;
     const storageRef = ref(storage, storagePath);
     const task = uploadBytesResumable(storageRef, file);
 
