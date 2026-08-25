@@ -208,32 +208,45 @@
   .hero-reel{ position:absolute; inset:0; z-index:1; }
   .reel-slide{
     position:absolute; inset:0;
-    opacity:0;                 /* estado base: evita que se amontonen mientras esperan turno */
-    animation:reel-cycle 12s infinite;
   }
   .reel-slide img{
     position:absolute; inset:0;
     width:100%; height:100%; object-fit:cover;
-    transform:scale(1.0);
-    animation:reel-zoom 4s infinite ease-out;
+    object-position:center;
+    opacity:0;
+    animation-duration:12s;
+    animation-iteration-count:infinite;
+    animation-timing-function:linear; /* clave para que el cruce sea parejo, sin caída a negro */
   }
-  .reel-slide:nth-child(1){ animation-delay:0s; }
-  .reel-slide:nth-child(1) img{ animation-delay:0s; }
-  .reel-slide:nth-child(2){ animation-delay:4s; }
-  .reel-slide:nth-child(2) img{ animation-delay:4s; }
-  .reel-slide:nth-child(3){ animation-delay:8s; }
-  .reel-slide:nth-child(3) img{ animation-delay:8s; }
+  .reel-slide img.pos-top{ object-position:center 15%; }
 
-  @keyframes reel-cycle{
-    0%{opacity:0;}
-    2%{opacity:1;}
-    31%{opacity:1;}
-    33.3%{opacity:0;}
-    100%{opacity:0;}
+  /* Cada imagen tiene su propia curva, calzada para que mientras una se apaga
+     la siguiente ya se está encendiendo (crossfade real, sin hueco negro) */
+  .reel-slide:nth-child(1) img{ animation-name:slide-cycle-0; }
+  .reel-slide:nth-child(2) img{ animation-name:slide-cycle-1; }
+  .reel-slide:nth-child(3) img{ animation-name:slide-cycle-2; }
+
+  @keyframes slide-cycle-0{
+    0%{opacity:1; transform:scale(1.0);}
+    25%{opacity:1; transform:scale(1.035);}
+    33.33%{opacity:0; transform:scale(1.05);}
+    91.67%{opacity:0; transform:scale(1.0);}
+    100%{opacity:1; transform:scale(1.0);}
   }
-  @keyframes reel-zoom{
-    0%{transform:scale(1.0);}
-    100%{transform:scale(1.08);}
+  @keyframes slide-cycle-1{
+    0%{opacity:0; transform:scale(1.0);}
+    25%{opacity:0; transform:scale(1.0);}
+    33.33%{opacity:1; transform:scale(1.0);}
+    58.33%{opacity:1; transform:scale(1.035);}
+    66.67%{opacity:0; transform:scale(1.05);}
+    100%{opacity:0; transform:scale(1.0);}
+  }
+  @keyframes slide-cycle-2{
+    0%{opacity:0; transform:scale(1.0);}
+    58.33%{opacity:0; transform:scale(1.0);}
+    66.67%{opacity:1; transform:scale(1.0);}
+    91.67%{opacity:1; transform:scale(1.035);}
+    100%{opacity:0; transform:scale(1.05);}
   }
 
   .hero-reel::after{
@@ -260,26 +273,27 @@
 
   .hero-content{
     position:relative; z-index:3;
+    padding-top:clamp(150px, 20vh, 200px);
     padding-left:clamp(24px, 6vw, 90px);
     padding-right:24px;
-    max-width:540px;
+    max-width:640px;
   }
   .hero h1{
-    color:var(--cream);
-    font-size:clamp(34px, 4.6vw, 62px);
+    color:var(--gold);
+    font-size:clamp(40px, 5vw, 68px);
     line-height:1.08;
-    margin-bottom:24px;
+    margin-bottom:22px;
     text-shadow:0 2px 18px rgba(0,0,0,0.4);
   }
   .hero h1 em{
     font-style:normal;
-    color:var(--gold);
+    color:var(--cream);
   }
   .hero p.lead{
     max-width:460px;
     font-size:16.5px;
     color:rgba(250,247,242,0.85);
-    margin-bottom:40px;
+    margin-bottom:32px;
     font-weight:300;
   }
   .hero-actions{display:flex; gap:18px; flex-wrap:wrap;}
@@ -289,22 +303,23 @@
     position:absolute;
     right:clamp(24px, 6vw, 90px); bottom:9%;
     z-index:3;
-    max-width:420px;
+    max-width:540px;
     text-align:right;
   }
   .hook-line{
     display:block;
     font-family:'Dancing Script', cursive;
-    font-weight:600;
-    font-size:clamp(24px, 2.8vw, 38px);
-    color:var(--sand);
+    font-weight:700;
+    font-size:clamp(32px, 3.8vw, 52px);
+    color:var(--gold);
+    line-height:1.15;
   }
   .ch{
     display:inline-block;
     opacity:0;
     transform:translateY(5px);
     animation:ch-cycle 12s infinite;
-    text-shadow:0 2px 12px rgba(0,0,0,0.5);
+    text-shadow:0 2px 14px rgba(0,0,0,0.55);
   }
   @keyframes ch-cycle{
     0%{ opacity:0; transform:translateY(5px); }
@@ -336,9 +351,9 @@
   }
 
   @media (prefers-reduced-motion: reduce){
-    .reel-slide, .reel-slide img, .reel-progress i::after, .ch{ animation:none !important; }
-    .reel-slide{ opacity:0; }
-    .reel-slide:first-child{ opacity:1; }
+    .reel-slide img, .reel-progress i::after, .ch{ animation:none !important; }
+    .reel-slide img{ opacity:0; }
+    .reel-slide:first-child img{ opacity:1; }
     .ch{ opacity:1; transform:none; }
   }
 
@@ -369,11 +384,14 @@
 
   .hero-scroll{
     position:absolute;
-    bottom:34px; left:clamp(24px, 6vw, 90px);
+    bottom:20px; left:clamp(24px, 6vw, 90px);
     display:flex; align-items:center; gap:10px;
     color:rgba(250,247,242,0.6);
     font-size:11px; letter-spacing:0.2em; text-transform:uppercase;
     z-index:3;
+  }
+  @media (max-height:860px){
+    .hero-scroll{ display:none; }
   }
   .hero-scroll .stick{
     width:1px; height:34px;
@@ -1156,7 +1174,7 @@
   <div class="hero-reel">
     <div class="reel-slide"><img src="https://images.unsplash.com/photo-1682662045815-9016c6225dd3?w=1400&q=80&auto=format&fit=crop" alt="Cocina moderna a medida"></div>
     <div class="reel-slide"><img src="https://images.unsplash.com/photo-1721742736286-a5eaeb4e5263?w=1400&q=80&auto=format&fit=crop" alt="Walk-in closet de lujo con lámpara colgante e isla central"></div>
-    <div class="reel-slide"><img src="https://images.unsplash.com/photo-1595428774991-829cfeea6267?w=1400&q=80&auto=format&fit=crop" alt="Vanitorio con mueble de cajones a medida"></div>
+    <div class="reel-slide"><img class="pos-top" src="https://images.unsplash.com/photo-1595428774991-829cfeea6267?w=1400&q=80&auto=format&fit=crop" alt="Vanitorio con mueble de cajones a medida"></div>
   </div>
 
   <div class="hero-scrim"></div>
