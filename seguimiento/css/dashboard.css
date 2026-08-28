@@ -125,6 +125,9 @@ html, body{height:100%; background:var(--cream);}
   cursor:pointer;
   transition:background .15s ease;
 }
+.fila-proyecto > *{
+  min-width:0;
+}
 .fila-proyecto:last-child{border-bottom:none;}
 .fila-proyecto:hover{background:var(--sand-soft);}
 .fila-proyecto.encabezado{
@@ -138,10 +141,13 @@ html, body{height:100%; background:var(--cream);}
 .fila-proyecto .cliente-nombre{font-weight:500;}
 .badge-estado{
   display:inline-block;
+  max-width:100%;
   padding:3px 10px;
   border-radius:999px;
   font-size:11px;
   white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .badge-estado.pendiente{background:rgba(20,18,19,0.08); color:var(--ink);}
 .badge-estado.en_proceso{background:rgba(214,165,44,0.18); color:#8a6a1a;}
