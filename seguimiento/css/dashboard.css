@@ -581,6 +581,13 @@ html, body{height:100%; background:var(--cream);}
   font-size:22px;
   margin:4px 0 8px;
 }
+.porcentaje-avance-detalle{
+  display:inline-block;
+  margin-left:10px;
+  font-size:12px;
+  font-weight:600;
+  color:#8a6a1a;
+}
 .etapa-botones{display:flex; gap:8px; flex-wrap:wrap;}
 .etapa-botones button:disabled{opacity:0.4; cursor:not-allowed;}
 
