@@ -910,13 +910,16 @@ document.getElementById('btnCompletarEtapa').addEventListener('click', async () 
     return;
   }
 
+  // La etapa siguiente queda directo "En proceso" (ya no pasa por "Pendiente"),
+  // así que este único clic reemplaza al viejo segundo paso de "Marcar en proceso".
   await ejecutarCambioEtapa({
     etapaActualIndex: PROYECTO_ACTUAL.etapaActualIndex + 1,
-    estadoEtapaActual: 'pendiente'
+    estadoEtapaActual: 'en_proceso'
   }, {
     estadoAnterior,
     estadoNuevo: 'completada',
-    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre,
+    etapaNombreOverride: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre, // etapa que se completó (para el historial)
+    etapaNombreNotificacion: ETAPAS[PROYECTO_ACTUAL.etapaActualIndex + 1].nombre, // etapa nueva, ya activa (para el correo)
     observacionManual
   });
 });
@@ -940,11 +943,14 @@ document.getElementById('btnRetroceder').addEventListener('click', async () => {
   });
 });
 
-async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, etapaNombreOverride, esRetroceso, observacionManual }) {
+async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, etapaNombreOverride, etapaNombreNotificacion, esRetroceso, observacionManual }) {
   const botones = ['btnIniciarEtapa', 'btnCompletarEtapa', 'btnRetroceder'].map(id => document.getElementById(id));
   botones.forEach(b => b.disabled = true);
 
   const etapaNombre = etapaNombreOverride || ETAPAS[PROYECTO_ACTUAL.etapaActualIndex].nombre;
+  // Para el historial se usa el nombre de la etapa recién completada (etapaNombre).
+  // Para el correo al cliente se usa la etapa nueva ya activa, si se especificó una distinta.
+  const etapaNombreParaCorreo = etapaNombreNotificacion || etapaNombre;
   const observacionFinal = observacionManual
     ? observacionManual
     : (esRetroceso ? 'Corrección: se retrocedió la etapa manualmente.' : '');
@@ -988,7 +994,7 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       notificarCambioEtapa({
         email: PROYECTO_ACTUAL.email,
         cliente: PROYECTO_ACTUAL.cliente,
-        etapaNombre,
+        etapaNombre: etapaNombreParaCorreo,
         codigo: PROYECTO_ACTUAL.codigo,
         token: PROYECTO_ACTUAL.token,
         tipoProyecto: PROYECTO_ACTUAL.tipoProyecto,
