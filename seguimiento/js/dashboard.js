@@ -986,6 +986,11 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
 
     document.getElementById('obsEtapaInput').value = '';
 
+    // Refresca el proyecto en memoria y vuelve a pintar el detalle (etapa, badge,
+    // mini-timeline y botones) de inmediato, en vez de esperar a un refresh manual.
+    PROYECTO_ACTUAL = { ...PROYECTO_ACTUAL, ...nuevoEstado };
+    renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
+
     const mensajesToast = {
       iniciar: 'Etapa marcada "En proceso"',
       completar: esRetroceso ? '' : (nuevoEstado.estadoEtapaActual === 'completada' ? 'Proyecto marcado como entregado ✓' : 'Etapa completada, avanzó a la siguiente'),
