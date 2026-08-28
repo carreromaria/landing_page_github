@@ -400,7 +400,8 @@
 .info-icono svg{width:20px; height:20px; display:block;}
 .info-texto{flex:1; min-width:0;}
 .info-texto .eyebrow{margin-bottom:8px; font-size:11px;}
-.info-texto .valor{font-size:18px; font-weight:500; line-height:1.5;}
+.info-texto .valor{font-size:15px; font-weight:500; line-height:1.5;}
+.info-nota{font-size:12px; opacity:0.6; margin-top:2px;}
 
 /* ---- Categoría del cliente, mostrada como badge dentro de su tarjeta ---- */
 .info-texto .badge-categoria{
