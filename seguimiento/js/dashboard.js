@@ -27,11 +27,11 @@ let USUARIOS_STAFF = [];
 
 const CANALES = {
   REF: 'LANDING PAGE-REF',
-  '01': 'PRESENCIAL-01',
-  '02': 'WHATSAPP-02',
-  '03': 'INSTAGRAM-03',
-  '04': 'FACEBOOK-04',
-  '05': 'TIKTOK-05'
+  PRS: 'PRESENCIAL-PRS',
+  WSP: 'WHATSAPP-WSP',
+  INS: 'INSTAGRAM-INS',
+  FAC: 'FACEBOOK-FAC',
+  TIK: 'TIKTOK-TIK'
 };
 
 /** Normaliza un RUT: mayúsculas, sin puntos ni espacios (conserva el guión). */
@@ -65,10 +65,10 @@ function claseCategoria(categoria) {
   return { Bronce: 'bronce', Oro: 'oro', 'Élite': 'elite' }[categoria] || 'bronce';
 }
 
-/** Arma el código visible para el cliente, ej. COT-00004-03. */
+/** Arma el código visible para el cliente, ej. COT-WSP-00004. */
 function construirCodigoCotizacion(numero, prefijoCanal) {
   if (!numero || !prefijoCanal) return '';
-  return `COT-${numero.padStart(5, '0')}-${prefijoCanal}`;
+  return `COT-${prefijoCanal}-${numero.padStart(5, '0')}`;
 }
 
 function debounce(fn, esperaMs) {
@@ -126,7 +126,7 @@ function actualizarCotizacionPreview(prefijo) {
   if (!numInput || !canalSelect || !preview) return;
 
   const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
-  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: COT-00000-00';
+  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: COT-XXX-00000';
 }
 
 function activarSoloDigitosCotizacion(inputEl) {
@@ -440,7 +440,7 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   document.getElementById('fCategoriaBadge').textContent = 'Bronce';
   document.getElementById('fCategoriaBadge').className = 'badge-categoria bronce';
   document.getElementById('fCategoriaNota').textContent = 'Ingresa el RUT para calcular la categoría';
-  document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-00000-00';
+  document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-XXX-00000';
   document.getElementById('fRutAutocompletado').textContent = '';
   poblarDireccionesPrevias('f', []);
   limpiarDireccionEnFormulario('f');
