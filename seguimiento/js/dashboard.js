@@ -959,35 +959,10 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       observacion: observacionFinal
     });
 
-    if (!esRetroceso) {
-      const porcentajeActual = calcularPorcentaje(nuevoEstado.etapaActualIndex, nuevoEstado.estadoEtapaActual);
-      const fechaEstimadaTexto = PROYECTO_ACTUAL.fechaEstimadaInstalacion
-        ? formatearFecha(PROYECTO_ACTUAL.fechaEstimadaInstalacion)
-        : 'Por confirmar';
-      const direccionTextoNotificacion = (PROYECTO_ACTUAL.direccion && typeof PROYECTO_ACTUAL.direccion === 'object')
-        ? formatearDireccion(PROYECTO_ACTUAL.direccion)
-        : (PROYECTO_ACTUAL.direccion || '');
-
-      const resultado = await notificarCambioEtapa({
-        email: PROYECTO_ACTUAL.email,
-        cliente: PROYECTO_ACTUAL.cliente,
-        etapaNombre,
-        codigo: PROYECTO_ACTUAL.codigo,
-        token: PROYECTO_ACTUAL.token,
-        tipoProyecto: PROYECTO_ACTUAL.tipoProyecto,
-        porcentaje: porcentajeActual,
-        fechaEstimadaTexto,
-        direccionTexto: direccionTextoNotificacion
-      });
-      if (!resultado.enviado) {
-        console.warn('Notificación no enviada:', resultado.motivo);
-      }
-    }
-
     document.getElementById('obsEtapaInput').value = '';
 
     // Refresca el proyecto en memoria y vuelve a pintar el detalle (etapa, badge,
-    // mini-timeline y botones) de inmediato, en vez de esperar a un refresh manual.
+    // mini-timeline y botones) de inmediato, sin esperar al envío del correo.
     PROYECTO_ACTUAL = { ...PROYECTO_ACTUAL, ...nuevoEstado };
     renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
 
@@ -997,6 +972,36 @@ async function ejecutarCambioEtapa(nuevoEstado, { estadoAnterior, estadoNuevo, e
       retroceso: 'Etapa retrocedida'
     };
     mostrarToast(esRetroceso ? mensajesToast.retroceso : (estadoNuevo === 'en_proceso' ? mensajesToast.iniciar : mensajesToast.completar), 'exito');
+
+    // El correo al cliente se envía en segundo plano: si se demora o falla, no debe
+    // congelar el dashboard ni bloquear los botones.
+    if (!esRetroceso) {
+      const porcentajeActual = calcularPorcentaje(nuevoEstado.etapaActualIndex, nuevoEstado.estadoEtapaActual);
+      const fechaEstimadaTexto = PROYECTO_ACTUAL.fechaEstimadaInstalacion
+        ? formatearFecha(PROYECTO_ACTUAL.fechaEstimadaInstalacion)
+        : 'Por confirmar';
+      const direccionTextoNotificacion = (PROYECTO_ACTUAL.direccion && typeof PROYECTO_ACTUAL.direccion === 'object')
+        ? formatearDireccion(PROYECTO_ACTUAL.direccion)
+        : (PROYECTO_ACTUAL.direccion || '');
+
+      notificarCambioEtapa({
+        email: PROYECTO_ACTUAL.email,
+        cliente: PROYECTO_ACTUAL.cliente,
+        etapaNombre,
+        codigo: PROYECTO_ACTUAL.codigo,
+        token: PROYECTO_ACTUAL.token,
+        tipoProyecto: PROYECTO_ACTUAL.tipoProyecto,
+        porcentaje: porcentajeActual,
+        fechaEstimadaTexto,
+        direccionTexto: direccionTextoNotificacion
+      }).then((resultado) => {
+        if (!resultado.enviado) {
+          console.warn('Notificación no enviada:', resultado.motivo);
+        }
+      }).catch((err) => {
+        console.error('No pudimos enviar la notificación por correo:', err);
+      });
+    }
   } catch (err) {
     console.error(err);
     mostrarToast('No pudimos actualizar la etapa. Intenta nuevamente.', 'error');
