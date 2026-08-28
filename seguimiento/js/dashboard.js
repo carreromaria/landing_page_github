@@ -1102,6 +1102,7 @@ async function manejarSubidaFoto(file) {
     renderGaleriaDashboard(PROYECTO_ACTUAL.fotos);
 
     subidaTexto.textContent = esVideo ? '¡Video subido!' : '¡Foto subida!';
+    mostrarToast(esVideo ? 'Video agregado a la galería' : 'Fotografía agregada a la galería', 'exito');
     setTimeout(() => { progresoBox.style.display = 'none'; }, 1200);
   } catch (err) {
     console.error(err);
