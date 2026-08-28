@@ -698,6 +698,7 @@ function renderDetalle(p, historial) {
 
   document.getElementById('btnRetroceder').disabled = p.etapaActualIndex === 0;
   document.getElementById('btnIniciarEtapa').disabled = p.estadoEtapaActual !== 'pendiente';
+  document.getElementById('btnCompletarEtapa').disabled = p.estadoEtapaActual !== 'en_proceso';
   document.getElementById('btnCompletarEtapa').textContent =
     p.etapaActualIndex === ETAPAS.length - 1 ? 'Marcar como entregado ✓' : 'Completar y avanzar →';
 
