@@ -183,12 +183,18 @@ function renderInfoGrid(p){
   }
 
   const categoriaEl = document.getElementById('infoCategoria');
+  const categoriaCondicionEl = document.getElementById('infoCategoriaCondicion');
   if (categoriaEl) {
     if (p.categoria) {
       const clase = CLASE_CATEGORIA[p.categoria] || 'bronce';
       categoriaEl.innerHTML = `<span class="badge-categoria ${clase}">${p.categoria}</span>`;
+      if (categoriaCondicionEl) {
+        const total = p.cantidadProyectosCliente || 1;
+        categoriaCondicionEl.textContent = `${total} proyecto${total === 1 ? '' : 's'} con Linence`;
+      }
     } else {
       categoriaEl.textContent = 'Por definir';
+      if (categoriaCondicionEl) categoriaCondicionEl.textContent = '';
     }
   }
 
