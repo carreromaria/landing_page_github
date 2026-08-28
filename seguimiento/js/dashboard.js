@@ -695,6 +695,8 @@ function renderDetalle(p, historial) {
   const badge = document.getElementById('etapaEstadoBadge');
   badge.textContent = estadoLegible;
   badge.className = 'badge-estado ' + p.estadoEtapaActual;
+  document.getElementById('etapaPorcentajeDetalle').textContent =
+    `${calcularPorcentaje(p.etapaActualIndex, p.estadoEtapaActual)}% completado`;
 
   document.getElementById('btnRetroceder').disabled = p.etapaActualIndex === 0;
   document.getElementById('btnIniciarEtapa').disabled = p.estadoEtapaActual !== 'pendiente';
