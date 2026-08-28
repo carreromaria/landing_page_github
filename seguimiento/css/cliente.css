@@ -331,7 +331,6 @@
   background:rgba(250,247,242,0.55);
 }
 .cinta-marcas .marca:first-child{background:transparent;}
-.cinta-marcas .marca:last-child{width:3px; background:var(--gold);}
 .cinta-marcas .marca .num{
   position:absolute; bottom:6px; left:8px;
   font-size:11.5px;
