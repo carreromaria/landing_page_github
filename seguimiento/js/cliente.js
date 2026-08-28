@@ -126,7 +126,11 @@ function renderCinta(p){
   const ESCALA_CINTA = 10 / 11;
 
   const track = document.getElementById('cintaTrack');
-  track.style.setProperty('--avance', (porcentaje * ESCALA_CINTA) + '%');
+  // Mientras el proyecto está en curso, se reserva ese último bloque para que
+  // las etiquetas no se encimen con el carrete. Pero si ya está 100% completo,
+  // no queda nada más que "reservar": la cinta debe pintarse entera.
+  const avanceVisual = porcentaje >= 100 ? 100 : porcentaje * ESCALA_CINTA;
+  track.style.setProperty('--avance', avanceVisual + '%');
 
   const marcasWrap = document.getElementById('cintaMarcas');
   marcasWrap.innerHTML = ETAPAS.map((e, i) => `
