@@ -482,10 +482,12 @@ formNuevo.addEventListener('submit', async (e) => {
 
   // La categoría se calcula sola según cuántos proyectos previos tiene ese RUT
   let categoria = 'Bronce';
+  let cantidadProyectosCliente = 1;
   if (rutLimpio) {
     try {
       const cantidadExistente = await contarProyectosPorRut(rutLimpio);
-      categoria = calcularCategoria(cantidadExistente + 1);
+      cantidadProyectosCliente = cantidadExistente + 1;
+      categoria = calcularCategoria(cantidadProyectosCliente);
     } catch (err) {
       console.error('No pudimos calcular la categoría automáticamente:', err);
     }
@@ -498,6 +500,7 @@ formNuevo.addEventListener('submit', async (e) => {
     email: document.getElementById('fEmail').value.trim().toUpperCase(),
     tipoProyecto: document.getElementById('fTipoProyecto').value.trim().toUpperCase(),
     categoria,
+    cantidadProyectosCliente,
     responsable: document.getElementById('fResponsable').value,
     direccion: leerDireccionDelFormulario('f'),
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
@@ -742,7 +745,18 @@ function renderDetalle(p, historial) {
   const categoriaActual = p.categoria || 'Bronce';
   document.getElementById('eCategoriaBadge').textContent = categoriaActual;
   document.getElementById('eCategoriaBadge').className = 'badge-categoria ' + claseCategoria(categoriaActual);
-  document.getElementById('eCategoriaNota').textContent = 'Categoría actual · se recalcula sola al guardar';
+  document.getElementById('eCategoriaNota').textContent = 'Calculando…';
+  const rutParaCategoria = limpiarRut(p.rut || '');
+  if (rutParaCategoria && validarRut(rutParaCategoria)) {
+    contarProyectosPorRut(rutParaCategoria).then((total) => {
+      document.getElementById('eCategoriaNota').textContent =
+        `Este cliente tiene ${total} proyecto${total === 1 ? '' : 's'} en total · se recalcula sola al guardar`;
+    }).catch(() => {
+      document.getElementById('eCategoriaNota').textContent = 'Categoría actual · se recalcula sola al guardar';
+    });
+  } else {
+    document.getElementById('eCategoriaNota').textContent = 'Categoría actual · se recalcula sola al guardar';
+  }
   actualizarCotizacionPreview('e');
 
   // ---- Resumen tipo lista (colapsado por defecto) ----
@@ -838,9 +852,11 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
 
   // Recalcula la categoría por si el RUT cambió o hay proyectos nuevos del mismo cliente
   let categoria = PROYECTO_ACTUAL.categoria || 'Bronce';
+  let cantidadProyectosCliente = PROYECTO_ACTUAL.cantidadProyectosCliente || 1;
   if (rutLimpio) {
     try {
       const cantidadTotal = await contarProyectosPorRut(rutLimpio);
+      cantidadProyectosCliente = cantidadTotal;
       categoria = calcularCategoria(cantidadTotal);
     } catch (err) {
       console.error('No pudimos recalcular la categoría automáticamente:', err);
@@ -859,6 +875,7 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     email: document.getElementById('eEmail').value.trim().toUpperCase(),
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toUpperCase(),
     categoria,
+    cantidadProyectosCliente,
     responsable: document.getElementById('eResponsable').value,
     direccion: leerDireccionDelFormulario('e'),
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
