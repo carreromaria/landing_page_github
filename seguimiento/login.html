@@ -12,6 +12,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/login.css">
+<style>
+  #mensaje-sesion-expirada{
+    display:none;
+    background:#faf3e3;
+    border:1px solid var(--gold);
+    color:var(--ink);
+    padding:12px 16px;
+    border-radius:6px;
+    font-size:13.5px;
+    line-height:1.5;
+    margin-bottom:18px;
+    text-align:center;
+  }
+</style>
 </head>
 <body>
 
@@ -20,6 +34,11 @@
     <img src="assets/img/logo-wordmark-claro.png" alt="Linence">
     <h1>Panel Interno</h1>
     <p class="subtitulo">Acceso exclusivo para el equipo Linence</p>
+
+    <div id="mensaje-sesion-expirada">
+      Tu sesión se cerró automáticamente por seguridad tras un período de inactividad.
+      Vuelve a iniciar sesión para continuar.
+    </div>
 
     <div class="login-field">
       <label for="email">Correo electrónico</label>
@@ -38,6 +57,21 @@
     <a href="https://linence.cl" class="login-footer-link">← Volver al sitio de Linence</a>
   </form>
 </div>
+
+<script>
+  (function () {
+    try {
+      const razon = sessionStorage.getItem("linence_logout_reason");
+      if (razon === "inactividad") {
+        const mensaje = document.getElementById("mensaje-sesion-expirada");
+        if (mensaje) mensaje.style.display = "block";
+        sessionStorage.removeItem("linence_logout_reason");
+      }
+    } catch (e) {
+      /* no-op */
+    }
+  })();
+</script>
 
 <script type="module" src="js/login-page.js"></script>
 </body>
