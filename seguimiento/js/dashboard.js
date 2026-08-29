@@ -340,11 +340,52 @@ observarSesionStaff((staff) => {
   document.getElementById('dashTopbarMobile').style.display = '';
   cargarProyectos();
   listarUsuariosStaff().then(lista => { USUARIOS_STAFF = lista; }).catch(err => console.error(err));
+  reiniciarTimersInactividad();
 });
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
   await cerrarSesion();
   window.location.href = 'login.html';
+});
+
+// ---------- Cierre de sesión por inactividad (40 min) ----------
+const INACTIVIDAD_MIN = 40;
+const AVISO_ANTES_MIN = 1;
+const INACTIVIDAD_MS = INACTIVIDAD_MIN * 60 * 1000;
+const AVISO_MS = AVISO_ANTES_MIN * 60 * 1000;
+
+let timerAvisoInactividad = null;
+let timerCierreInactividad = null;
+
+function limpiarTimersInactividad() {
+  if (timerAvisoInactividad) clearTimeout(timerAvisoInactividad);
+  if (timerCierreInactividad) clearTimeout(timerCierreInactividad);
+}
+
+function reiniciarTimersInactividad() {
+  if (!STAFF_ACTUAL) return;
+  limpiarTimersInactividad();
+
+  timerAvisoInactividad = setTimeout(() => {
+    mostrarToast(
+      `Tu sesión se cerrará en ${AVISO_ANTES_MIN} minuto por inactividad. Mueve el mouse o toca la pantalla para seguir conectado.`,
+      'error'
+    );
+  }, INACTIVIDAD_MS - AVISO_MS);
+
+  timerCierreInactividad = setTimeout(async () => {
+    try {
+      sessionStorage.setItem('linence_logout_reason', 'inactividad');
+    } catch (e) {
+      /* no-op */
+    }
+    await cerrarSesion();
+    window.location.href = 'login.html';
+  }, INACTIVIDAD_MS);
+}
+
+['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'].forEach((evento) => {
+  window.addEventListener(evento, reiniciarTimersInactividad, { passive: true });
 });
 
 // ---------- Sidebar off-canvas (mobile) ----------
