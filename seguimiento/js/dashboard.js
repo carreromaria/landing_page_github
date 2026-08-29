@@ -65,10 +65,10 @@ function claseCategoria(categoria) {
   return { Bronce: 'bronce', Oro: 'oro', 'Élite': 'elite' }[categoria] || 'bronce';
 }
 
-/** Arma el código visible para el cliente, ej. COT-WSP-00004. */
+/** Arma el código visible para el cliente, ej. CT-WSP-00004. */
 function construirCodigoCotizacion(numero, prefijoCanal) {
   if (!numero || !prefijoCanal) return '';
-  return `COT-${prefijoCanal}-${numero.padStart(5, '0')}`;
+  return `CT-${prefijoCanal}-${numero.padStart(5, '0')}`;
 }
 
 function debounce(fn, esperaMs) {
@@ -126,7 +126,7 @@ function actualizarCotizacionPreview(prefijo) {
   if (!numInput || !canalSelect || !preview) return;
 
   const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
-  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: COT-XXX-00000';
+  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: CT-XXX-00000';
 }
 
 function activarSoloDigitosCotizacion(inputEl) {
@@ -440,7 +440,7 @@ document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   document.getElementById('fCategoriaBadge').textContent = 'Bronce';
   document.getElementById('fCategoriaBadge').className = 'badge-categoria bronce';
   document.getElementById('fCategoriaNota').textContent = 'Ingresa el RUT para calcular la categoría';
-  document.getElementById('fCotizacionPreview').textContent = 'Se verá como: COT-XXX-00000';
+  document.getElementById('fCotizacionPreview').textContent = 'Se verá como: CT-XXX-00000';
   document.getElementById('fRutAutocompletado').textContent = '';
   poblarDireccionesPrevias('f', []);
   limpiarDireccionEnFormulario('f');
