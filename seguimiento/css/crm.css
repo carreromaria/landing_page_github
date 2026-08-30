@@ -202,6 +202,7 @@
   flex-direction:column;
   gap:5px;
   align-items:flex-end;
+  position:relative;
 }
 
 .crm-select-etapa-wrap label{
@@ -212,7 +213,15 @@
   letter-spacing:0.04em;
 }
 
-.crm-select-etapa-wrap select{
+.crm-dropdown-etapa{
+  position:relative;
+}
+
+.crm-dropdown-trigger{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
   font-family:'Poppins', sans-serif;
   font-size:13px;
   color:var(--ink);
@@ -224,9 +233,59 @@
   min-width:190px;
 }
 
-.crm-select-etapa-wrap select:focus-visible{
+.crm-dropdown-trigger:hover{
+  border-color:var(--gold-line);
+}
+
+.crm-dropdown-trigger:focus-visible{
   outline:2px solid var(--gold);
   outline-offset:2px;
+}
+
+.crm-dropdown-flecha{
+  font-size:12px;
+  opacity:0.6;
+  transition:transform .15s ease;
+}
+
+.crm-dropdown-etapa.abierto .crm-dropdown-flecha{
+  transform:rotate(180deg);
+}
+
+.crm-dropdown-lista{
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  min-width:190px;
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.12);
+  border-radius:12px;
+  box-shadow:0 14px 30px rgba(20,18,19,0.16);
+  padding:6px;
+  list-style:none;
+  z-index:30;
+}
+
+.crm-dropdown-lista[hidden]{
+  display:none;
+}
+
+.crm-dropdown-lista li{
+  padding:9px 12px;
+  border-radius:8px;
+  font-size:13px;
+  color:var(--ink);
+  cursor:pointer;
+}
+
+.crm-dropdown-lista li:hover{
+  background:var(--sand-soft);
+}
+
+.crm-dropdown-lista li.seleccionado{
+  background:var(--gold);
+  color:var(--ink);
+  font-weight:500;
 }
 
 .crm-bitacora-titulo{
@@ -310,6 +369,39 @@
 .crm-acciones-cierre button{
   flex:1;
   min-width:160px;
+}
+
+/* ---------- Notificaciones toast ---------- */
+
+#toastContainer{
+  position:fixed;
+  bottom:24px;
+  right:24px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  z-index:9999;
+}
+
+#toastContainer .toast{
+  background:var(--ink);
+  color:var(--cream);
+  font-family:'Poppins', sans-serif;
+  font-size:13.5px;
+  padding:12px 18px;
+  border-radius:8px;
+  box-shadow:0 10px 26px rgba(20,18,19,0.28);
+  border-left:3px solid var(--gold);
+  animation:crmToastIn .18s ease;
+}
+
+#toastContainer .toast-error{
+  border-left-color:#c14b32;
+}
+
+@keyframes crmToastIn{
+  from{ opacity:0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
 }
 
 /* ---------- Zona de eliminar ---------- */
