@@ -268,7 +268,7 @@ function abrirDetalleLead(id) {
   const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
   const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
   selectEtapaWrap.style.display = esCierre ? 'none' : '';
-  actualizarValorDropdownEtapa(esCierre ? 'Nuevo contacto' : lead.etapa);
+  marcarEtapaSeleccionada(esCierre ? 'Nuevo contacto' : lead.etapa);
 
   document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
 
@@ -329,8 +329,7 @@ const dropdownEtapaTrigger = document.getElementById('dropdownEtapaTrigger');
 const dropdownEtapaLista = document.getElementById('dropdownEtapaLista');
 const dropdownEtapaValor = document.getElementById('dropdownEtapaValor');
 
-function actualizarValorDropdownEtapa(etapa) {
-  dropdownEtapaValor.textContent = etapa;
+function marcarEtapaSeleccionada(etapa) {
   dropdownEtapaLista.querySelectorAll('li').forEach(li => {
     li.classList.toggle('seleccionado', li.dataset.valor === etapa);
   });
@@ -364,7 +363,7 @@ dropdownEtapaLista.addEventListener('click', async (e) => {
 
   const nuevaEtapa = li.dataset.valor;
   cerrarDropdownEtapa();
-  actualizarValorDropdownEtapa(nuevaEtapa);
+  marcarEtapaSeleccionada(nuevaEtapa);
   document.getElementById('detalleEtapaBadge').textContent = nuevaEtapa;
 
   try {
