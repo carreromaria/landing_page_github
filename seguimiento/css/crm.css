@@ -7,34 +7,56 @@
    archivo solo agrega lo que es específico del CRM.
    ============================================================ */
 
+/* ---------- Toolbar (evita que el botón se corte con 4 controles) ---------- */
+
+.crm-toolbar{
+  flex-wrap:wrap;
+}
+
+.crm-toolbar > *{
+  flex:1 1 170px;
+  min-width:0;
+}
+
+.crm-toolbar button{
+  flex:0 0 auto;
+}
+
 /* ---------- Tablero kanban ---------- */
+/* Grid de 6 columnas fijas: todo visible sin scroll horizontal en
+   escritorio. Solo vuelve a scroll lateral en pantallas angostas
+   (ver media query al final), donde 6 columnas ya no caben. */
 
 .crm-kanban{
-  display:flex;
-  gap:16px;
-  overflow-x:auto;
-  padding-bottom:14px;
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:10px;
   margin-top:20px;
 }
 
 .crm-columna{
-  min-width:260px;
-  max-width:260px;
-  flex-shrink:0;
+  min-width:0;
 }
 
 .crm-columna-titulo{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  font-size:12px;
+  font-size:11px;
   font-weight:500;
   text-transform:uppercase;
-  letter-spacing:0.05em;
+  letter-spacing:0.03em;
   color:var(--ink);
   opacity:0.6;
   margin-bottom:10px;
-  padding:0 4px;
+  padding:0 2px;
+  gap:4px;
+}
+
+.crm-columna-titulo span:first-child{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
 
 .crm-columna-contador{
@@ -237,7 +259,35 @@
   min-width:160px;
 }
 
+/* ---------- Visibilidad de modales ---------- */
+/* modal-overlay ya trae su posicionamiento y fondo desde dashboard.css;
+   acá solo agregamos el toggle de mostrar/ocultar con .visible, que es
+   lo que usa crm.js. */
+
+#modalNuevoLead, #modalGanado, #modalPerdido{
+  display:none;
+}
+
+#modalNuevoLead.visible, #modalGanado.visible, #modalPerdido.visible{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
 /* ---------- Responsive ---------- */
+
+@media (max-width: 900px){
+  .crm-kanban{
+    display:flex;
+    overflow-x:auto;
+    padding-bottom:14px;
+  }
+  .crm-columna{
+    min-width:220px;
+    max-width:220px;
+    flex-shrink:0;
+  }
+}
 
 @media (max-width: 640px){
   .crm-detalle-grid{
