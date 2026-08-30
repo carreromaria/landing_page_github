@@ -312,6 +312,15 @@
   min-width:160px;
 }
 
+/* ---------- Zona de eliminar ---------- */
+
+.crm-zona-peligro-texto{
+  font-size:13.5px;
+  opacity:0.75;
+  margin:6px 0 14px;
+  line-height:1.5;
+}
+
 /* ---------- Visibilidad de modales ---------- */
 /* modal-overlay ya trae su posicionamiento y fondo desde dashboard.css;
    acá solo agregamos el toggle de mostrar/ocultar con .visible, que es
