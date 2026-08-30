@@ -1,0 +1,246 @@
+/* ============================================================
+   LINENCE — CRM
+   Estilos propios del módulo CRM (tablero kanban + ficha de lead).
+   Reutiliza clases y componentes ya definidos en dashboard.css
+   (dash-toolbar, btn-primario, btn-secundario, btn-peligro, campo,
+   form-grid, modal-overlay, modal-box, btn-volver, etc.) — este
+   archivo solo agrega lo que es específico del CRM.
+   ============================================================ */
+
+/* ---------- Tablero kanban ---------- */
+
+.crm-kanban{
+  display:flex;
+  gap:16px;
+  overflow-x:auto;
+  padding-bottom:14px;
+  margin-top:20px;
+}
+
+.crm-columna{
+  min-width:260px;
+  max-width:260px;
+  flex-shrink:0;
+}
+
+.crm-columna-titulo{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:12px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  color:var(--ink);
+  opacity:0.6;
+  margin-bottom:10px;
+  padding:0 4px;
+}
+
+.crm-columna-contador{
+  opacity:0.7;
+}
+
+.crm-card{
+  background:var(--ink);
+  border-radius:10px;
+  padding:14px;
+  margin-bottom:10px;
+  cursor:pointer;
+  border:1px solid transparent;
+  transition:border-color .15s ease;
+}
+
+.crm-card:hover,
+.crm-card:focus-visible{
+  border-color:var(--gold-line);
+}
+
+.crm-card-nombre{
+  font-size:14px;
+  font-weight:500;
+  color:var(--cream);
+  margin-bottom:4px;
+}
+
+.crm-card-meta{
+  font-size:12px;
+  color:var(--sand);
+  margin-bottom:10px;
+}
+
+.crm-card-tiempo{
+  font-size:11px;
+  color:rgba(250,247,242,0.5);
+}
+
+.crm-card-tiempo.alerta{
+  color:var(--gold);
+}
+
+.crm-card.es-ganado,
+.crm-card.es-perdido{
+  opacity:0.65;
+}
+
+.crm-vacio-columna{
+  font-size:12px;
+  opacity:0.5;
+  padding:10px 4px;
+}
+
+/* ---------- Ficha de detalle del lead ---------- */
+
+.crm-detalle-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  flex-wrap:wrap;
+  margin-bottom:18px;
+}
+
+.crm-badge-etapa{
+  display:inline-block;
+  font-size:12px;
+  padding:4px 12px;
+  border-radius:20px;
+  background:var(--sand-soft);
+  color:var(--ink);
+  font-weight:500;
+  margin-bottom:8px;
+}
+
+.crm-badge-alerta{
+  background:rgba(214,165,44,0.18);
+  color:var(--gold);
+}
+
+.crm-detalle-card{
+  background:var(--ink);
+  border-radius:12px;
+  padding:20px;
+  margin-bottom:20px;
+}
+
+.crm-detalle-nombre{
+  font-size:20px;
+  color:var(--cream);
+  margin-bottom:2px;
+}
+
+.crm-detalle-meta{
+  font-size:13px;
+  color:var(--sand);
+}
+
+.crm-detalle-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:16px;
+}
+
+.crm-detalle-dato{
+  background:var(--ink-soft);
+  border-radius:8px;
+  padding:10px 12px;
+}
+
+.crm-detalle-dato .etiqueta{
+  font-size:11px;
+  color:rgba(250,247,242,0.5);
+}
+
+.crm-detalle-dato .valor{
+  font-size:14px;
+  color:var(--cream);
+  font-weight:500;
+  margin-top:2px;
+}
+
+.crm-contacto{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:13px;
+  color:var(--sand);
+  margin-top:10px;
+}
+
+.crm-proyecto-vinculado{
+  font-size:13px;
+  color:var(--gold);
+  margin-top:14px;
+}
+
+/* ---------- Bitácora ---------- */
+
+.crm-bitacora-titulo{
+  font-size:12px;
+  font-weight:500;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+  opacity:0.6;
+  margin-bottom:10px;
+}
+
+.crm-nota{
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.1);
+  border-radius:10px;
+  padding:12px 14px;
+  margin-bottom:8px;
+}
+
+.crm-nota-texto{
+  font-size:13.5px;
+  color:var(--ink);
+  line-height:1.5;
+}
+
+.crm-nota-meta{
+  font-size:11px;
+  opacity:0.55;
+  margin-top:5px;
+}
+
+.crm-nota-vacia{
+  font-size:13px;
+  opacity:0.55;
+  margin-bottom:14px;
+}
+
+.crm-form-nota{
+  display:flex;
+  gap:8px;
+  margin-top:4px;
+  margin-bottom:22px;
+}
+
+.crm-form-nota textarea{
+  flex:1;
+  min-height:44px;
+  resize:vertical;
+}
+
+/* ---------- Acciones de cierre ---------- */
+
+.crm-acciones-cierre{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.crm-acciones-cierre button{
+  flex:1;
+  min-width:160px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px){
+  .crm-detalle-grid{
+    grid-template-columns:1fr;
+  }
+}
