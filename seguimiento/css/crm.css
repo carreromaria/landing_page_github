@@ -139,17 +139,19 @@
 }
 
 .crm-detalle-card{
-  position:relative;
   background:var(--ink);
   border-radius:12px;
   padding:20px;
   margin-bottom:20px;
 }
 
+.crm-detalle-card-header{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:16px;
+}
+
 .crm-btn-editar{
-  position:absolute;
-  top:16px;
-  right:16px;
   display:flex;
   align-items:center;
   gap:6px;
@@ -158,7 +160,7 @@
   color:var(--sand);
   font-family:'Poppins', sans-serif;
   font-size:12px;
-  padding:6px 12px;
+  padding:7px 14px;
   border-radius:20px;
   cursor:pointer;
 }
@@ -405,7 +407,7 @@
 
 #toastContainer{
   position:fixed;
-  bottom:24px;
+  top:24px;
   right:24px;
   display:flex;
   flex-direction:column;
@@ -430,13 +432,13 @@
 }
 
 @keyframes crmToastIn{
-  from{ opacity:0; transform:translateY(6px); }
+  from{ opacity:0; transform:translateY(-6px); }
   to{ opacity:1; transform:translateY(0); }
 }
 
 #toastContainer .toast-saliendo{
   opacity:0;
-  transform:translateY(6px);
+  transform:translateY(-6px);
   transition:opacity .25s ease, transform .25s ease;
 }
 
