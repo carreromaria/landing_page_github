@@ -139,10 +139,33 @@
 }
 
 .crm-detalle-card{
+  position:relative;
   background:var(--ink);
   border-radius:12px;
   padding:20px;
   margin-bottom:20px;
+}
+
+.crm-btn-editar{
+  position:absolute;
+  top:16px;
+  right:16px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:transparent;
+  border:1px solid rgba(250,247,242,0.25);
+  color:var(--sand);
+  font-family:'Poppins', sans-serif;
+  font-size:12px;
+  padding:6px 12px;
+  border-radius:20px;
+  cursor:pointer;
+}
+
+.crm-btn-editar:hover{
+  border-color:var(--gold);
+  color:var(--gold);
 }
 
 .crm-detalle-nombre{
@@ -185,10 +208,15 @@
 .crm-contacto{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:9px;
   font-size:13px;
   color:var(--sand);
   margin-top:10px;
+}
+
+.crm-icono-contacto{
+  color:var(--gold);
+  flex-shrink:0;
 }
 
 .crm-proyecto-vinculado{
@@ -243,7 +271,9 @@
 }
 
 .crm-dropdown-flecha{
-  font-size:12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   opacity:0.6;
   transition:transform .15s ease;
 }
@@ -404,6 +434,12 @@
   to{ opacity:1; transform:translateY(0); }
 }
 
+#toastContainer .toast-saliendo{
+  opacity:0;
+  transform:translateY(6px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+
 /* ---------- Zona de eliminar ---------- */
 
 .crm-zona-peligro-texto{
@@ -418,11 +454,11 @@
    acá solo agregamos el toggle de mostrar/ocultar con .visible, que es
    lo que usa crm.js. */
 
-#modalNuevoLead, #modalGanado, #modalPerdido{
+#modalNuevoLead, #modalEditarLead, #modalGanado, #modalPerdido{
   display:none;
 }
 
-#modalNuevoLead.visible, #modalGanado.visible, #modalPerdido.visible{
+#modalNuevoLead.visible, #modalEditarLead.visible, #modalGanado.visible, #modalPerdido.visible{
   display:flex;
   align-items:center;
   justify-content:center;
