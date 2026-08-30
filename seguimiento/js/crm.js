@@ -119,7 +119,7 @@ function mostrarToast(mensaje, tipo = 'ok') {
   setTimeout(() => {
     el.classList.add('toast-saliendo');
     setTimeout(() => el.remove(), 250);
-  }, 5500);
+  }, 7000);
 }
 
 // ---------- Inicialización ----------
