@@ -10,7 +10,7 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
-  listarUsuariosStaff
+  listarUsuariosStaff, eliminarLead
 } from './firestore.js';
 
 // ---------- Configuración del pipeline ----------
@@ -273,6 +273,15 @@ function abrirDetalleLead(id) {
 
   document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
 
+  const zonaEliminar = document.getElementById('zonaEliminarLead');
+  zonaEliminar.style.display = (STAFF_ACTUAL?.rol === 'admin') ? '' : 'none';
+  document.getElementById('nombreConfirmacionLead').textContent = lead.nombre;
+  document.getElementById('pasoUnoEliminarLead').style.display = '';
+  document.getElementById('pasoDosEliminarLead').style.display = 'none';
+  document.getElementById('inputConfirmacionNombreLead').value = '';
+  document.getElementById('eliminarLeadError').textContent = '';
+  document.getElementById('btnConfirmarEliminacionLead').disabled = true;
+
   renderNotas(lead.notas || []);
 
   vistaKanban.style.display = 'none';
@@ -452,5 +461,37 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+  }
+});
+
+// ---------- Eliminar lead (solo admin) ----------
+
+document.getElementById('btnIniciarEliminacionLead').addEventListener('click', () => {
+  document.getElementById('pasoUnoEliminarLead').style.display = 'none';
+  document.getElementById('pasoDosEliminarLead').style.display = '';
+});
+
+document.getElementById('btnCancelarEliminacionLead').addEventListener('click', () => {
+  document.getElementById('pasoDosEliminarLead').style.display = 'none';
+  document.getElementById('pasoUnoEliminarLead').style.display = '';
+});
+
+document.getElementById('inputConfirmacionNombreLead').addEventListener('input', (e) => {
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  const coincide = lead && e.target.value.trim() === lead.nombre;
+  document.getElementById('btnConfirmarEliminacionLead').disabled = !coincide;
+});
+
+document.getElementById('btnConfirmarEliminacionLead').addEventListener('click', async () => {
+  const errorEl = document.getElementById('eliminarLeadError');
+  try {
+    await eliminarLead(leadSeleccionadoId);
+    leadSeleccionadoId = null;
+    vistaDetalleLead.style.display = 'none';
+    vistaKanban.style.display = '';
+    mostrarToast('Lead eliminado.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo eliminar. Verifica que tengas permisos de administrador.';
   }
 });
