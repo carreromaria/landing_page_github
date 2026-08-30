@@ -115,7 +115,11 @@ function mostrarToast(mensaje, tipo = 'ok') {
   el.className = `toast toast-${tipo}`;
   el.textContent = mensaje;
   toastContainer.appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+
+  setTimeout(() => {
+    el.classList.add('toast-saliendo');
+    setTimeout(() => el.remove(), 250);
+  }, 5500);
 }
 
 // ---------- Inicialización ----------
@@ -140,6 +144,7 @@ function poblarSelectsVendedor() {
     .join('');
   filtroVendedor.insertAdjacentHTML('beforeend', opciones);
   document.getElementById('lVendedor').insertAdjacentHTML('beforeend', opciones);
+  document.getElementById('eVendedor').insertAdjacentHTML('beforeend', opciones);
 }
 
 function nombreVendedor(uid) {
@@ -434,6 +439,63 @@ formNuevoLead.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo crear el lead. Intenta de nuevo.';
+  }
+});
+
+// ---------- Modal: editar datos del lead ----------
+
+const modalEditarLead = document.getElementById('modalEditarLead');
+const formEditarLead = document.getElementById('formEditarLead');
+
+document.getElementById('btnEditarLead').addEventListener('click', () => {
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  if (!lead) return;
+
+  document.getElementById('eNombre').value = lead.nombre || '';
+  document.getElementById('eTelefono').value = lead.telefono || '';
+  document.getElementById('eEmail').value = lead.email || '';
+  document.getElementById('eCanal').value = lead.canalOrigen || '';
+  document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
+  document.getElementById('ePresupuesto').value = lead.presupuestoEstimado ?? '';
+  document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
+  document.getElementById('modalEditarError').textContent = '';
+
+  modalEditarLead.classList.add('visible');
+});
+
+document.getElementById('btnCancelarEditarLead').addEventListener('click', () => {
+  modalEditarLead.classList.remove('visible');
+});
+
+formEditarLead.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('modalEditarError');
+  errorEl.textContent = '';
+
+  const datos = {
+    nombre: document.getElementById('eNombre').value.trim(),
+    telefono: document.getElementById('eTelefono').value.trim(),
+    email: document.getElementById('eEmail').value.trim(),
+    canalOrigen: document.getElementById('eCanal').value,
+    tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
+    presupuestoEstimado: document.getElementById('ePresupuesto').value
+      ? Number(document.getElementById('ePresupuesto').value) : null,
+    vendedorAsignado: document.getElementById('eVendedor').value || null
+  };
+
+  if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
+    errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    return;
+  }
+
+  try {
+    await actualizarLead(leadSeleccionadoId, datos);
+    modalEditarLead.classList.remove('visible');
+    abrirDetalleLead(leadSeleccionadoId);
+    mostrarToast('Datos actualizados.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
   }
 });
 
