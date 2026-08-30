@@ -8,7 +8,7 @@
 
 import { db } from './firebase-config.js';
 import {
-  doc, getDoc, setDoc, updateDoc,
+  doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, getDocs, query, orderBy, where,
   serverTimestamp, writeBatch, arrayUnion, arrayRemove,
   onSnapshot, runTransaction
@@ -294,4 +294,124 @@ export async function quitarFotoProyecto(codigo, foto) {
     fotos: arrayRemove(foto),
     actualizadoEn: serverTimestamp()
   });
+}
+
+// ============================================================
+// ---------- CRM: Leads (etapa comercial, antes de Seguimiento) ----------
+// ============================================================
+// Un lead vive en la colección "leads" desde que llega un contacto
+// hasta que se gana (y se vincula manualmente a un código LIN-XXXXX
+// creado en Seguimiento) o se pierde. Nunca se auto-crea un proyecto:
+// eso siempre lo hace la persona a cargo, a propósito.
+
+/**
+ * Crea un lead nuevo. `datos` debe traer al menos: nombre, canalOrigen,
+ * tipoProyecto. Si viene `notaInicial`, se guarda como primera entrada
+ * de la bitácora.
+ *
+ * @param {object} datos
+ * @param {string} uid  uid del staff que crea el lead
+ * @returns {Promise<string>} id del lead creado
+ */
+export async function crearLead(datos, uid) {
+  const { notaInicial, ...resto } = datos;
+  const ref = doc(collection(db, "leads"));
+
+  await setDoc(ref, {
+    ...resto,
+    etapa: "Nuevo contacto",
+    notas: notaInicial ? [{
+      texto: notaInicial,
+      autor: resto.creadoPorNombre || "",
+      fecha: new Date().toISOString()
+    }] : [],
+    creadoPor: uid,
+    creadoEn: serverTimestamp(),
+    actualizadoEn: serverTimestamp(),
+    fechaUltimoContacto: serverTimestamp()
+  });
+
+  return ref.id;
+}
+
+/**
+ * Escucha en tiempo real todos los leads, más recientemente
+ * actualizados primero. callback(leads) se ejecuta de inmediato y
+ * cada vez que algo cambia. Devuelve una función para dejar de
+ * escuchar (llamarla al salir del CRM).
+ */
+export function escucharLeads(callback, onError) {
+  const ref = collection(db, "leads");
+  const q = query(ref, orderBy("actualizadoEn", "desc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/** Actualiza campos generales de un lead (datos de contacto, etc). */
+export async function actualizarLead(id, datos) {
+  const ref = doc(db, "leads", id);
+  await updateDoc(ref, {
+    ...datos,
+    actualizadoEn: serverTimestamp()
+  });
+}
+
+/**
+ * Agrega una entrada a la bitácora del lead y refresca la fecha de
+ * último contacto (así la alerta de "días sin contacto" se reinicia).
+ * @param {string} id
+ * @param {{texto:string, autor:string}} nota
+ */
+export async function agregarNotaLead(id, nota) {
+  const ref = doc(db, "leads", id);
+  await updateDoc(ref, {
+    notas: arrayUnion({ ...nota, fecha: new Date().toISOString() }),
+    actualizadoEn: serverTimestamp(),
+    fechaUltimoContacto: serverTimestamp()
+  });
+}
+
+/** Mueve un lead a otra etapa del pipeline (uso manual desde el tablero). */
+export async function cambiarEtapaLead(id, nuevaEtapa) {
+  const ref = doc(db, "leads", id);
+  await updateDoc(ref, {
+    etapa: nuevaEtapa,
+    actualizadoEn: serverTimestamp(),
+    fechaUltimoContacto: serverTimestamp()
+  });
+}
+
+/**
+ * Marca un lead como Ganado y lo vincula al proyecto que ya se creó
+ * a mano en Seguimiento. Este vínculo es siempre manual: nunca se
+ * crea el proyecto automáticamente desde acá.
+ * @param {string} id
+ * @param {string} codigoProyecto código LIN-XXXXX ya existente
+ */
+export async function marcarLeadGanado(id, codigoProyecto) {
+  const ref = doc(db, "leads", id);
+  await updateDoc(ref, {
+    etapa: "Ganado",
+    proyectoVinculado: codigoProyecto,
+    fechaGanadoOPerdido: serverTimestamp(),
+    actualizadoEn: serverTimestamp()
+  });
+}
+
+/** Marca un lead como Perdido, con motivo (para poder analizarlo después). */
+export async function marcarLeadPerdido(id, motivo) {
+  const ref = doc(db, "leads", id);
+  await updateDoc(ref, {
+    etapa: "Perdido",
+    motivoPerdida: motivo,
+    fechaGanadoOPerdido: serverTimestamp(),
+    actualizadoEn: serverTimestamp()
+  });
+}
+
+/** Elimina un lead por completo. Requiere rol admin (ver firestore.rules). */
+export async function eliminarLead(id) {
+  await deleteDoc(doc(db, "leads", id));
 }
