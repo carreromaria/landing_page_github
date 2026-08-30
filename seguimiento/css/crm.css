@@ -146,9 +146,10 @@
 }
 
 .crm-detalle-nombre{
-  font-size:20px;
-  color:var(--cream);
-  margin-bottom:2px;
+  font-size:22px;
+  color:var(--ink);
+  margin-top:8px;
+  margin-bottom:4px;
 }
 
 .crm-detalle-meta{
@@ -196,7 +197,37 @@
   margin-top:14px;
 }
 
-/* ---------- Bitácora ---------- */
+.crm-select-etapa-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  align-items:flex-end;
+}
+
+.crm-select-etapa-wrap label{
+  font-size:11px;
+  color:var(--ink);
+  opacity:0.55;
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+}
+
+.crm-select-etapa-wrap select{
+  font-family:'Poppins', sans-serif;
+  font-size:13px;
+  color:var(--ink);
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.18);
+  border-radius:20px;
+  padding:9px 16px;
+  cursor:pointer;
+  min-width:190px;
+}
+
+.crm-select-etapa-wrap select:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:2px;
+}
 
 .crm-bitacora-titulo{
   font-size:12px;
@@ -236,14 +267,36 @@
 .crm-form-nota{
   display:flex;
   gap:8px;
+  align-items:stretch;
   margin-top:4px;
   margin-bottom:22px;
 }
 
 .crm-form-nota textarea{
   flex:1;
-  min-height:44px;
+  min-height:48px;
   resize:vertical;
+  font-family:'Poppins', sans-serif;
+  font-size:13.5px;
+  color:var(--ink);
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.18);
+  border-radius:10px;
+  padding:12px 14px;
+}
+
+.crm-form-nota textarea::placeholder{
+  color:rgba(20,18,19,0.4);
+}
+
+.crm-form-nota textarea:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:2px;
+}
+
+.crm-form-nota button{
+  flex:0 0 auto;
+  white-space:nowrap;
 }
 
 /* ---------- Acciones de cierre ---------- */
