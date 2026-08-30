@@ -86,13 +86,20 @@
         <p class="subtitulo" id="detalleMetaProyecto">—</p>
       </div>
       <div class="crm-select-etapa-wrap">
-        <label for="selectEtapaLead">Cambiar etapa</label>
-        <select id="selectEtapaLead">
-          <option value="Nuevo contacto">Nuevo contacto</option>
-          <option value="En conversación">En conversación</option>
-          <option value="Propuesta enviada">Propuesta enviada</option>
-          <option value="Negociación">Negociación</option>
-        </select>
+        <label id="labelCambiarEtapa">Cambiar etapa</label>
+        <div class="crm-dropdown-etapa" id="dropdownEtapa">
+          <button type="button" class="crm-dropdown-trigger" id="dropdownEtapaTrigger"
+                  aria-haspopup="listbox" aria-expanded="false" aria-labelledby="labelCambiarEtapa">
+            <span id="dropdownEtapaValor">Nuevo contacto</span>
+            <span class="crm-dropdown-flecha">⌄</span>
+          </button>
+          <ul class="crm-dropdown-lista" id="dropdownEtapaLista" role="listbox" hidden>
+            <li role="option" data-valor="Nuevo contacto">Nuevo contacto</li>
+            <li role="option" data-valor="En conversación">En conversación</li>
+            <li role="option" data-valor="Propuesta enviada">Propuesta enviada</li>
+            <li role="option" data-valor="Negociación">Negociación</li>
+          </ul>
+        </div>
       </div>
     </div>
 
