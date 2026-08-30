@@ -90,7 +90,9 @@
           <button type="button" class="crm-dropdown-trigger" id="dropdownEtapaTrigger"
                   aria-haspopup="listbox" aria-expanded="false" aria-label="Cambiar etapa">
             <span id="dropdownEtapaValor">Cambiar etapa</span>
-            <span class="crm-dropdown-flecha">⌄</span>
+            <span class="crm-dropdown-flecha">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
           </button>
           <ul class="crm-dropdown-lista" id="dropdownEtapaLista" role="listbox" hidden>
             <li role="option" data-valor="Nuevo contacto">Nuevo contacto</li>
@@ -103,6 +105,10 @@
     </div>
 
     <div class="crm-detalle-card">
+      <button type="button" class="crm-btn-editar" id="btnEditarLead" aria-label="Editar datos del lead">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+        Editar datos
+      </button>
       <div class="crm-detalle-grid">
         <div class="crm-detalle-dato">
           <div class="etiqueta">Presupuesto estimado</div>
@@ -113,8 +119,14 @@
           <div class="valor" id="detalleVendedor">—</div>
         </div>
       </div>
-      <div class="crm-contacto">📞 <span id="detalleTelefono">—</span></div>
-      <div class="crm-contacto">✉️ <span id="detalleEmail">—</span></div>
+      <div class="crm-contacto">
+        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        <span id="detalleTelefono">—</span>
+      </div>
+      <div class="crm-contacto">
+        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 6l-10 7L2 6"></path></svg>
+        <span id="detalleEmail">—</span>
+      </div>
       <div class="crm-proyecto-vinculado" id="detalleProyectoVinculado" style="display:none;"></div>
     </div>
 
@@ -214,6 +226,63 @@
       <div class="modal-acciones">
         <button type="button" class="btn-secundario" id="btnCancelarNuevoLead">Cancelar</button>
         <button type="submit" class="btn-primario" id="btnGuardarNuevoLead">Crear lead</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= MODAL: EDITAR DATOS DEL LEAD ================= -->
+<div class="modal-overlay" id="modalEditarLead">
+  <div class="modal-box">
+    <h2>Editar datos</h2>
+    <p class="subtitulo">Actualiza la información de contacto y del proyecto.</p>
+
+    <form id="formEditarLead">
+      <div class="form-grid">
+        <div class="campo campo-full">
+          <label for="eNombre">Nombre</label>
+          <input type="text" id="eNombre" required>
+        </div>
+        <div class="campo">
+          <label for="eTelefono">Teléfono</label>
+          <input type="tel" id="eTelefono">
+        </div>
+        <div class="campo">
+          <label for="eEmail">Correo electrónico</label>
+          <input type="email" id="eEmail">
+        </div>
+        <div class="campo">
+          <label for="eCanal">Canal de origen</label>
+          <select id="eCanal" required>
+            <option value="INS">Instagram</option>
+            <option value="FAC">Facebook</option>
+            <option value="TIK">TikTok</option>
+            <option value="WSP">WhatsApp</option>
+            <option value="REF">Formulario web</option>
+            <option value="PRS">Showroom</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="eTipoProyecto">Tipo de proyecto</label>
+          <input type="text" id="eTipoProyecto" required>
+        </div>
+        <div class="campo">
+          <label for="ePresupuesto">Presupuesto estimado</label>
+          <input type="number" id="ePresupuesto" inputmode="numeric">
+        </div>
+        <div class="campo campo-full">
+          <label for="eVendedor">Vendedor asignado</label>
+          <select id="eVendedor">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-error" id="modalEditarError"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn-secundario" id="btnCancelarEditarLead">Cancelar</button>
+        <button type="submit" class="btn-primario" id="btnGuardarEditarLead">Guardar cambios</button>
       </div>
     </form>
   </div>
