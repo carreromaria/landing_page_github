@@ -125,6 +125,29 @@
       <button class="btn-primario" id="btnMarcarGanado">Marcar ganado</button>
       <button class="btn-peligro" id="btnMarcarPerdido">Marcar perdido</button>
     </div>
+
+    <section class="panel-seccion crm-zona-peligro" id="zonaEliminarLead" style="display:none;">
+      <h2>Eliminar lead</h2>
+      <p class="crm-zona-peligro-texto">
+        Esto borra el lead y toda su bitácora <strong>de forma permanente</strong>. No se puede deshacer.
+      </p>
+
+      <div id="pasoUnoEliminarLead">
+        <button type="button" class="btn-peligro" id="btnIniciarEliminacionLead">Eliminar este lead</button>
+      </div>
+
+      <div id="pasoDosEliminarLead" style="display:none;">
+        <label class="campo-eliminar-label">
+          Para confirmar, escribe el nombre del lead (<strong id="nombreConfirmacionLead"></strong>):
+        </label>
+        <input type="text" id="inputConfirmacionNombreLead" class="input-confirmacion" autocomplete="off">
+        <div class="modal-error" id="eliminarLeadError"></div>
+        <div class="modal-acciones">
+          <button type="button" class="btn-secundario" id="btnCancelarEliminacionLead">Cancelar</button>
+          <button type="button" class="btn-peligro" id="btnConfirmarEliminacionLead" disabled>Eliminar definitivamente</button>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
