@@ -266,10 +266,9 @@ function abrirDetalleLead(id) {
   }
 
   const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
-  const selectEtapa = document.getElementById('selectEtapaLead');
   const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
   selectEtapaWrap.style.display = esCierre ? 'none' : '';
-  selectEtapa.value = esCierre ? 'Nuevo contacto' : lead.etapa;
+  actualizarValorDropdownEtapa(esCierre ? 'Nuevo contacto' : lead.etapa);
 
   document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
 
@@ -323,11 +322,54 @@ document.getElementById('btnVolverKanban').addEventListener('click', () => {
   vistaKanban.style.display = '';
 });
 
-document.getElementById('selectEtapaLead').addEventListener('change', async (e) => {
-  if (!leadSeleccionadoId) return;
+// ---------- Dropdown propio: cambiar etapa ----------
+
+const dropdownEtapa = document.getElementById('dropdownEtapa');
+const dropdownEtapaTrigger = document.getElementById('dropdownEtapaTrigger');
+const dropdownEtapaLista = document.getElementById('dropdownEtapaLista');
+const dropdownEtapaValor = document.getElementById('dropdownEtapaValor');
+
+function actualizarValorDropdownEtapa(etapa) {
+  dropdownEtapaValor.textContent = etapa;
+  dropdownEtapaLista.querySelectorAll('li').forEach(li => {
+    li.classList.toggle('seleccionado', li.dataset.valor === etapa);
+  });
+}
+
+function abrirDropdownEtapa() {
+  dropdownEtapaLista.hidden = false;
+  dropdownEtapa.classList.add('abierto');
+  dropdownEtapaTrigger.setAttribute('aria-expanded', 'true');
+}
+function cerrarDropdownEtapa() {
+  dropdownEtapaLista.hidden = true;
+  dropdownEtapa.classList.remove('abierto');
+  dropdownEtapaTrigger.setAttribute('aria-expanded', 'false');
+}
+
+dropdownEtapaTrigger.addEventListener('click', () => {
+  dropdownEtapaLista.hidden ? abrirDropdownEtapa() : cerrarDropdownEtapa();
+});
+
+document.addEventListener('click', (e) => {
+  if (!dropdownEtapa.contains(e.target)) cerrarDropdownEtapa();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') cerrarDropdownEtapa();
+});
+
+dropdownEtapaLista.addEventListener('click', async (e) => {
+  const li = e.target.closest('li[data-valor]');
+  if (!li || !leadSeleccionadoId) return;
+
+  const nuevaEtapa = li.dataset.valor;
+  cerrarDropdownEtapa();
+  actualizarValorDropdownEtapa(nuevaEtapa);
+  document.getElementById('detalleEtapaBadge').textContent = nuevaEtapa;
+
   try {
-    await cambiarEtapaLead(leadSeleccionadoId, e.target.value);
-    mostrarToast('Etapa actualizada.');
+    await cambiarEtapaLead(leadSeleccionadoId, nuevaEtapa);
+    mostrarToast(`Etapa actualizada a "${nuevaEtapa}".`);
   } catch (err) {
     console.error(err);
     mostrarToast('No se pudo cambiar la etapa.', 'error');
