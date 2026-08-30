@@ -265,9 +265,10 @@ function abrirDetalleLead(id) {
     proyectoVinculadoEl.style.display = 'none';
   }
 
+  const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
   const selectEtapa = document.getElementById('selectEtapaLead');
   const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
-  selectEtapa.style.display = esCierre ? 'none' : '';
+  selectEtapaWrap.style.display = esCierre ? 'none' : '';
   selectEtapa.value = esCierre ? 'Nuevo contacto' : lead.etapa;
 
   document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
