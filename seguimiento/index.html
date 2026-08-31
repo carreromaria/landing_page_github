@@ -1,338 +1,600 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRM · LINENCE</title>
-<meta name="robots" content="noindex">
-<link rel="icon" type="image/png" href="../favicon.png">
-<link rel="shortcut icon" type="image/png" href="../favicon.png">
-<link rel="apple-touch-icon" href="../apple-touch-icon.png">
-<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/variables.css">
-<link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css">
-</head>
-<body>
+// ============================================================
+// LINENCE — CRM
+// Lógica del tablero de leads (crm.html)
+// ============================================================
+// Reutiliza la misma capa de autenticación (auth.js) y de datos
+// (firestore.js) que ya usa el resto del panel interno. No duplica
+// nada de eso: solo agrega lo específico del CRM.
 
-<!-- ================= GUARDIA DE SESIÓN ================= -->
-<div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
+import { observarSesionStaff, cerrarSesion } from './auth.js';
+import {
+  crearLead, escucharLeads, actualizarLead, agregarNotaLead,
+  cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
+  listarUsuariosStaff, eliminarLead
+} from './firestore.js';
 
-<!-- Topbar solo visible en mobile -->
-<div class="dash-topbar-mobile" id="dashTopbarMobile" style="display:none;">
-  <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
-    <span></span><span></span><span></span>
-  </button>
-  <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-topbar-mobile">
-</div>
+// ---------- Configuración del pipeline ----------
 
-<!-- ================= LAYOUT PRINCIPAL ================= -->
-<div class="dash-layout" id="dashLayout" style="display:none;">
+const ETAPAS = [
+  "Nuevo contacto",
+  "En conversación",
+  "Propuesta enviada",
+  "Negociación",
+  "Ganado",
+  "Perdido"
+];
 
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+const CANALES = {
+  INS: "Instagram",
+  FAC: "Facebook",
+  TIK: "TikTok",
+  WSP: "WhatsApp",
+  REF: "Formulario web",
+  PRS: "Showroom"
+};
 
-  <aside class="dash-sidebar" id="dashSidebar">
-    <button id="btnCerrarSidebar" class="btn-cerrar-sidebar" aria-label="Cerrar menú">×</button>
-    <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-sidebar-desktop">
-    <ul class="dash-nav">
-      <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
-      <li><a href="crm.html" class="activo">👥 <span class="texto">CRM</span></a></li>
-      <li><span class="dash-nav-disabled">📄 <span class="texto">Cotizaciones</span><span class="proximamente">Pronto</span></span></li>
-      <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
-      <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
-    </ul>
-    <div class="dash-user">
-      <div class="nombre" id="staffNombre">—</div>
-      <div class="rol" id="staffRol">—</div>
-      <button id="btnCerrarSesion">Cerrar sesión</button>
+const DIAS_ALERTA_SIN_CONTACTO = 3;
+
+// ---------- Estado ----------
+
+let STAFF_ACTUAL = null;
+let usuariosStaff = [];
+let leadsActuales = [];
+let leadSeleccionadoId = null;
+let dejarDeEscucharLeads = null;
+
+// ---------- Referencias DOM ----------
+
+const dashCargando = document.getElementById('dashCargando');
+const dashLayout = document.getElementById('dashLayout');
+const dashTopbarMobile = document.getElementById('dashTopbarMobile');
+const staffNombreEl = document.getElementById('staffNombre');
+const staffRolEl = document.getElementById('staffRol');
+
+const vistaKanban = document.getElementById('vistaKanban');
+const vistaDetalleLead = document.getElementById('vistaDetalleLead');
+const crmKanban = document.getElementById('crmKanban');
+
+const buscadorLead = document.getElementById('buscadorLead');
+const filtroCanal = document.getElementById('filtroCanal');
+const filtroVendedor = document.getElementById('filtroVendedor');
+
+const toastContainer = document.getElementById('toastContainer');
+
+// ---------- Guardia de sesión (mismo patrón que dashboard.html) ----------
+
+observarSesionStaff((staff) => {
+  if (!staff) {
+    window.location.href = 'login.html';
+    return;
+  }
+  STAFF_ACTUAL = staff;
+  staffNombreEl.textContent = staff.nombre || '—';
+  staffRolEl.textContent = staff.rol || '—';
+
+  dashCargando.style.display = 'none';
+  dashLayout.style.display = '';
+  actualizarVisibilidadTopbar();
+
+  inicializar();
+});
+
+function actualizarVisibilidadTopbar() {
+  dashTopbarMobile.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+}
+window.addEventListener('resize', actualizarVisibilidadTopbar);
+
+// ---------- Sidebar mobile ----------
+
+const btnAbrirSidebar = document.getElementById('btnAbrirSidebar');
+const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const dashSidebar = document.getElementById('dashSidebar');
+
+function abrirSidebar() {
+  dashSidebar.classList.add('abierto');
+  sidebarOverlay.classList.add('visible');
+}
+function cerrarSidebar() {
+  dashSidebar.classList.remove('abierto');
+  sidebarOverlay.classList.remove('visible');
+}
+btnAbrirSidebar?.addEventListener('click', abrirSidebar);
+btnCerrarSidebar?.addEventListener('click', cerrarSidebar);
+sidebarOverlay?.addEventListener('click', cerrarSidebar);
+
+document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
+  await cerrarSesion();
+  window.location.href = 'login.html';
+});
+
+// ---------- Toast simple ----------
+
+function mostrarToast(mensaje, tipo = 'ok') {
+  const el = document.createElement('div');
+  el.className = `crm-toast crm-toast-${tipo}`;
+  el.textContent = mensaje;
+  toastContainer.appendChild(el);
+
+  setTimeout(() => {
+    el.classList.add('crm-toast-saliendo');
+    setTimeout(() => el.remove(), 250);
+  }, 7000);
+}
+
+// ---------- Inicialización ----------
+
+async function inicializar() {
+  try {
+    usuariosStaff = await listarUsuariosStaff();
+    poblarSelectsVendedor();
+  } catch (err) {
+    console.error('Error cargando staff:', err);
+  }
+
+  dejarDeEscucharLeads = escucharLeads(
+    (leads) => { leadsActuales = leads; renderKanban(); },
+    () => mostrarToast('No se pudieron cargar los leads.', 'error')
+  );
+}
+
+function poblarSelectsVendedor() {
+  const opciones = usuariosStaff
+    .map(u => `<option value="${u.uid}">${escapeHtml(u.nombre || u.uid)}</option>`)
+    .join('');
+  filtroVendedor.insertAdjacentHTML('beforeend', opciones);
+  document.getElementById('lVendedor').insertAdjacentHTML('beforeend', opciones);
+  document.getElementById('eVendedor').insertAdjacentHTML('beforeend', opciones);
+}
+
+function nombreVendedor(uid) {
+  if (!uid) return '—';
+  const u = usuariosStaff.find(u => u.uid === uid);
+  return u ? (u.nombre || uid) : '—';
+}
+
+// ---------- Utilidades ----------
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function formatearPresupuesto(valor) {
+  if (!valor && valor !== 0) return '—';
+  return '$' + Number(valor).toLocaleString('es-CL');
+}
+
+function diasSinContacto(lead) {
+  const fecha = lead.fechaUltimoContacto?.toDate?.() || lead.creadoEn?.toDate?.();
+  if (!fecha) return null;
+  const ms = Date.now() - fecha.getTime();
+  return Math.floor(ms / (1000 * 60 * 60 * 24));
+}
+
+// ---------- Filtros ----------
+
+function leadsFiltrados() {
+  const texto = buscadorLead.value.trim().toLowerCase();
+  const canal = filtroCanal.value;
+  const vendedor = filtroVendedor.value;
+
+  return leadsActuales.filter(lead => {
+    if (canal && lead.canalOrigen !== canal) return false;
+    if (vendedor && lead.vendedorAsignado !== vendedor) return false;
+    if (texto) {
+      const enNombre = (lead.nombre || '').toLowerCase().includes(texto);
+      const enTelefono = (lead.telefono || '').toLowerCase().includes(texto);
+      if (!enNombre && !enTelefono) return false;
+    }
+    return true;
+  });
+}
+
+[buscadorLead, filtroCanal, filtroVendedor].forEach(el => {
+  el.addEventListener('input', renderKanban);
+});
+
+// ---------- Render del tablero ----------
+
+function renderKanban() {
+  const leads = leadsFiltrados();
+
+  crmKanban.innerHTML = ETAPAS.map(etapa => {
+    const leadsEtapa = leads.filter(l => l.etapa === etapa);
+    const tarjetas = leadsEtapa.length
+      ? leadsEtapa.map(tarjetaHtml).join('')
+      : `<p class="crm-vacio-columna">Sin leads aquí.</p>`;
+
+    return `
+      <div class="crm-columna">
+        <div class="crm-columna-titulo">
+          <span>${etapa}</span>
+          <span class="crm-columna-contador">· ${leadsEtapa.length}</span>
+        </div>
+        ${tarjetas}
+      </div>
+    `;
+  }).join('');
+
+  crmKanban.querySelectorAll('[data-lead-id]').forEach(card => {
+    card.addEventListener('click', () => abrirDetalleLead(card.dataset.leadId));
+  });
+}
+
+function tarjetaHtml(lead) {
+  const dias = diasSinContacto(lead);
+  const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
+  const claseCierre = lead.etapa === 'Ganado' ? 'es-ganado' : lead.etapa === 'Perdido' ? 'es-perdido' : '';
+  const alertaClase = (!esCierre && dias !== null && dias >= DIAS_ALERTA_SIN_CONTACTO) ? 'alerta' : '';
+
+  let tiempoTexto = '—';
+  if (lead.etapa === 'Ganado' && lead.proyectoVinculado) {
+    tiempoTexto = `${escapeHtml(lead.proyectoVinculado)} vinculado`;
+  } else if (dias !== null) {
+    tiempoTexto = dias === 0 ? 'hoy' : `hace ${dias} día${dias === 1 ? '' : 's'}`;
+  }
+
+  return `
+    <div class="crm-card ${claseCierre}" data-lead-id="${lead.id}" tabindex="0">
+      <div class="crm-card-nombre">${escapeHtml(lead.nombre)}</div>
+      <div class="crm-card-meta">${escapeHtml(lead.tipoProyecto || '—')} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}</div>
+      <div class="crm-card-tiempo ${alertaClase}">${tiempoTexto}</div>
     </div>
-  </aside>
+  `;
+}
 
-  <!-- ================= VISTA: TABLERO KANBAN ================= -->
-  <main class="dash-main" id="vistaKanban">
-    <h1>CRM</h1>
-    <p class="subtitulo">Gestiona tus leads desde el primer contacto hasta el cierre.</p>
+// ---------- Vista de detalle ----------
 
-    <div class="dash-toolbar crm-toolbar">
-      <input type="search" id="buscadorLead" placeholder="Buscar por nombre o teléfono…">
-      <select id="filtroCanal">
-        <option value="">Todos los canales</option>
-        <option value="INS">Instagram</option>
-        <option value="FAC">Facebook</option>
-        <option value="TIK">TikTok</option>
-        <option value="WSP">WhatsApp</option>
-        <option value="REF">Formulario web</option>
-        <option value="PRS">Showroom</option>
-      </select>
-      <select id="filtroVendedor">
-        <option value="">Todos los vendedores</option>
-      </select>
-      <button class="btn-nuevo-proyecto" id="btnNuevoLead">+ Nuevo lead</button>
+function abrirDetalleLead(id) {
+  const lead = leadsActuales.find(l => l.id === id);
+  if (!lead) return;
+
+  leadSeleccionadoId = id;
+
+  document.getElementById('detalleEtapaBadge').textContent = lead.etapa;
+  document.getElementById('detalleNombre').textContent = lead.nombre;
+  document.getElementById('detalleMetaProyecto').textContent =
+    `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
+  document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(lead.presupuestoEstimado);
+  document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
+  document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
+  document.getElementById('detalleEmail').textContent = lead.email || '—';
+
+  const proyectoVinculadoEl = document.getElementById('detalleProyectoVinculado');
+  if (lead.proyectoVinculado) {
+    proyectoVinculadoEl.style.display = '';
+    proyectoVinculadoEl.textContent = `Vinculado a ${lead.proyectoVinculado} en Seguimiento`;
+  } else {
+    proyectoVinculadoEl.style.display = 'none';
+  }
+
+  const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
+  const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
+  selectEtapaWrap.style.display = esCierre ? 'none' : '';
+  marcarEtapaSeleccionada(esCierre ? 'Nuevo contacto' : lead.etapa);
+
+  document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
+
+  const zonaEliminar = document.getElementById('zonaEliminarLead');
+  zonaEliminar.style.display = (STAFF_ACTUAL?.rol === 'admin') ? '' : 'none';
+  document.getElementById('nombreConfirmacionLead').textContent = lead.nombre;
+  document.getElementById('pasoUnoEliminarLead').style.display = '';
+  document.getElementById('pasoDosEliminarLead').style.display = 'none';
+  document.getElementById('inputConfirmacionNombreLead').value = '';
+  document.getElementById('eliminarLeadError').textContent = '';
+  document.getElementById('btnConfirmarEliminacionLead').disabled = true;
+
+  renderNotas(lead.notas || []);
+
+  vistaKanban.style.display = 'none';
+  vistaDetalleLead.style.display = '';
+  vistaDetalleLead.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderNotas(notas) {
+  const lista = document.getElementById('listaNotas');
+  const vacio = document.getElementById('notasVacio');
+
+  if (!notas.length) {
+    lista.innerHTML = '';
+    vacio.style.display = '';
+    return;
+  }
+  vacio.style.display = 'none';
+
+  const ordenadas = [...notas].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  lista.innerHTML = ordenadas.map(n => `
+    <div class="crm-nota">
+      <div class="crm-nota-texto">${escapeHtml(n.texto)}</div>
+      <div class="crm-nota-meta">${escapeHtml(n.autor || '—')} · ${formatearFechaNota(n.fecha)}</div>
     </div>
+  `).join('');
+}
 
-    <div class="crm-kanban" id="crmKanban"></div>
-  </main>
+function formatearFechaNota(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
 
-  <!-- ================= VISTA: DETALLE DE LEAD ================= -->
-  <main class="dash-main" id="vistaDetalleLead" style="display:none;">
-    <button class="btn-volver" id="btnVolverKanban">← Volver al tablero</button>
+document.getElementById('btnVolverKanban').addEventListener('click', () => {
+  leadSeleccionadoId = null;
+  vistaDetalleLead.style.display = 'none';
+  vistaKanban.style.display = '';
+});
 
-    <div class="crm-detalle-header">
-      <div>
-        <span class="crm-badge-etapa" id="detalleEtapaBadge">—</span>
-        <h1 class="crm-detalle-nombre" id="detalleNombre" style="margin-top:6px;">—</h1>
-        <p class="subtitulo" id="detalleMetaProyecto">—</p>
-      </div>
-      <div class="crm-select-etapa-wrap">
-        <div class="crm-dropdown-etapa" id="dropdownEtapa">
-          <button type="button" class="crm-dropdown-trigger" id="dropdownEtapaTrigger"
-                  aria-haspopup="listbox" aria-expanded="false" aria-label="Cambiar etapa">
-            <span id="dropdownEtapaValor">Cambiar etapa</span>
-            <span class="crm-dropdown-flecha">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </span>
-          </button>
-          <ul class="crm-dropdown-lista" id="dropdownEtapaLista" role="listbox" hidden>
-            <li role="option" data-valor="Nuevo contacto">Nuevo contacto</li>
-            <li role="option" data-valor="En conversación">En conversación</li>
-            <li role="option" data-valor="Propuesta enviada">Propuesta enviada</li>
-            <li role="option" data-valor="Negociación">Negociación</li>
-          </ul>
-        </div>
-      </div>
-    </div>
+// ---------- Dropdown propio: cambiar etapa ----------
 
-    <div class="crm-detalle-card">
-      <div class="crm-detalle-card-header">
-        <button type="button" class="crm-btn-editar" id="btnEditarLead" aria-label="Editar datos del lead">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>
-          Editar datos
-        </button>
-      </div>
-      <div class="crm-detalle-grid">
-        <div class="crm-detalle-dato">
-          <div class="etiqueta">Presupuesto estimado</div>
-          <div class="valor" id="detallePresupuesto">—</div>
-        </div>
-        <div class="crm-detalle-dato">
-          <div class="etiqueta">Vendedor asignado</div>
-          <div class="valor" id="detalleVendedor">—</div>
-        </div>
-      </div>
-      <div class="crm-contacto">
-        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-        <span id="detalleTelefono">—</span>
-      </div>
-      <div class="crm-contacto">
-        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 6l-10 7L2 6"></path></svg>
-        <span id="detalleEmail">—</span>
-      </div>
-      <div class="crm-proyecto-vinculado" id="detalleProyectoVinculado" style="display:none;"></div>
-    </div>
+const dropdownEtapa = document.getElementById('dropdownEtapa');
+const dropdownEtapaTrigger = document.getElementById('dropdownEtapaTrigger');
+const dropdownEtapaLista = document.getElementById('dropdownEtapaLista');
+const dropdownEtapaValor = document.getElementById('dropdownEtapaValor');
 
-    <div class="crm-bitacora-titulo">Bitácora</div>
-    <div id="listaNotas"></div>
-    <p class="crm-nota-vacia" id="notasVacio" style="display:none;">Aún no hay notas registradas.</p>
+function marcarEtapaSeleccionada(etapa) {
+  dropdownEtapaLista.querySelectorAll('li').forEach(li => {
+    li.classList.toggle('seleccionado', li.dataset.valor === etapa);
+  });
+}
 
-    <div class="crm-form-nota">
-      <textarea id="inputNuevaNota" placeholder="Agregar una nota de seguimiento…"></textarea>
-      <button class="btn-secundario" id="btnAgregarNota">Agregar</button>
-    </div>
+function abrirDropdownEtapa() {
+  dropdownEtapaLista.hidden = false;
+  dropdownEtapa.classList.add('abierto');
+  dropdownEtapaTrigger.setAttribute('aria-expanded', 'true');
+}
+function cerrarDropdownEtapa() {
+  dropdownEtapaLista.hidden = true;
+  dropdownEtapa.classList.remove('abierto');
+  dropdownEtapaTrigger.setAttribute('aria-expanded', 'false');
+}
 
-    <div class="crm-acciones-cierre" id="accionesCierre">
-      <button class="btn-primario" id="btnMarcarGanado">Marcar ganado</button>
-      <button class="btn-peligro" id="btnMarcarPerdido">Marcar perdido</button>
-    </div>
+dropdownEtapaTrigger.addEventListener('click', () => {
+  dropdownEtapaLista.hidden ? abrirDropdownEtapa() : cerrarDropdownEtapa();
+});
 
-    <section class="panel-seccion crm-zona-peligro" id="zonaEliminarLead" style="display:none;">
-      <h2>Eliminar lead</h2>
-      <p class="crm-zona-peligro-texto">
-        Esto borra el lead y toda su bitácora <strong>de forma permanente</strong>. No se puede deshacer.
-      </p>
+document.addEventListener('click', (e) => {
+  if (!dropdownEtapa.contains(e.target)) cerrarDropdownEtapa();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') cerrarDropdownEtapa();
+});
 
-      <div id="pasoUnoEliminarLead">
-        <button type="button" class="btn-peligro" id="btnIniciarEliminacionLead">Eliminar este lead</button>
-      </div>
+dropdownEtapaLista.addEventListener('click', async (e) => {
+  const li = e.target.closest('li[data-valor]');
+  if (!li || !leadSeleccionadoId) return;
 
-      <div id="pasoDosEliminarLead" style="display:none;">
-        <label class="campo-eliminar-label">
-          Para confirmar, escribe el nombre del lead (<strong id="nombreConfirmacionLead"></strong>):
-        </label>
-        <input type="text" id="inputConfirmacionNombreLead" class="input-confirmacion" autocomplete="off">
-        <div class="modal-error" id="eliminarLeadError"></div>
-        <div class="modal-acciones">
-          <button type="button" class="btn-secundario" id="btnCancelarEliminacionLead">Cancelar</button>
-          <button type="button" class="btn-peligro" id="btnConfirmarEliminacionLead" disabled>Eliminar definitivamente</button>
-        </div>
-      </div>
-    </section>
-  </main>
-</div>
+  const nuevaEtapa = li.dataset.valor;
+  cerrarDropdownEtapa();
+  marcarEtapaSeleccionada(nuevaEtapa);
+  document.getElementById('detalleEtapaBadge').textContent = nuevaEtapa;
 
-<!-- ================= MODAL: NUEVO LEAD ================= -->
-<div class="modal-overlay" id="modalNuevoLead">
-  <div class="modal-box">
-    <h2>Nuevo lead</h2>
-    <p class="subtitulo">Se agrega directo en la etapa "Nuevo contacto".</p>
+  try {
+    await cambiarEtapaLead(leadSeleccionadoId, nuevaEtapa);
+    mostrarToast(`Etapa actualizada a "${nuevaEtapa}".`);
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo cambiar la etapa.', 'error');
+  }
+});
 
-    <form id="formNuevoLead">
-      <div class="form-grid">
-        <div class="campo campo-full">
-          <label for="lNombre">Nombre</label>
-          <input type="text" id="lNombre" required>
-        </div>
-        <div class="campo">
-          <label for="lTelefono">Teléfono</label>
-          <input type="tel" id="lTelefono">
-        </div>
-        <div class="campo">
-          <label for="lEmail">Correo electrónico</label>
-          <input type="email" id="lEmail">
-        </div>
-        <div class="campo">
-          <label for="lCanal">Canal de origen</label>
-          <select id="lCanal" required>
-            <option value="">Selecciona…</option>
-            <option value="INS">Instagram</option>
-            <option value="FAC">Facebook</option>
-            <option value="TIK">TikTok</option>
-            <option value="WSP">WhatsApp</option>
-            <option value="REF">Formulario web</option>
-            <option value="PRS">Showroom</option>
-          </select>
-        </div>
-        <div class="campo">
-          <label for="lTipoProyecto">Tipo de proyecto</label>
-          <input type="text" id="lTipoProyecto" placeholder="Ej. Cocina moderna" required>
-        </div>
-        <div class="campo">
-          <label for="lPresupuesto">Presupuesto estimado</label>
-          <input type="number" id="lPresupuesto" placeholder="Opcional" inputmode="numeric">
-        </div>
-        <div class="campo campo-full">
-          <label for="lVendedor">Vendedor asignado</label>
-          <select id="lVendedor">
-            <option value="">Selecciona…</option>
-          </select>
-        </div>
-        <div class="campo campo-full">
-          <label for="lNotaInicial">Nota inicial (opcional)</label>
-          <textarea id="lNotaInicial"></textarea>
-        </div>
-      </div>
+document.getElementById('btnAgregarNota').addEventListener('click', async () => {
+  const input = document.getElementById('inputNuevaNota');
+  const texto = input.value.trim();
+  if (!texto || !leadSeleccionadoId) return;
 
-      <div class="modal-error" id="modalLeadError"></div>
+  try {
+    await agregarNotaLead(leadSeleccionadoId, { texto, autor: STAFF_ACTUAL.nombre || '' });
+    input.value = '';
+    mostrarToast('Nota agregada.');
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo agregar la nota.', 'error');
+  }
+});
 
-      <div class="modal-acciones">
-        <button type="button" class="btn-secundario" id="btnCancelarNuevoLead">Cancelar</button>
-        <button type="submit" class="btn-primario" id="btnGuardarNuevoLead">Crear lead</button>
-      </div>
-    </form>
-  </div>
-</div>
+// ---------- Modal: nuevo lead ----------
 
-<!-- ================= MODAL: EDITAR DATOS DEL LEAD ================= -->
-<div class="modal-overlay" id="modalEditarLead">
-  <div class="modal-box">
-    <h2>Editar datos</h2>
-    <p class="subtitulo">Actualiza la información de contacto y del proyecto.</p>
+const modalNuevoLead = document.getElementById('modalNuevoLead');
+const formNuevoLead = document.getElementById('formNuevoLead');
 
-    <form id="formEditarLead">
-      <div class="form-grid">
-        <div class="campo campo-full">
-          <label for="eNombre">Nombre</label>
-          <input type="text" id="eNombre" required>
-        </div>
-        <div class="campo">
-          <label for="eTelefono">Teléfono</label>
-          <input type="tel" id="eTelefono">
-        </div>
-        <div class="campo">
-          <label for="eEmail">Correo electrónico</label>
-          <input type="email" id="eEmail">
-        </div>
-        <div class="campo">
-          <label for="eCanal">Canal de origen</label>
-          <select id="eCanal" required>
-            <option value="INS">Instagram</option>
-            <option value="FAC">Facebook</option>
-            <option value="TIK">TikTok</option>
-            <option value="WSP">WhatsApp</option>
-            <option value="REF">Formulario web</option>
-            <option value="PRS">Showroom</option>
-          </select>
-        </div>
-        <div class="campo">
-          <label for="eTipoProyecto">Tipo de proyecto</label>
-          <input type="text" id="eTipoProyecto" required>
-        </div>
-        <div class="campo">
-          <label for="ePresupuesto">Presupuesto estimado</label>
-          <input type="number" id="ePresupuesto" inputmode="numeric">
-        </div>
-        <div class="campo campo-full">
-          <label for="eVendedor">Vendedor asignado</label>
-          <select id="eVendedor">
-            <option value="">Selecciona…</option>
-          </select>
-        </div>
-      </div>
+document.getElementById('btnNuevoLead').addEventListener('click', () => {
+  formNuevoLead.reset();
+  document.getElementById('modalLeadError').textContent = '';
+  modalNuevoLead.classList.add('visible');
+});
+document.getElementById('btnCancelarNuevoLead').addEventListener('click', () => {
+  modalNuevoLead.classList.remove('visible');
+});
 
-      <div class="modal-error" id="modalEditarError"></div>
+formNuevoLead.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('modalLeadError');
+  errorEl.textContent = '';
 
-      <div class="modal-acciones">
-        <button type="button" class="btn-secundario" id="btnCancelarEditarLead">Cancelar</button>
-        <button type="submit" class="btn-primario" id="btnGuardarEditarLead">Guardar cambios</button>
-      </div>
-    </form>
-  </div>
-</div>
+  const datos = {
+    nombre: document.getElementById('lNombre').value.trim(),
+    telefono: document.getElementById('lTelefono').value.trim(),
+    email: document.getElementById('lEmail').value.trim(),
+    canalOrigen: document.getElementById('lCanal').value,
+    tipoProyecto: document.getElementById('lTipoProyecto').value.trim(),
+    presupuestoEstimado: document.getElementById('lPresupuesto').value
+      ? Number(document.getElementById('lPresupuesto').value) : null,
+    vendedorAsignado: document.getElementById('lVendedor').value || null,
+    notaInicial: document.getElementById('lNotaInicial').value.trim(),
+    creadoPorNombre: STAFF_ACTUAL?.nombre || ''
+  };
 
-<!-- ================= MODAL: MARCAR GANADO ================= -->
-<div class="modal-overlay" id="modalGanado">
-  <div class="modal-box">
-    <h2>Marcar como ganado</h2>
-    <p class="subtitulo">Primero crea el proyecto en Seguimiento y pega aquí su código.</p>
+  if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
+    errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    return;
+  }
 
-    <div class="campo campo-full">
-      <label for="inputCodigoProyecto">Código de proyecto (LIN-XXXXX)</label>
-      <input type="text" id="inputCodigoProyecto" placeholder="LIN-00006" autocomplete="off">
-    </div>
+  try {
+    await crearLead(datos, STAFF_ACTUAL.uid);
+    modalNuevoLead.classList.remove('visible');
+    mostrarToast('Lead creado.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo crear el lead. Intenta de nuevo.';
+  }
+});
 
-    <div class="modal-error" id="ganadoError"></div>
+// ---------- Modal: editar datos del lead ----------
 
-    <div class="modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCancelarGanado">Cancelar</button>
-      <button type="button" class="btn-primario" id="btnConfirmarGanado">Confirmar</button>
-    </div>
-  </div>
-</div>
+const modalEditarLead = document.getElementById('modalEditarLead');
+const formEditarLead = document.getElementById('formEditarLead');
 
-<!-- ================= MODAL: MARCAR PERDIDO ================= -->
-<div class="modal-overlay" id="modalPerdido">
-  <div class="modal-box">
-    <h2>Marcar como perdido</h2>
-    <p class="subtitulo">Deja el motivo para poder analizarlo más adelante.</p>
+document.getElementById('btnEditarLead').addEventListener('click', () => {
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  if (!lead) return;
 
-    <div class="campo campo-full">
-      <label for="inputMotivoPerdido">Motivo</label>
-      <textarea id="inputMotivoPerdido" placeholder="Ej. Eligió otra empresa por precio."></textarea>
-    </div>
+  document.getElementById('eNombre').value = lead.nombre || '';
+  document.getElementById('eTelefono').value = lead.telefono || '';
+  document.getElementById('eEmail').value = lead.email || '';
+  document.getElementById('eCanal').value = lead.canalOrigen || '';
+  document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
+  document.getElementById('ePresupuesto').value = lead.presupuestoEstimado ?? '';
+  document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
+  document.getElementById('modalEditarError').textContent = '';
 
-    <div class="modal-error" id="perdidoError"></div>
+  modalEditarLead.classList.add('visible');
+});
 
-    <div class="modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCancelarPerdido">Cancelar</button>
-      <button type="button" class="btn-peligro" id="btnConfirmarPerdido">Confirmar</button>
-    </div>
-  </div>
-</div>
+document.getElementById('btnCancelarEditarLead').addEventListener('click', () => {
+  modalEditarLead.classList.remove('visible');
+});
 
-<!-- ================= NOTIFICACIONES TOAST ================= -->
-<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+formEditarLead.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('modalEditarError');
+  errorEl.textContent = '';
 
-<script type="module" src="js/crm.js?v=20260830d"></script>
-</body>
-</html>
+  const datos = {
+    nombre: document.getElementById('eNombre').value.trim(),
+    telefono: document.getElementById('eTelefono').value.trim(),
+    email: document.getElementById('eEmail').value.trim(),
+    canalOrigen: document.getElementById('eCanal').value,
+    tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
+    presupuestoEstimado: document.getElementById('ePresupuesto').value
+      ? Number(document.getElementById('ePresupuesto').value) : null,
+    vendedorAsignado: document.getElementById('eVendedor').value || null
+  };
+
+  if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
+    errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    return;
+  }
+
+  try {
+    await actualizarLead(leadSeleccionadoId, datos);
+    modalEditarLead.classList.remove('visible');
+    abrirDetalleLead(leadSeleccionadoId);
+    mostrarToast('Datos actualizados.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+  }
+});
+
+// ---------- Modal: marcar ganado ----------
+
+const modalGanado = document.getElementById('modalGanado');
+
+document.getElementById('btnMarcarGanado').addEventListener('click', () => {
+  document.getElementById('inputCodigoProyecto').value = '';
+  document.getElementById('ganadoError').textContent = '';
+  modalGanado.classList.add('visible');
+});
+document.getElementById('btnCancelarGanado').addEventListener('click', () => {
+  modalGanado.classList.remove('visible');
+});
+
+document.getElementById('btnConfirmarGanado').addEventListener('click', async () => {
+  const errorEl = document.getElementById('ganadoError');
+  const codigo = document.getElementById('inputCodigoProyecto').value.trim().toUpperCase();
+
+  if (!/^LIN-\d{4,5}$/.test(codigo)) {
+    errorEl.textContent = 'Ingresa un código válido, ej. LIN-00006.';
+    return;
+  }
+
+  try {
+    await marcarLeadGanado(leadSeleccionadoId, codigo);
+    modalGanado.classList.remove('visible');
+    vistaDetalleLead.style.display = 'none';
+    vistaKanban.style.display = '';
+    mostrarToast('Lead marcado como ganado.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+  }
+});
+
+// ---------- Modal: marcar perdido ----------
+
+const modalPerdido = document.getElementById('modalPerdido');
+
+document.getElementById('btnMarcarPerdido').addEventListener('click', () => {
+  document.getElementById('inputMotivoPerdido').value = '';
+  document.getElementById('perdidoError').textContent = '';
+  modalPerdido.classList.add('visible');
+});
+document.getElementById('btnCancelarPerdido').addEventListener('click', () => {
+  modalPerdido.classList.remove('visible');
+});
+
+document.getElementById('btnConfirmarPerdido').addEventListener('click', async () => {
+  const errorEl = document.getElementById('perdidoError');
+  const motivo = document.getElementById('inputMotivoPerdido').value.trim();
+
+  if (!motivo) {
+    errorEl.textContent = 'Cuéntanos brevemente el motivo.';
+    return;
+  }
+
+  try {
+    await marcarLeadPerdido(leadSeleccionadoId, motivo);
+    modalPerdido.classList.remove('visible');
+    vistaDetalleLead.style.display = 'none';
+    vistaKanban.style.display = '';
+    mostrarToast('Lead marcado como perdido.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+  }
+});
+
+// ---------- Eliminar lead (solo admin) ----------
+
+document.getElementById('btnIniciarEliminacionLead').addEventListener('click', () => {
+  document.getElementById('pasoUnoEliminarLead').style.display = 'none';
+  document.getElementById('pasoDosEliminarLead').style.display = '';
+});
+
+document.getElementById('btnCancelarEliminacionLead').addEventListener('click', () => {
+  document.getElementById('pasoDosEliminarLead').style.display = 'none';
+  document.getElementById('pasoUnoEliminarLead').style.display = '';
+});
+
+document.getElementById('inputConfirmacionNombreLead').addEventListener('input', (e) => {
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  const coincide = lead && e.target.value.trim() === lead.nombre;
+  document.getElementById('btnConfirmarEliminacionLead').disabled = !coincide;
+});
+
+document.getElementById('btnConfirmarEliminacionLead').addEventListener('click', async () => {
+  const errorEl = document.getElementById('eliminarLeadError');
+  try {
+    await eliminarLead(leadSeleccionadoId);
+    leadSeleccionadoId = null;
+    vistaDetalleLead.style.display = 'none';
+    vistaKanban.style.display = '';
+    mostrarToast('Lead eliminado.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo eliminar. Verifica que tengas permisos de administrador.';
+  }
+});
