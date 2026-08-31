@@ -3,75 +3,336 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seguimiento de Proyecto · LINENCE</title>
+<title>CRM · LINENCE</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="../favicon.png">
 <link rel="shortcut icon" type="image/png" href="../favicon.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
-<style>
-  .modulo-wrap{
-    min-height:100vh;
-    display:flex; align-items:center; justify-content:center;
-    padding:24px;
-    text-align:center;
-  }
-  .modulo-card{max-width:480px;}
-  .modulo-card .logo-icono{height:64px; margin:0 auto 8px;}
-  .modulo-card .logo-wordmark{height:22px; margin:0 auto 30px;}
-  .modulo-card h1{
-    font-family:'Champagne & Limousines','Poppins', serif;
-    font-size:30px;
-    line-height:1.25;
-    margin-bottom:16px;
-  }
-  .modulo-card p{
-    font-size:15.5px; line-height:1.65; opacity:0.75;
-    margin-bottom:22px;
-  }
-  .modulo-card .modulo-pregunta{
-    font-weight:600;
-    opacity:1;
-    color:var(--ink);
-    margin-top:26px;
-    margin-bottom:6px;
-  }
-  .modulo-cta{
-    display:inline-block;
-    padding:13px 28px;
-    background:var(--gold);
-    color:var(--ink);
-    border-radius:999px;
-    font-size:14px; font-weight:600;
-  }
-  .modulo-secundario{
-    display:block;
-    margin-top:18px;
-    font-size:13px;
-    opacity:0.55;
-  }
-  .modulo-secundario:hover{opacity:0.85;}
-</style>
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/crm.css">
 </head>
 <body>
 
-<div class="modulo-wrap">
-  <div class="modulo-card">
-    <img src="assets/img/logo-icono-oscuro.png" alt="Linence" class="logo-icono">
-    <img src="assets/img/logo-wordmark-oscuro-solo.png" alt="Linence" class="logo-wordmark">
+<!-- ================= GUARDIA DE SESIÓN ================= -->
+<div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
 
-    <h1>Mantente informado en cada etapa de tu proyecto.</h1>
-    <p>Consulta el avance, conoce el estado actual y sigue todo el proceso de fabricación e instalación con total transparencia.</p>
+<!-- Topbar solo visible en mobile -->
+<div class="dash-topbar-mobile" id="dashTopbarMobile" style="display:none;">
+  <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
+    <span></span><span></span><span></span>
+  </button>
+  <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-topbar-mobile">
+</div>
 
-    <p class="modulo-pregunta">¿Aún no tienes tu enlace de seguimiento?</p>
-    <p>Solicítalo por WhatsApp y te lo enviaremos de inmediato.</p>
+<!-- ================= LAYOUT PRINCIPAL ================= -->
+<div class="dash-layout" id="dashLayout" style="display:none;">
 
-    <a href="https://wa.me/56957039988" target="_blank" rel="noopener" class="modulo-cta">📲 Solicitar mi enlace de seguimiento</a>
-    <a href="https://linence.cl" class="modulo-secundario">← Volver al sitio de Linence</a>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="dash-sidebar" id="dashSidebar">
+    <button id="btnCerrarSidebar" class="btn-cerrar-sidebar" aria-label="Cerrar menú">×</button>
+    <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-sidebar-desktop">
+    <ul class="dash-nav">
+      <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
+      <li><a href="crm.html" class="activo">👥 <span class="texto">CRM</span></a></li>
+      <li><span class="dash-nav-disabled">📄 <span class="texto">Cotizaciones</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
+    </ul>
+    <div class="dash-user">
+      <div class="nombre" id="staffNombre">—</div>
+      <div class="rol" id="staffRol">—</div>
+      <button id="btnCerrarSesion">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <!-- ================= VISTA: TABLERO KANBAN ================= -->
+  <main class="dash-main" id="vistaKanban">
+    <h1>CRM</h1>
+    <p class="subtitulo">Gestiona tus leads desde el primer contacto hasta el cierre.</p>
+
+    <div class="dash-toolbar crm-toolbar">
+      <input type="search" id="buscadorLead" placeholder="Buscar por nombre o teléfono…">
+      <select id="filtroCanal">
+        <option value="">Todos los canales</option>
+        <option value="INS">Instagram</option>
+        <option value="FAC">Facebook</option>
+        <option value="TIK">TikTok</option>
+        <option value="WSP">WhatsApp</option>
+        <option value="REF">Formulario web</option>
+        <option value="PRS">Showroom</option>
+      </select>
+      <select id="filtroVendedor">
+        <option value="">Todos los vendedores</option>
+      </select>
+      <button class="btn-nuevo-proyecto" id="btnNuevoLead">+ Nuevo lead</button>
+    </div>
+
+    <div class="crm-kanban" id="crmKanban"></div>
+  </main>
+
+  <!-- ================= VISTA: DETALLE DE LEAD ================= -->
+  <main class="dash-main" id="vistaDetalleLead" style="display:none;">
+    <button class="btn-volver" id="btnVolverKanban">← Volver al tablero</button>
+
+    <div class="crm-detalle-header">
+      <div>
+        <span class="crm-badge-etapa" id="detalleEtapaBadge">—</span>
+        <h1 class="crm-detalle-nombre" id="detalleNombre" style="margin-top:6px;">—</h1>
+        <p class="subtitulo" id="detalleMetaProyecto">—</p>
+      </div>
+      <div class="crm-select-etapa-wrap">
+        <div class="crm-dropdown-etapa" id="dropdownEtapa">
+          <button type="button" class="crm-dropdown-trigger" id="dropdownEtapaTrigger"
+                  aria-haspopup="listbox" aria-expanded="false" aria-label="Cambiar etapa">
+            <span id="dropdownEtapaValor">Cambiar etapa</span>
+            <span class="crm-dropdown-flecha">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </button>
+          <ul class="crm-dropdown-lista" id="dropdownEtapaLista" role="listbox" hidden>
+            <li role="option" data-valor="Nuevo contacto">Nuevo contacto</li>
+            <li role="option" data-valor="En conversación">En conversación</li>
+            <li role="option" data-valor="Propuesta enviada">Propuesta enviada</li>
+            <li role="option" data-valor="Negociación">Negociación</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="crm-detalle-card">
+      <div class="crm-detalle-card-header">
+        <button type="button" class="crm-btn-editar" id="btnEditarLead" aria-label="Editar datos del lead">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"></path></svg>
+          Editar datos
+        </button>
+      </div>
+      <div class="crm-detalle-grid">
+        <div class="crm-detalle-dato">
+          <div class="etiqueta">Presupuesto estimado</div>
+          <div class="valor" id="detallePresupuesto">—</div>
+        </div>
+        <div class="crm-detalle-dato">
+          <div class="etiqueta">Vendedor asignado</div>
+          <div class="valor" id="detalleVendedor">—</div>
+        </div>
+      </div>
+      <div class="crm-contacto">
+        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        <span id="detalleTelefono">—</span>
+      </div>
+      <div class="crm-contacto">
+        <svg class="crm-icono-contacto" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 6l-10 7L2 6"></path></svg>
+        <span id="detalleEmail">—</span>
+      </div>
+      <div class="crm-proyecto-vinculado" id="detalleProyectoVinculado" style="display:none;"></div>
+    </div>
+
+    <div class="crm-bitacora-titulo">Bitácora</div>
+    <div id="listaNotas"></div>
+    <p class="crm-nota-vacia" id="notasVacio" style="display:none;">Aún no hay notas registradas.</p>
+
+    <div class="crm-form-nota">
+      <textarea id="inputNuevaNota" placeholder="Agregar una nota de seguimiento…"></textarea>
+      <button class="btn-secundario" id="btnAgregarNota">Agregar</button>
+    </div>
+
+    <div class="crm-acciones-cierre" id="accionesCierre">
+      <button class="btn-primario" id="btnMarcarGanado">Marcar ganado</button>
+      <button class="btn-peligro" id="btnMarcarPerdido">Marcar perdido</button>
+    </div>
+
+    <section class="panel-seccion crm-zona-peligro" id="zonaEliminarLead" style="display:none;">
+      <h2>Eliminar lead</h2>
+      <p class="crm-zona-peligro-texto">
+        Esto borra el lead y toda su bitácora <strong>de forma permanente</strong>. No se puede deshacer.
+      </p>
+
+      <div id="pasoUnoEliminarLead">
+        <button type="button" class="btn-peligro" id="btnIniciarEliminacionLead">Eliminar este lead</button>
+      </div>
+
+      <div id="pasoDosEliminarLead" style="display:none;">
+        <label class="campo-eliminar-label">
+          Para confirmar, escribe el nombre del lead (<strong id="nombreConfirmacionLead"></strong>):
+        </label>
+        <input type="text" id="inputConfirmacionNombreLead" class="input-confirmacion" autocomplete="off">
+        <div class="modal-error" id="eliminarLeadError"></div>
+        <div class="modal-acciones">
+          <button type="button" class="btn-secundario" id="btnCancelarEliminacionLead">Cancelar</button>
+          <button type="button" class="btn-peligro" id="btnConfirmarEliminacionLead" disabled>Eliminar definitivamente</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= MODAL: NUEVO LEAD ================= -->
+<div class="modal-overlay" id="modalNuevoLead">
+  <div class="modal-box">
+    <h2>Nuevo lead</h2>
+    <p class="subtitulo">Se agrega directo en la etapa "Nuevo contacto".</p>
+
+    <form id="formNuevoLead">
+      <div class="form-grid">
+        <div class="campo campo-full">
+          <label for="lNombre">Nombre</label>
+          <input type="text" id="lNombre" required>
+        </div>
+        <div class="campo">
+          <label for="lTelefono">Teléfono</label>
+          <input type="tel" id="lTelefono">
+        </div>
+        <div class="campo">
+          <label for="lEmail">Correo electrónico</label>
+          <input type="email" id="lEmail">
+        </div>
+        <div class="campo">
+          <label for="lCanal">Canal de origen</label>
+          <select id="lCanal" required>
+            <option value="">Selecciona…</option>
+            <option value="INS">Instagram</option>
+            <option value="FAC">Facebook</option>
+            <option value="TIK">TikTok</option>
+            <option value="WSP">WhatsApp</option>
+            <option value="REF">Formulario web</option>
+            <option value="PRS">Showroom</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="lTipoProyecto">Tipo de proyecto</label>
+          <input type="text" id="lTipoProyecto" placeholder="Ej. Cocina moderna" required>
+        </div>
+        <div class="campo">
+          <label for="lPresupuesto">Presupuesto estimado</label>
+          <input type="number" id="lPresupuesto" placeholder="Opcional" inputmode="numeric">
+        </div>
+        <div class="campo campo-full">
+          <label for="lVendedor">Vendedor asignado</label>
+          <select id="lVendedor">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo campo-full">
+          <label for="lNotaInicial">Nota inicial (opcional)</label>
+          <textarea id="lNotaInicial"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-error" id="modalLeadError"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn-secundario" id="btnCancelarNuevoLead">Cancelar</button>
+        <button type="submit" class="btn-primario" id="btnGuardarNuevoLead">Crear lead</button>
+      </div>
+    </form>
   </div>
 </div>
 
+<!-- ================= MODAL: EDITAR DATOS DEL LEAD ================= -->
+<div class="modal-overlay" id="modalEditarLead">
+  <div class="modal-box">
+    <h2>Editar datos</h2>
+    <p class="subtitulo">Actualiza la información de contacto y del proyecto.</p>
+
+    <form id="formEditarLead">
+      <div class="form-grid">
+        <div class="campo campo-full">
+          <label for="eNombre">Nombre</label>
+          <input type="text" id="eNombre" required>
+        </div>
+        <div class="campo">
+          <label for="eTelefono">Teléfono</label>
+          <input type="tel" id="eTelefono">
+        </div>
+        <div class="campo">
+          <label for="eEmail">Correo electrónico</label>
+          <input type="email" id="eEmail">
+        </div>
+        <div class="campo">
+          <label for="eCanal">Canal de origen</label>
+          <select id="eCanal" required>
+            <option value="INS">Instagram</option>
+            <option value="FAC">Facebook</option>
+            <option value="TIK">TikTok</option>
+            <option value="WSP">WhatsApp</option>
+            <option value="REF">Formulario web</option>
+            <option value="PRS">Showroom</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="eTipoProyecto">Tipo de proyecto</label>
+          <input type="text" id="eTipoProyecto" required>
+        </div>
+        <div class="campo">
+          <label for="ePresupuesto">Presupuesto estimado</label>
+          <input type="number" id="ePresupuesto" inputmode="numeric">
+        </div>
+        <div class="campo campo-full">
+          <label for="eVendedor">Vendedor asignado</label>
+          <select id="eVendedor">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-error" id="modalEditarError"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn-secundario" id="btnCancelarEditarLead">Cancelar</button>
+        <button type="submit" class="btn-primario" id="btnGuardarEditarLead">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= MODAL: MARCAR GANADO ================= -->
+<div class="modal-overlay" id="modalGanado">
+  <div class="modal-box">
+    <h2>Marcar como ganado</h2>
+    <p class="subtitulo">Primero crea el proyecto en Seguimiento y pega aquí su código.</p>
+
+    <div class="campo campo-full">
+      <label for="inputCodigoProyecto">Código de proyecto (LIN-XXXXX)</label>
+      <input type="text" id="inputCodigoProyecto" placeholder="LIN-00006" autocomplete="off">
+    </div>
+
+    <div class="modal-error" id="ganadoError"></div>
+
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarGanado">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnConfirmarGanado">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: MARCAR PERDIDO ================= -->
+<div class="modal-overlay" id="modalPerdido">
+  <div class="modal-box">
+    <h2>Marcar como perdido</h2>
+    <p class="subtitulo">Deja el motivo para poder analizarlo más adelante.</p>
+
+    <div class="campo campo-full">
+      <label for="inputMotivoPerdido">Motivo</label>
+      <textarea id="inputMotivoPerdido" placeholder="Ej. Eligió otra empresa por precio."></textarea>
+    </div>
+
+    <div class="modal-error" id="perdidoError"></div>
+
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarPerdido">Cancelar</button>
+      <button type="button" class="btn-peligro" id="btnConfirmarPerdido">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= NOTIFICACIONES TOAST ================= -->
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<script type="module" src="js/crm.js?v=20260830d"></script>
 </body>
 </html>
