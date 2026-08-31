@@ -294,18 +294,17 @@
 <div class="modal-overlay" id="modalGanado">
   <div class="modal-box">
     <h2>Marcar como ganado</h2>
-    <p class="subtitulo">Primero crea el proyecto en Seguimiento y pega aquí su código.</p>
-
-    <div class="campo campo-full">
-      <label for="inputCodigoProyecto">Código de proyecto (LIN-XXXXX)</label>
-      <input type="text" id="inputCodigoProyecto" placeholder="LIN-00006" autocomplete="off">
-    </div>
+    <p class="subtitulo">
+      Se creará el proyecto en Seguimiento automáticamente, con el código LIN-XXXXX
+      correspondiente y los datos de este lead. El RUT y la dirección quedan
+      pendientes — los completas después directo en Seguimiento.
+    </p>
 
     <div class="modal-error" id="ganadoError"></div>
 
     <div class="modal-acciones">
       <button type="button" class="btn-secundario" id="btnCancelarGanado">Cancelar</button>
-      <button type="button" class="btn-primario" id="btnConfirmarGanado">Confirmar</button>
+      <button type="button" class="btn-primario" id="btnConfirmarGanado">Crear proyecto y marcar ganado</button>
     </div>
   </div>
 </div>
@@ -333,6 +332,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20260830c"></script>
+<script type="module" src="js/crm.js?v=20260830f"></script>
 </body>
 </html>
