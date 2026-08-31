@@ -10,8 +10,9 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
-  listarUsuariosStaff, eliminarLead
+  listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico
 } from './firestore.js';
+import { generarToken } from './utils.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -110,15 +111,37 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
 
 // ---------- Toast simple ----------
 
+// Estilos en línea a propósito: así el toast nunca depende de que
+// dashboard.css no tenga ya una regla .toast con su propia animación
+// (que es justo lo que estaba pasando antes).
+toastContainer.style.cssText = `
+  position:fixed; top:24px; right:24px; z-index:999999;
+  display:flex; flex-direction:column; gap:8px; pointer-events:none;
+`;
+
 function mostrarToast(mensaje, tipo = 'ok') {
   const el = document.createElement('div');
-  el.className = `toast toast-${tipo}`;
   el.textContent = mensaje;
+  el.style.cssText = `
+    background:${tipo === 'error' ? '#c14b32' : '#141213'};
+    color:#faf7f2;
+    font-family:'Poppins', sans-serif;
+    font-size:13.5px;
+    padding:12px 18px;
+    border-radius:8px;
+    box-shadow:0 10px 26px rgba(20,18,19,0.28);
+    border-left:3px solid #d6a52c;
+    opacity:1;
+    transform:translateY(0);
+    transition:opacity .25s ease, transform .25s ease;
+    pointer-events:auto;
+  `;
   toastContainer.appendChild(el);
 
   setTimeout(() => {
-    el.classList.add('toast-saliendo');
-    setTimeout(() => el.remove(), 250);
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-6px)';
+    setTimeout(() => el.remove(), 300);
   }, 7000);
 }
 
@@ -504,7 +527,6 @@ formEditarLead.addEventListener('submit', async (e) => {
 const modalGanado = document.getElementById('modalGanado');
 
 document.getElementById('btnMarcarGanado').addEventListener('click', () => {
-  document.getElementById('inputCodigoProyecto').value = '';
   document.getElementById('ganadoError').textContent = '';
   modalGanado.classList.add('visible');
 });
@@ -512,26 +534,61 @@ document.getElementById('btnCancelarGanado').addEventListener('click', () => {
   modalGanado.classList.remove('visible');
 });
 
+/**
+ * Arma el objeto de un proyecto nuevo a partir de un lead, con el mismo
+ * formato que usa el formulario manual "Nuevo proyecto" de Seguimiento
+ * (mismos nombres de campo, mismas mayúsculas). RUT y dirección quedan
+ * vacíos a propósito: se completan después directo en Seguimiento.
+ */
+function armarProyectoDesdeLead(lead) {
+  return {
+    cliente: (lead.nombre || '').toUpperCase(),
+    rut: '',
+    telefono: lead.telefono || '',
+    email: (lead.email || '').toUpperCase(),
+    tipoProyecto: (lead.tipoProyecto || '').toUpperCase(),
+    categoria: 'Bronce',
+    cantidadProyectosCliente: 1,
+    responsable: lead.vendedorAsignado || STAFF_ACTUAL.uid,
+    direccion: { region: '', comuna: '', calle: '', numero: '', depto: '', sector: '', indicaciones: '' },
+    fechaEstimadaInicio: null,
+    fechaEstimadaFin: null,
+    canalOrigen: lead.canalOrigen || '',
+    numCotizacion: '',
+    codigoCotizacion: '',
+    observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',
+    token: generarToken()
+  };
+}
+
 document.getElementById('btnConfirmarGanado').addEventListener('click', async () => {
   const errorEl = document.getElementById('ganadoError');
-  const codigo = document.getElementById('inputCodigoProyecto').value.trim().toUpperCase();
+  const btn = document.getElementById('btnConfirmarGanado');
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  if (!lead) return;
 
-  if (!/^LIN-\d{4,5}$/.test(codigo)) {
-    errorEl.textContent = 'Ingresa un código válido, ej. LIN-00006.';
-    return;
-  }
+  errorEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = 'Creando…';
 
   try {
+    const datosProyecto = armarProyectoDesdeLead(lead);
+    const codigo = await crearProyectoConCodigoAutomatico(datosProyecto, STAFF_ACTUAL.uid);
     await marcarLeadGanado(leadSeleccionadoId, codigo);
+
     modalGanado.classList.remove('visible');
     vistaDetalleLead.style.display = 'none';
     vistaKanban.style.display = '';
-    mostrarToast('Lead marcado como ganado.');
+    mostrarToast(`Proyecto ${codigo} creado. Lead marcado como ganado.`);
   } catch (err) {
     console.error(err);
-    errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+    errorEl.textContent = 'No se pudo crear el proyecto. Intenta de nuevo.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Crear proyecto y marcar ganado';
   }
 });
+
 
 // ---------- Modal: marcar perdido ----------
 
