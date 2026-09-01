@@ -36,6 +36,35 @@ const CANALES = {
 
 const DIAS_ALERTA_SIN_CONTACTO = 3;
 
+/** Igual que en dashboard.js: arma el código visible, ej. CT-WSP-00004. */
+function construirCodigoCotizacion(numero, prefijoCanal) {
+  if (!numero || !prefijoCanal) return '';
+  return `CT-${prefijoCanal}-${numero.padStart(5, '0')}`;
+}
+
+function actualizarPreviewCotizacion(prefijo) {
+  const numInput = document.getElementById(prefijo + 'NumCotizacion');
+  const canalSelect = document.getElementById(prefijo + 'Canal');
+  const preview = document.getElementById(prefijo + 'CotizacionPreview');
+  if (!numInput || !canalSelect || !preview) return;
+  const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
+  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: CT-XXX-00000';
+}
+
+function activarSoloDigitosCotizacion(inputEl) {
+  inputEl.addEventListener('input', () => {
+    inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 6);
+  });
+}
+
+['l', 'e'].forEach(prefijo => {
+  const numInput = document.getElementById(prefijo + 'NumCotizacion');
+  const canalSelect = document.getElementById(prefijo + 'Canal');
+  activarSoloDigitosCotizacion(numInput);
+  numInput.addEventListener('input', () => actualizarPreviewCotizacion(prefijo));
+  canalSelect.addEventListener('change', () => actualizarPreviewCotizacion(prefijo));
+});
+
 // ---------- Estado ----------
 
 let STAFF_ACTUAL = null;
@@ -282,6 +311,8 @@ function abrirDetalleLead(id) {
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
   document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(lead.presupuestoEstimado);
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
+  document.getElementById('detalleNumCotizacion').textContent =
+    construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen) || (lead.numCotizacion || '—');
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
   document.getElementById('detalleEmail').textContent = lead.email || '—';
 
@@ -426,6 +457,7 @@ const formNuevoLead = document.getElementById('formNuevoLead');
 document.getElementById('btnNuevoLead').addEventListener('click', () => {
   formNuevoLead.reset();
   document.getElementById('modalLeadError').textContent = '';
+  document.getElementById('lCotizacionPreview').textContent = 'Se verá como: CT-XXX-00000';
   modalNuevoLead.classList.add('visible');
 });
 document.getElementById('btnCancelarNuevoLead').addEventListener('click', () => {
@@ -446,6 +478,7 @@ formNuevoLead.addEventListener('submit', async (e) => {
     presupuestoEstimado: document.getElementById('lPresupuesto').value
       ? Number(document.getElementById('lPresupuesto').value) : null,
     vendedorAsignado: document.getElementById('lVendedor').value || null,
+    numCotizacion: document.getElementById('lNumCotizacion').value.trim(),
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
     creadoPorNombre: STAFF_ACTUAL?.nombre || ''
   };
@@ -481,6 +514,8 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
   document.getElementById('ePresupuesto').value = lead.presupuestoEstimado ?? '';
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
+  document.getElementById('eNumCotizacion').value = lead.numCotizacion || '';
+  actualizarPreviewCotizacion('e');
   document.getElementById('modalEditarError').textContent = '';
 
   modalEditarLead.classList.add('visible');
@@ -503,7 +538,8 @@ formEditarLead.addEventListener('submit', async (e) => {
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('ePresupuesto').value
       ? Number(document.getElementById('ePresupuesto').value) : null,
-    vendedorAsignado: document.getElementById('eVendedor').value || null
+    vendedorAsignado: document.getElementById('eVendedor').value || null,
+    numCotizacion: document.getElementById('eNumCotizacion').value.trim()
   };
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
@@ -566,8 +602,8 @@ function armarProyectoDesdeLead(lead) {
     fechaEstimadaInicio: null,
     fechaEstimadaFin: null,
     canalOrigen: lead.canalOrigen || '',
-    numCotizacion: '',
-    codigoCotizacion: '',
+    numCotizacion: lead.numCotizacion || '',
+    codigoCotizacion: construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen),
     observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',
     token: generarToken()
   };
