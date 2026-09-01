@@ -65,6 +65,45 @@ function activarSoloDigitosCotizacion(inputEl) {
   canalSelect.addEventListener('change', () => actualizarPreviewCotizacion(prefijo));
 });
 
+// ---------- Formato de teléfono chileno (+56 9 XXXXXXXX) ----------
+// Se aplica también en Seguimiento (dashboard.js) para que ambos
+// formularios guarden el teléfono siempre en el mismo formato.
+
+function formatearTelefonoChile(valor) {
+  let digitos = (valor || '').replace(/\D/g, '');
+  if (digitos.startsWith('56')) digitos = digitos.slice(2);
+  if (digitos.startsWith('9')) digitos = digitos.slice(1);
+  digitos = digitos.slice(0, 8);
+  return digitos ? `+56 9 ${digitos}` : '';
+}
+
+function activarFormatoTelefono(inputEl) {
+  inputEl.addEventListener('input', () => {
+    inputEl.value = formatearTelefonoChile(inputEl.value);
+  });
+}
+
+function telefonoValido(valor) {
+  if (!valor) return true; // el campo es opcional
+  return /^\+56 9 \d{8}$/.test(valor);
+}
+
+// ---------- Formato de presupuesto con separador de miles ----------
+
+function formatearMilesInput(valor) {
+  const limpio = (valor || '').replace(/\D/g, '');
+  return limpio ? Number(limpio).toLocaleString('es-CL') : '';
+}
+
+function activarFormatoMiles(inputEl) {
+  inputEl.addEventListener('input', () => {
+    inputEl.value = formatearMilesInput(inputEl.value);
+  });
+}
+
+['lTelefono', 'eTelefono'].forEach(id => activarFormatoTelefono(document.getElementById(id)));
+['lPresupuesto', 'ePresupuesto'].forEach(id => activarFormatoMiles(document.getElementById(id)));
+
 // ---------- Estado ----------
 
 let STAFF_ACTUAL = null;
@@ -479,7 +518,7 @@ formNuevoLead.addEventListener('submit', async (e) => {
     canalOrigen: document.getElementById('lCanal').value,
     tipoProyecto: document.getElementById('lTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('lPresupuesto').value
-      ? Number(document.getElementById('lPresupuesto').value) : null,
+      ? Number(document.getElementById('lPresupuesto').value.replace(/\D/g, '')) : null,
     vendedorAsignado: document.getElementById('lVendedor').value || null,
     numCotizacion: document.getElementById('lNumCotizacion').value.trim(),
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
@@ -494,6 +533,12 @@ formNuevoLead.addEventListener('submit', async (e) => {
 
   if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
     errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  if (!telefonoValido(datos.telefono)) {
+    errorEl.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
     errorEl.classList.add('visible');
     return;
   }
@@ -550,7 +595,7 @@ formEditarLead.addEventListener('submit', async (e) => {
     canalOrigen: document.getElementById('eCanal').value,
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('ePresupuesto').value
-      ? Number(document.getElementById('ePresupuesto').value) : null,
+      ? Number(document.getElementById('ePresupuesto').value.replace(/\D/g, '')) : null,
     vendedorAsignado: document.getElementById('eVendedor').value || null,
     numCotizacion: document.getElementById('eNumCotizacion').value.trim()
   };
@@ -563,6 +608,12 @@ formEditarLead.addEventListener('submit', async (e) => {
 
   if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
     errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  if (!telefonoValido(datos.telefono)) {
+    errorEl.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
     errorEl.classList.add('visible');
     return;
   }
