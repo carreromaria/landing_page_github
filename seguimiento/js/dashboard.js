@@ -8,7 +8,8 @@ import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
-  listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut
+  listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut,
+  actualizarLead
 } from './firestore.js';
 import { REGIONES_COMUNAS, comunasDeRegion, formatearDireccion } from './regiones-comunas.js';
 import { validarFoto, subirFoto, validarVideo, subirVideo, eliminarFotoStorage, eliminarTodasLasFotos } from './storage.js';
@@ -958,6 +959,29 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     document.getElementById('detalleCliente').textContent = datos.cliente || 'Sin nombre';
     document.getElementById('detalleTipo').textContent = datos.tipoProyecto || '';
     renderDetalle(PROYECTO_ACTUAL, ultimoHistorialCargado);
+
+    // Si este proyecto viene de un lead del CRM, le pasamos los mismos
+    // cambios para que ambos lados queden sincronizados. Si falla (por
+    // ejemplo el lead ya no existe), no bloquea el guardado del proyecto:
+    // solo se avisa en consola.
+    if (PROYECTO_ACTUAL.leadOrigenId) {
+      try {
+        const staffPorNombre = USUARIOS_STAFF.find(u => (u.nombre || u.email) === datos.responsable);
+        const camposLead = {
+          nombre: datos.cliente,
+          telefono: datos.telefono,
+          email: datos.email,
+          canalOrigen: datos.canalOrigen,
+          tipoProyecto: datos.tipoProyecto,
+          numCotizacion: datos.numCotizacion
+        };
+        if (staffPorNombre) camposLead.vendedorAsignado = staffPorNombre.uid;
+        await actualizarLead(PROYECTO_ACTUAL.leadOrigenId, camposLead);
+      } catch (errSync) {
+        console.error('No pudimos sincronizar el lead vinculado:', errSync);
+      }
+    }
+
     mostrarToast('Datos del proyecto guardados', 'exito');
     btn.textContent = '¡Guardado!';
     setTimeout(() => { btn.textContent = 'Guardar cambios'; btn.disabled = false; }, 1500);
