@@ -39,6 +39,31 @@ function limpiarRut(valor) {
   return (valor || '').trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, '');
 }
 
+/** Formatea un teléfono chileno mientras se escribe: siempre +56 9 XXXXXXXX. */
+function formatearTelefonoChile(valor) {
+  let digitos = (valor || '').replace(/\D/g, '');
+  if (digitos.startsWith('56')) digitos = digitos.slice(2);
+  if (digitos.startsWith('9')) digitos = digitos.slice(1);
+  digitos = digitos.slice(0, 8);
+  return digitos ? `+56 9 ${digitos}` : '';
+}
+
+function activarFormatoTelefono(inputEl) {
+  if (!inputEl) return;
+  inputEl.addEventListener('input', () => {
+    inputEl.value = formatearTelefonoChile(inputEl.value);
+  });
+}
+
+/** Válido si está vacío (el campo es opcional) o calza con +56 9 XXXXXXXX. */
+function telefonoValido(valor) {
+  if (!valor) return true;
+  return /^\+56 9 \d{8}$/.test(valor);
+}
+
+activarFormatoTelefono(document.getElementById('fTelefono'));
+activarFormatoTelefono(document.getElementById('eTelefono'));
+
 /** Valida un RUT chileno (formato NUMERO-DV) usando el algoritmo módulo 11. */
 function validarRut(rutLimpio) {
   if (!/^\d{7,8}-[\dK]$/.test(rutLimpio)) return false;
@@ -506,8 +531,8 @@ formNuevo.addEventListener('submit', async (e) => {
   const canalOrigen = document.getElementById('fCanal').value;
   const numCotizacion = document.getElementById('fNumCotizacion').value.trim();
 
-  if (telefono && !/^[\d\s()+-]+$/.test(telefono)) {
-    modalError.textContent = 'El teléfono solo puede contener números (y +, espacios o guiones).';
+  if (!telefonoValido(telefono)) {
+    modalError.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
     modalError.classList.add('visible');
     return;
   }
@@ -875,8 +900,8 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
   const btn = document.getElementById('btnGuardarEdicion');
 
   const telefono = document.getElementById('eTelefono').value.trim();
-  if (telefono && !/^[\d\s()+-]+$/.test(telefono)) {
-    errorBox.textContent = 'El teléfono solo puede contener números (y +, espacios o guiones).';
+  if (!telefonoValido(telefono)) {
+    errorBox.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
     errorBox.classList.add('visible');
     return;
   }
