@@ -540,6 +540,18 @@ document.getElementById('btnCancelarGanado').addEventListener('click', () => {
  * (mismos nombres de campo, mismas mayúsculas). RUT y dirección quedan
  * vacíos a propósito: se completan después directo en Seguimiento.
  */
+/**
+ * Seguimiento guarda "responsable" como el NOMBRE del staff (no su uid;
+ * ver poblarSelectResponsable en dashboard.js). El CRM en cambio guarda
+ * vendedorAsignado como uid (lo necesita para el select y los filtros).
+ * Esta función traduce uid → nombre antes de crear el proyecto.
+ */
+function nombreResponsableDesdeLead(lead) {
+  const staff = usuariosStaff.find(u => u.uid === lead.vendedorAsignado);
+  if (staff) return staff.nombre || staff.email || '';
+  return STAFF_ACTUAL.nombre || STAFF_ACTUAL.email || '';
+}
+
 function armarProyectoDesdeLead(lead) {
   return {
     cliente: (lead.nombre || '').toUpperCase(),
@@ -549,7 +561,7 @@ function armarProyectoDesdeLead(lead) {
     tipoProyecto: (lead.tipoProyecto || '').toUpperCase(),
     categoria: 'Bronce',
     cantidadProyectosCliente: 1,
-    responsable: lead.vendedorAsignado || STAFF_ACTUAL.uid,
+    responsable: nombreResponsableDesdeLead(lead),
     direccion: { region: '', comuna: '', calle: '', numero: '', depto: '', sector: '', indicaciones: '' },
     fechaEstimadaInicio: null,
     fechaEstimadaFin: null,
