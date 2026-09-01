@@ -338,6 +338,7 @@ function abrirDetalleLead(id) {
   document.getElementById('pasoDosEliminarLead').style.display = 'none';
   document.getElementById('inputConfirmacionNombreLead').value = '';
   document.getElementById('eliminarLeadError').textContent = '';
+  document.getElementById('eliminarLeadError').classList.remove('visible');
   document.getElementById('btnConfirmarEliminacionLead').disabled = true;
 
   renderNotas(lead.notas || []);
@@ -457,6 +458,7 @@ const formNuevoLead = document.getElementById('formNuevoLead');
 document.getElementById('btnNuevoLead').addEventListener('click', () => {
   formNuevoLead.reset();
   document.getElementById('modalLeadError').textContent = '';
+  document.getElementById('modalLeadError').classList.remove('visible');
   document.getElementById('lCotizacionPreview').textContent = 'Se verá como: CT-XXX-00000';
   modalNuevoLead.classList.add('visible');
 });
@@ -468,6 +470,7 @@ formNuevoLead.addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById('modalLeadError');
   errorEl.textContent = '';
+  errorEl.classList.remove('visible');
 
   const datos = {
     nombre: document.getElementById('lNombre').value.trim(),
@@ -485,11 +488,13 @@ formNuevoLead.addEventListener('submit', async (e) => {
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
     errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    errorEl.classList.add('visible');
     return;
   }
 
   if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
     errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
+    errorEl.classList.add('visible');
     return;
   }
 
@@ -500,6 +505,7 @@ formNuevoLead.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo crear el lead. Intenta de nuevo.';
+    errorEl.classList.add('visible');
   }
 });
 
@@ -522,6 +528,7 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   document.getElementById('eNumCotizacion').value = lead.numCotizacion || '';
   actualizarPreviewCotizacion('e');
   document.getElementById('modalEditarError').textContent = '';
+  document.getElementById('modalEditarError').classList.remove('visible');
 
   modalEditarLead.classList.add('visible');
 });
@@ -534,6 +541,7 @@ formEditarLead.addEventListener('submit', async (e) => {
   e.preventDefault();
   const errorEl = document.getElementById('modalEditarError');
   errorEl.textContent = '';
+  errorEl.classList.remove('visible');
 
   const datos = {
     nombre: document.getElementById('eNombre').value.trim(),
@@ -549,11 +557,13 @@ formEditarLead.addEventListener('submit', async (e) => {
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
     errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    errorEl.classList.add('visible');
     return;
   }
 
   if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
     errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
+    errorEl.classList.add('visible');
     return;
   }
 
@@ -565,6 +575,7 @@ formEditarLead.addEventListener('submit', async (e) => {
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+    errorEl.classList.add('visible');
   }
 });
 
@@ -574,6 +585,7 @@ const modalGanado = document.getElementById('modalGanado');
 
 document.getElementById('btnMarcarGanado').addEventListener('click', () => {
   document.getElementById('ganadoError').textContent = '';
+  document.getElementById('ganadoError').classList.remove('visible');
   modalGanado.classList.add('visible');
 });
 document.getElementById('btnCancelarGanado').addEventListener('click', () => {
@@ -626,6 +638,7 @@ document.getElementById('btnConfirmarGanado').addEventListener('click', async ()
   if (!lead) return;
 
   errorEl.textContent = '';
+  errorEl.classList.remove('visible');
   btn.disabled = true;
   btn.textContent = 'Creando…';
 
@@ -641,6 +654,7 @@ document.getElementById('btnConfirmarGanado').addEventListener('click', async ()
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo crear el proyecto. Intenta de nuevo.';
+    errorEl.classList.add('visible');
   } finally {
     btn.disabled = false;
     btn.textContent = 'Crear proyecto y marcar ganado';
@@ -655,6 +669,7 @@ const modalPerdido = document.getElementById('modalPerdido');
 document.getElementById('btnMarcarPerdido').addEventListener('click', () => {
   document.getElementById('inputMotivoPerdido').value = '';
   document.getElementById('perdidoError').textContent = '';
+  document.getElementById('perdidoError').classList.remove('visible');
   modalPerdido.classList.add('visible');
 });
 document.getElementById('btnCancelarPerdido').addEventListener('click', () => {
@@ -667,6 +682,7 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
 
   if (!motivo) {
     errorEl.textContent = 'Cuéntanos brevemente el motivo.';
+    errorEl.classList.add('visible');
     return;
   }
 
@@ -679,6 +695,7 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+    errorEl.classList.add('visible');
   }
 });
 
@@ -711,5 +728,6 @@ document.getElementById('btnConfirmarEliminacionLead').addEventListener('click',
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo eliminar. Verifica que tengas permisos de administrador.';
+    errorEl.classList.add('visible');
   }
 });
