@@ -10,7 +10,8 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
-  listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico
+  listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
+  actualizarProyecto
 } from './firestore.js';
 import { generarToken } from './utils.js';
 
@@ -620,9 +621,36 @@ formEditarLead.addEventListener('submit', async (e) => {
 
   try {
     await actualizarLead(leadSeleccionadoId, datos);
+
+    // Si este lead ya está vinculado a un proyecto en Seguimiento, le
+    // pasamos los mismos cambios para que ambos lados queden sincronizados.
+    // Si falla (por ejemplo el proyecto ya no existe), no bloquea el
+    // guardado del lead: solo se avisa en consola.
+    const leadActual = leadsActuales.find(l => l.id === leadSeleccionadoId);
+    let sincronizado = false;
+    if (leadActual?.proyectoVinculado) {
+      try {
+        await actualizarProyecto(leadActual.proyectoVinculado, {
+          cliente: datos.nombre.toUpperCase(),
+          telefono: datos.telefono,
+          email: datos.email.toUpperCase(),
+          canalOrigen: datos.canalOrigen,
+          tipoProyecto: datos.tipoProyecto.toUpperCase(),
+          numCotizacion: datos.numCotizacion,
+          codigoCotizacion: construirCodigoCotizacion(datos.numCotizacion, datos.canalOrigen),
+          responsable: nombreResponsableDesdeLead({ ...leadActual, vendedorAsignado: datos.vendedorAsignado })
+        });
+        sincronizado = true;
+      } catch (errSync) {
+        console.error('No pudimos sincronizar el proyecto vinculado:', errSync);
+      }
+    }
+
     modalEditarLead.classList.remove('visible');
     abrirDetalleLead(leadSeleccionadoId);
-    mostrarToast('Datos actualizados.');
+    mostrarToast(sincronizado
+      ? `Datos actualizados. Proyecto ${leadActual.proyectoVinculado} sincronizado.`
+      : 'Datos actualizados.');
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
@@ -678,7 +706,8 @@ function armarProyectoDesdeLead(lead) {
     numCotizacion: lead.numCotizacion || '',
     codigoCotizacion: construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen),
     observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',
-    token: generarToken()
+    token: generarToken(),
+    leadOrigenId: lead.id
   };
 }
 
