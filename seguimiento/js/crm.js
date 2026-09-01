@@ -26,12 +26,12 @@ const ETAPAS = [
 ];
 
 const CANALES = {
-  INS: "Instagram",
-  FAC: "Facebook",
-  TIK: "TikTok",
-  WSP: "WhatsApp",
-  REF: "Formulario web",
-  PRS: "Showroom"
+  REF: "LANDING PAGE-REF",
+  SWR: "SHOWROOM-SWR",
+  WSP: "WHATSAPP-WSP",
+  INS: "INSTAGRAM-INS",
+  FAC: "FACEBOOK-FAC",
+  TIK: "TIKTOK-TIK"
 };
 
 const DIAS_ALERTA_SIN_CONTACTO = 3;
@@ -53,7 +53,7 @@ function actualizarPreviewCotizacion(prefijo) {
 
 function activarSoloDigitosCotizacion(inputEl) {
   inputEl.addEventListener('input', () => {
-    inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 6);
+    inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 5);
   });
 }
 
@@ -488,6 +488,11 @@ formNuevoLead.addEventListener('submit', async (e) => {
     return;
   }
 
+  if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
+    errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
+    return;
+  }
+
   try {
     await crearLead(datos, STAFF_ACTUAL.uid);
     modalNuevoLead.classList.remove('visible');
@@ -544,6 +549,11 @@ formEditarLead.addEventListener('submit', async (e) => {
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
     errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    return;
+  }
+
+  if (datos.numCotizacion && datos.numCotizacion.length !== 5) {
+    errorEl.textContent = 'El N° de cotización debe tener exactamente 5 dígitos.';
     return;
   }
 
