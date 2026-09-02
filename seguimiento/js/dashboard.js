@@ -798,6 +798,7 @@ function renderDetalle(p, historial) {
     let clase = '';
     if (e.index < p.etapaActualIndex) clase = 'completada';
     if (e.index === p.etapaActualIndex) clase = 'actual';
+    if (e.index === p.etapaActualIndex && p.estadoEtapaActual === 'completada') clase = 'completada';
     return `<li class="${clase}">${e.nombre}</li>`;
   }).join('');
 
