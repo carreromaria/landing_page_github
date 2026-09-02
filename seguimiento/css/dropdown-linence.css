@@ -1,0 +1,170 @@
+/* ============================================================
+   LINENCE — Componente Dropdown reutilizable
+   Guardar en: css/dropdown-linence.css
+
+   Mismo look & feel que el dropdown "Cambiar etapa" del CRM,
+   ahora como componente genérico namespaced ("ln-dropdown-*")
+   para usar en cualquier módulo (CRM, Seguimiento, futuros).
+   Requiere las variables de css/variables.css (--ink, --gold,
+   --gold-line, --sand-soft, etc.), igual que crm.css.
+   ============================================================ */
+
+.ln-dropdown{
+  position:relative;
+  display:inline-block;
+}
+
+.ln-dropdown--full{
+  display:block;
+  width:100%;
+}
+
+/* El <select> original queda funcional (sigue guardando el valor
+   y emitiendo 'change') pero oculto visualmente — así el resto
+   del código que lo lee no se entera del cambio. */
+.ln-dropdown-select-fuente{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+.ln-dropdown-trigger{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  font-family:'Poppins', sans-serif;
+  font-size:13px;
+  color:var(--ink);
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.18);
+  border-radius:20px;
+  padding:9px 16px;
+  cursor:pointer;
+}
+
+.ln-dropdown:not(.ln-dropdown--full) .ln-dropdown-trigger{
+  min-width:190px;
+}
+
+.ln-dropdown-trigger:hover{
+  border-color:var(--gold-line);
+}
+
+.ln-dropdown-trigger:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:2px;
+}
+
+.ln-dropdown-valor{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.ln-dropdown-trigger.ln-dropdown-placeholder .ln-dropdown-valor{
+  color:rgba(20,18,19,0.45);
+}
+
+.ln-dropdown-flecha{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0.6;
+  flex-shrink:0;
+  transition:transform .15s ease;
+}
+
+.ln-dropdown.abierto .ln-dropdown-flecha{
+  transform:rotate(180deg);
+}
+
+.ln-dropdown-lista{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  right:0;
+  min-width:190px;
+  max-height:260px;
+  overflow-y:auto;
+  background:#fff;
+  border:1px solid rgba(20,18,19,0.12);
+  border-radius:12px;
+  box-shadow:0 14px 30px rgba(20,18,19,0.16);
+  padding:6px;
+  list-style:none;
+  z-index:30;
+}
+
+/* En los dropdowns de ancho 'auto' (filtros, cambiar etapa) la lista
+   se alinea a la derecha del trigger, no se estira a lo ancho. */
+.ln-dropdown:not(.ln-dropdown--full) .ln-dropdown-lista{
+  left:auto;
+  right:0;
+}
+
+.ln-dropdown-lista[hidden]{
+  display:none;
+}
+
+.ln-dropdown-lista li{
+  padding:9px 12px;
+  border-radius:8px;
+  font-size:13px;
+  color:var(--ink);
+  cursor:pointer;
+}
+
+.ln-dropdown-lista li:hover,
+.ln-dropdown-lista li.resaltada{
+  background:var(--sand-soft);
+}
+
+.ln-dropdown-lista li.seleccionado{
+  background:var(--gold);
+  color:var(--ink);
+  font-weight:500;
+}
+
+.ln-dropdown-lista li.deshabilitada{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+.ln-dropdown-lista li.deshabilitada:hover{
+  background:transparent;
+}
+
+.ln-dropdown-lista li.ln-dropdown-estado{
+  opacity:0.55;
+  cursor:default;
+}
+
+.ln-dropdown-lista li.ln-dropdown-estado:hover{
+  background:transparent;
+}
+
+/* ---------- Estado deshabilitado ---------- */
+/* Se activa solo (vía MutationObserver) cuando el <select> original
+   pasa a disabled=true — por ejemplo "Comuna" antes de elegir Región. */
+
+.ln-dropdown--deshabilitado .ln-dropdown-trigger{
+  opacity:0.5;
+  cursor:not-allowed;
+  pointer-events:none;
+}
+
+/* ---------- Estado de error (validación) ---------- */
+/* Para usar junto a la validación de formularios, ej:
+   document.getElementById('lCanal')._lnDropdown.marcarError(true) */
+
+.ln-dropdown--error .ln-dropdown-trigger{
+  border-color:#c14b32;
+}
