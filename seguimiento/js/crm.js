@@ -15,6 +15,7 @@ import {
 } from './firestore.js';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
+import { mejorarSelect } from './components/dropdown-linence.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -223,6 +224,18 @@ const filtroCanal = document.getElementById('filtroCanal');
 const filtroVendedor = document.getElementById('filtroVendedor');
 
 const toastContainer = document.getElementById('toastContainer');
+
+// ---------- Dropdown estándar Linence ----------
+// Mismo componente visual/de teclado que "Cambiar etapa". El <select>
+// original de cada campo sigue existiendo (oculto) y sigue funcionando
+// exactamente igual para el resto de este archivo: se puede seguir
+// leyendo `.value`, asignándolo directo, o escuchando 'change'/'input'.
+
+mejorarSelect('#filtroCanal', { ancho: 'auto' });
+mejorarSelect('#filtroVendedor', { ancho: 'auto' });
+
+['lRegion', 'lComuna', 'lCanal', 'lVendedor', 'eRegion', 'eComuna', 'eCanal', 'eVendedor']
+  .forEach(id => mejorarSelect('#' + id));
 
 // ---------- Guardia de sesión (mismo patrón que dashboard.html) ----------
 
