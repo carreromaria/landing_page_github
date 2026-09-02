@@ -184,7 +184,7 @@
     <form id="formNuevoLead">
       <div class="form-grid">
         <div class="campo campo-full">
-          <label for="lNombre">Nombre</label>
+          <label for="lNombre">Nombre *</label>
           <input type="text" id="lNombre" required>
         </div>
         <div class="campo">
@@ -195,8 +195,49 @@
           <label for="lEmail">Correo electrónico</label>
           <input type="email" id="lEmail">
         </div>
+
+        <p class="form-section-title campo-full">Dirección (opcional, si el cliente la facilita)</p>
         <div class="campo">
-          <label for="lCanal">Canal de origen</label>
+          <label for="lRut">RUT</label>
+          <input type="text" id="lRut" placeholder="12.345.678-9" autocomplete="off">
+        </div>
+        <div class="campo"></div>
+        <div class="campo">
+          <label for="lRegion">Región</label>
+          <select id="lRegion">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="lComuna">Comuna</label>
+          <select id="lComuna" disabled>
+            <option value="">Primero selecciona una región…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="lCalle">Calle / Avenida / Pasaje</label>
+          <input type="text" id="lCalle">
+        </div>
+        <div class="campo">
+          <label for="lNumero">Número</label>
+          <input type="text" id="lNumero">
+        </div>
+        <div class="campo">
+          <label for="lDepto">Depto / Oficina / Casa</label>
+          <input type="text" id="lDepto" placeholder="Opcional">
+        </div>
+        <div class="campo">
+          <label for="lSector">Sector / Población / Villa</label>
+          <input type="text" id="lSector" placeholder="Opcional">
+        </div>
+        <div class="campo campo-full">
+          <label for="lIndicaciones">Indicaciones adicionales</label>
+          <textarea id="lIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+        </div>
+
+        <p class="form-section-title campo-full">Datos del proyecto</p>
+        <div class="campo">
+          <label for="lCanal">Canal de origen *</label>
           <select id="lCanal" required>
             <option value="">Selecciona…</option>
             <option value="REF">LANDING PAGE-REF</option>
@@ -208,7 +249,7 @@
           </select>
         </div>
         <div class="campo">
-          <label for="lTipoProyecto">Tipo de proyecto</label>
+          <label for="lTipoProyecto">Tipo de proyecto *</label>
           <input type="text" id="lTipoProyecto" placeholder="Ej. Cocina moderna" required>
         </div>
         <div class="campo">
@@ -251,7 +292,7 @@
     <form id="formEditarLead">
       <div class="form-grid">
         <div class="campo campo-full">
-          <label for="eNombre">Nombre</label>
+          <label for="eNombre">Nombre *</label>
           <input type="text" id="eNombre" required>
         </div>
         <div class="campo">
@@ -262,8 +303,49 @@
           <label for="eEmail">Correo electrónico</label>
           <input type="email" id="eEmail">
         </div>
+
+        <p class="form-section-title campo-full">Dirección (opcional, si el cliente la facilita)</p>
         <div class="campo">
-          <label for="eCanal">Canal de origen</label>
+          <label for="eRut">RUT</label>
+          <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
+        </div>
+        <div class="campo"></div>
+        <div class="campo">
+          <label for="eRegion">Región</label>
+          <select id="eRegion">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="eComuna">Comuna</label>
+          <select id="eComuna" disabled>
+            <option value="">Primero selecciona una región…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="eCalle">Calle / Avenida / Pasaje</label>
+          <input type="text" id="eCalle">
+        </div>
+        <div class="campo">
+          <label for="eNumero">Número</label>
+          <input type="text" id="eNumero">
+        </div>
+        <div class="campo">
+          <label for="eDepto">Depto / Oficina / Casa</label>
+          <input type="text" id="eDepto" placeholder="Opcional">
+        </div>
+        <div class="campo">
+          <label for="eSector">Sector / Población / Villa</label>
+          <input type="text" id="eSector" placeholder="Opcional">
+        </div>
+        <div class="campo campo-full">
+          <label for="eIndicaciones">Indicaciones adicionales</label>
+          <textarea id="eIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+        </div>
+
+        <p class="form-section-title campo-full">Datos del proyecto</p>
+        <div class="campo">
+          <label for="eCanal">Canal de origen *</label>
           <select id="eCanal" required>
             <option value="REF">LANDING PAGE-REF</option>
             <option value="SWR">SHOWROOM-SWR</option>
@@ -274,7 +356,7 @@
           </select>
         </div>
         <div class="campo">
-          <label for="eTipoProyecto">Tipo de proyecto</label>
+          <label for="eTipoProyecto">Tipo de proyecto *</label>
           <input type="text" id="eTipoProyecto" required>
         </div>
         <div class="campo">
@@ -346,6 +428,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20260830l"></script>
+<script type="module" src="js/crm.js?v=20260830m"></script>
 </body>
 </html>
