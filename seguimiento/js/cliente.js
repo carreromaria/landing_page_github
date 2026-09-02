@@ -208,6 +208,10 @@ function renderTimeline(p, historial){
     let estadoClase = 'pendiente';
     if (e.index < p.etapaActualIndex) estadoClase = 'completada';
     if (e.index === p.etapaActualIndex) estadoClase = 'actual';
+    // Última etapa: no hay "siguiente" a la que saltar, así que se queda
+    // en el mismo índice. Si su estado es "completada", se pinta igual
+    // que las demás etapas completadas (círculo amarillo con ✓).
+    if (e.index === p.etapaActualIndex && p.estadoEtapaActual === 'completada') estadoClase = 'completada';
 
     const registro = historial.find(h => h.etapaNombre === e.nombre);
     const fecha = registro ? formatearFecha(registro.fecha, true) : '';
