@@ -971,6 +971,8 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
           nombre: datos.cliente,
           telefono: datos.telefono,
           email: datos.email,
+          rut: datos.rut,
+          direccion: datos.direccion,
           canalOrigen: datos.canalOrigen,
           tipoProyecto: datos.tipoProyecto,
           numCotizacion: datos.numCotizacion
