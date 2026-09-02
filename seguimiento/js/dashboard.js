@@ -17,6 +17,7 @@ import { notificarCambioEtapa } from './emailjs.js';
 import { generarEnlaceWhatsappManual, generarEnlaceWhatsappBienvenida } from './whatsapp.js';
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
+import { mejorarSelect } from './components/dropdown-linence.js';
 
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
@@ -202,6 +203,19 @@ function poblarSelectRegion(prefijo) {
 }
 poblarSelectRegion('f');
 poblarSelectRegion('e');
+
+// ---------- Dropdown estándar Linence ----------
+// Mismo componente visual/de teclado que "Cambiar etapa" en el CRM.
+// Los <select> originales siguen existiendo (ocultos) y siguen
+// funcionando igual para el resto de este archivo: se puede seguir
+// leyendo `.value`, asignándolo directo, o escuchando 'change'/'input'.
+
+mejorarSelect('#filtroEstado', { ancho: 'auto' });
+
+[
+  'eDireccionesPrevias', 'eRegion', 'eComuna', 'eResponsable', 'eCanal',
+  'fDireccionesPrevias', 'fRegion', 'fComuna', 'fResponsable', 'fCanal'
+].forEach(id => mejorarSelect('#' + id));
 
 /** Llena el <select> de comuna según la región elegida; lo deja deshabilitado si no hay región. */
 function poblarSelectComuna(prefijo, regionSeleccionada, comunaAMarcar) {
