@@ -11,9 +11,10 @@ import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
-  actualizarProyecto
+  actualizarProyecto, contarProyectosPorRut
 } from './firestore.js';
 import { generarToken } from './utils.js';
+import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -104,6 +105,79 @@ function activarFormatoMiles(inputEl) {
 
 ['lTelefono', 'eTelefono'].forEach(id => activarFormatoTelefono(document.getElementById(id)));
 ['lPresupuesto', 'ePresupuesto'].forEach(id => activarFormatoMiles(document.getElementById(id)));
+
+// ---------- RUT (mismo algoritmo que dashboard.js, para que valide igual) ----------
+
+function limpiarRut(valor) {
+  return (valor || '').trim().toUpperCase().replace(/\./g, '').replace(/\s+/g, '');
+}
+
+function validarRut(rutLimpio) {
+  if (!/^\d{7,8}-[\dK]$/.test(rutLimpio)) return false;
+  const [numero, dv] = rutLimpio.split('-');
+  let suma = 0;
+  let multiplicador = 2;
+  for (let i = numero.length - 1; i >= 0; i--) {
+    suma += Number(numero[i]) * multiplicador;
+    multiplicador = multiplicador === 7 ? 2 : multiplicador + 1;
+  }
+  const resto = 11 - (suma % 11);
+  const dvEsperado = resto === 11 ? '0' : resto === 10 ? 'K' : String(resto);
+  return dvEsperado === dv;
+}
+
+// ---------- Dirección estructurada (Región / Comuna / Calle / etc.) ----------
+
+function poblarSelectRegion(prefijo) {
+  const select = document.getElementById(prefijo + 'Region');
+  if (!select) return;
+  select.innerHTML = '<option value="">Selecciona…</option>' +
+    REGIONES_COMUNAS.map(r => `<option value="${r.region}">${r.region}</option>`).join('');
+}
+
+function poblarSelectComuna(prefijo, regionSeleccionada, comunaAMarcar) {
+  const select = document.getElementById(prefijo + 'Comuna');
+  if (!select) return;
+  const comunas = comunasDeRegion(regionSeleccionada);
+  if (!regionSeleccionada || !comunas.length) {
+    select.innerHTML = '<option value="">Primero selecciona una región…</option>';
+    select.disabled = true;
+    return;
+  }
+  select.innerHTML = '<option value="">Selecciona…</option>' +
+    comunas.map(c => `<option value="${c}">${c}</option>`).join('');
+  select.disabled = false;
+  if (comunaAMarcar && comunas.includes(comunaAMarcar)) select.value = comunaAMarcar;
+}
+
+function leerDireccionDelFormulario(prefijo) {
+  return {
+    region: document.getElementById(prefijo + 'Region').value,
+    comuna: document.getElementById(prefijo + 'Comuna').value,
+    calle: document.getElementById(prefijo + 'Calle').value.trim().toUpperCase(),
+    numero: document.getElementById(prefijo + 'Numero').value.trim(),
+    depto: document.getElementById(prefijo + 'Depto').value.trim().toUpperCase(),
+    sector: document.getElementById(prefijo + 'Sector').value.trim().toUpperCase(),
+    indicaciones: document.getElementById(prefijo + 'Indicaciones').value.trim().toUpperCase()
+  };
+}
+
+function escribirDireccionEnFormulario(prefijo, d) {
+  const region = d?.region || '';
+  document.getElementById(prefijo + 'Region').value = region;
+  poblarSelectComuna(prefijo, region, d?.comuna || '');
+  document.getElementById(prefijo + 'Calle').value = d?.calle || '';
+  document.getElementById(prefijo + 'Numero').value = d?.numero || '';
+  document.getElementById(prefijo + 'Depto').value = d?.depto || '';
+  document.getElementById(prefijo + 'Sector').value = d?.sector || '';
+  document.getElementById(prefijo + 'Indicaciones').value = d?.indicaciones || '';
+}
+
+['l', 'e'].forEach(prefijo => {
+  poblarSelectRegion(prefijo);
+  document.getElementById(prefijo + 'Region').addEventListener('change', (e) =>
+    poblarSelectComuna(prefijo, e.target.value));
+});
 
 // ---------- Estado ----------
 
@@ -516,6 +590,8 @@ formNuevoLead.addEventListener('submit', async (e) => {
     nombre: document.getElementById('lNombre').value.trim(),
     telefono: document.getElementById('lTelefono').value.trim(),
     email: document.getElementById('lEmail').value.trim(),
+    rut: limpiarRut(document.getElementById('lRut').value),
+    direccion: leerDireccionDelFormulario('l'),
     canalOrigen: document.getElementById('lCanal').value,
     tipoProyecto: document.getElementById('lTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('lPresupuesto').value
@@ -528,6 +604,12 @@ formNuevoLead.addEventListener('submit', async (e) => {
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
     errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  if (datos.rut && !validarRut(datos.rut)) {
+    errorEl.textContent = 'El RUT ingresado no es válido. Revisa el formato (ej. 12.345.678-9).';
     errorEl.classList.add('visible');
     return;
   }
@@ -567,9 +649,12 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   document.getElementById('eNombre').value = lead.nombre || '';
   document.getElementById('eTelefono').value = lead.telefono || '';
   document.getElementById('eEmail').value = lead.email || '';
+  document.getElementById('eRut').value = lead.rut || '';
+  escribirDireccionEnFormulario('e', lead.direccion);
   document.getElementById('eCanal').value = lead.canalOrigen || '';
   document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
-  document.getElementById('ePresupuesto').value = lead.presupuestoEstimado ?? '';
+  document.getElementById('ePresupuesto').value = lead.presupuestoEstimado
+    ? formatearMilesInput(String(lead.presupuestoEstimado)) : '';
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
   document.getElementById('eNumCotizacion').value = lead.numCotizacion || '';
   actualizarPreviewCotizacion('e');
@@ -593,6 +678,8 @@ formEditarLead.addEventListener('submit', async (e) => {
     nombre: document.getElementById('eNombre').value.trim(),
     telefono: document.getElementById('eTelefono').value.trim(),
     email: document.getElementById('eEmail').value.trim(),
+    rut: limpiarRut(document.getElementById('eRut').value),
+    direccion: leerDireccionDelFormulario('e'),
     canalOrigen: document.getElementById('eCanal').value,
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('ePresupuesto').value
@@ -603,6 +690,12 @@ formEditarLead.addEventListener('submit', async (e) => {
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
     errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  if (datos.rut && !validarRut(datos.rut)) {
+    errorEl.textContent = 'El RUT ingresado no es válido. Revisa el formato (ej. 12.345.678-9).';
     errorEl.classList.add('visible');
     return;
   }
@@ -634,6 +727,8 @@ formEditarLead.addEventListener('submit', async (e) => {
           cliente: datos.nombre.toUpperCase(),
           telefono: datos.telefono,
           email: datos.email.toUpperCase(),
+          rut: datos.rut,
+          direccion: datos.direccion,
           canalOrigen: datos.canalOrigen,
           tipoProyecto: datos.tipoProyecto.toUpperCase(),
           numCotizacion: datos.numCotizacion,
@@ -692,14 +787,14 @@ function nombreResponsableDesdeLead(lead) {
 function armarProyectoDesdeLead(lead) {
   return {
     cliente: (lead.nombre || '').toUpperCase(),
-    rut: '',
+    rut: lead.rut || '',
     telefono: lead.telefono || '',
     email: (lead.email || '').toUpperCase(),
     tipoProyecto: (lead.tipoProyecto || '').toUpperCase(),
     categoria: 'Bronce',
     cantidadProyectosCliente: 1,
     responsable: nombreResponsableDesdeLead(lead),
-    direccion: { region: '', comuna: '', calle: '', numero: '', depto: '', sector: '', indicaciones: '' },
+    direccion: lead.direccion || { region: '', comuna: '', calle: '', numero: '', depto: '', sector: '', indicaciones: '' },
     fechaEstimadaInicio: null,
     fechaEstimadaFin: null,
     canalOrigen: lead.canalOrigen || '',
@@ -724,6 +819,18 @@ document.getElementById('btnConfirmarGanado').addEventListener('click', async ()
 
   try {
     const datosProyecto = armarProyectoDesdeLead(lead);
+
+    if (datosProyecto.rut && validarRut(datosProyecto.rut)) {
+      try {
+        const cantidadExistente = await contarProyectosPorRut(datosProyecto.rut);
+        const total = cantidadExistente + 1; // +1 por el que se está creando ahora
+        datosProyecto.cantidadProyectosCliente = total;
+        datosProyecto.categoria = total >= 5 ? 'Élite' : total >= 2 ? 'Oro' : 'Bronce';
+      } catch (errCategoria) {
+        console.error('No pudimos calcular la categoría automáticamente:', errCategoria);
+      }
+    }
+
     const codigo = await crearProyectoConCodigoAutomatico(datosProyecto, STAFF_ACTUAL.uid);
     await marcarLeadGanado(leadSeleccionadoId, codigo);
 
