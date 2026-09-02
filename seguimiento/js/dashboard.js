@@ -80,6 +80,25 @@ function validarRut(rutLimpio) {
   return dvEsperado === dv;
 }
 
+/** Inserta el guión automáticamente antes del dígito verificador mientras se escribe. */
+function formatearRutInput(valor) {
+  let limpio = (valor || '').replace(/[^0-9kK]/g, '').toUpperCase().slice(0, 9);
+  if (limpio.length > 1) {
+    return limpio.slice(0, -1) + '-' + limpio.slice(-1);
+  }
+  return limpio;
+}
+
+function activarFormatoRut(inputEl) {
+  inputEl.addEventListener('input', () => {
+    const alFinal = inputEl.selectionStart === inputEl.value.length;
+    inputEl.value = formatearRutInput(inputEl.value);
+    if (alFinal) inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+  });
+}
+
+['fRut', 'eRut'].forEach(id => activarFormatoRut(document.getElementById(id)));
+
 /** Bronce: 0–1 proyecto · Oro: 2–4 proyectos · Élite: 5 o más. */
 function calcularCategoria(cantidadProyectos) {
   if (cantidadProyectos >= 5) return 'Élite';
