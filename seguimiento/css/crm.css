@@ -452,21 +452,48 @@
     max-width:220px;
     flex-shrink:0;
   }
+
+  /* ---------- Encabezado fijo (teléfono y tablet) ----------
+     El bloque "CRM" + subtítulo + buscador + filtros + botón queda
+     pegado justo debajo del topbar mobile (.dash-topbar-mobile, que
+     mide ~54px de alto y ya es sticky top:0 desde dashboard.css) para
+     que al hacer scroll solo se muevan las tarjetas del kanban. */
+  .crm-top-fijo{
+    position:sticky;
+    top:54px;
+    z-index:150;
+    background:var(--cream);
+    margin:0 -18px;
+    padding:0 18px 16px;
+    border-bottom:1px solid var(--gold-line);
+  }
+
+  /* ---------- Toolbar en fila, filtros lado a lado ----------
+     dashboard.css pasa .dash-toolbar a flex-direction:column en
+     ≤640px; acá lo revertimos a fila con wrap y controlamos el ancho
+     de cada elemento a mano: buscador y botón ocupan el 100%, y los
+     dos selects se reparten el mismo ancho entre ambos (como pediste,
+     igual que el ancho del buscador de arriba). */
+  .crm-toolbar{
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:stretch;
+  }
+  .crm-toolbar #buscadorLead,
+  .crm-toolbar .btn-nuevo-proyecto{
+    flex:1 1 100%;
+    width:100%;
+  }
+  .crm-toolbar #filtroCanal,
+  .crm-toolbar #filtroVendedor{
+    flex:1 1 calc(50% - 6px);
+    width:auto;
+    min-width:0;
+  }
 }
 
 @media (max-width: 640px){
   .crm-detalle-grid{
     grid-template-columns:1fr;
-  }
-
-  /* dashboard.css cambia .dash-toolbar a flex-direction:column en este
-     breakpoint. Al pasar de fila a columna, el flex-basis:170px que
-     .crm-toolbar > * usa como ANCHO mínimo en escritorio pasa a leerse
-     como ALTO mínimo — dejando cada select/input/botón con 170px de
-     alto fijo (la caja gigante y vacía). Se neutraliza acá para que en
-     columna cada elemento solo tome el ancho completo y su alto natural. */
-  .crm-toolbar > *{
-    flex:0 0 auto;
-    width:100%;
   }
 }
