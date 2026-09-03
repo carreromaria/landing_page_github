@@ -458,4 +458,15 @@
   .crm-detalle-grid{
     grid-template-columns:1fr;
   }
+
+  /* dashboard.css cambia .dash-toolbar a flex-direction:column en este
+     breakpoint. Al pasar de fila a columna, el flex-basis:170px que
+     .crm-toolbar > * usa como ANCHO mínimo en escritorio pasa a leerse
+     como ALTO mínimo — dejando cada select/input/botón con 170px de
+     alto fijo (la caja gigante y vacía). Se neutraliza acá para que en
+     columna cada elemento solo tome el ancho completo y su alto natural. */
+  .crm-toolbar > *{
+    flex:0 0 auto;
+    width:100%;
+  }
 }
