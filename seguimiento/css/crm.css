@@ -479,6 +479,9 @@
     flex-wrap:wrap;
     align-items:stretch;
   }
+  .crm-toolbar > *{
+    box-sizing:border-box;
+  }
   .crm-toolbar #buscadorLead,
   .crm-toolbar .btn-nuevo-proyecto{
     flex:1 1 100%;
@@ -486,9 +489,14 @@
   }
   .crm-toolbar #filtroCanal,
   .crm-toolbar #filtroVendedor{
-    flex:1 1 calc(50% - 6px);
-    width:auto;
+    flex:0 1 calc(50% - 6px);
+    width:calc(50% - 6px);
+    max-width:calc(50% - 6px);
     min-width:0;
+    box-sizing:border-box;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
   }
 }
 
