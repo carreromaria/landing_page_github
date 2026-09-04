@@ -439,9 +439,42 @@
   justify-content:center;
 }
 
+/* ---------- Contenedor de los dos selects de filtro ----------
+   En vez de calcular el ancho de cada <select> por separado (donde
+   Safari se negaba a encoger el que tiene texto más largo), se agrupan
+   en un contenedor propio con flex interno de columnas iguales — cada
+   select vale "flex:1 1 0" con min-width:0 dentro de un padre de ancho
+   ya resuelto. Este patrón no se desborda en ningún navegador. */
+.crm-toolbar-selects{
+  display:flex;
+  gap:12px;
+  flex:1 1 350px;
+  min-width:0;
+}
+
+.crm-toolbar-selects select{
+  flex:1 1 0;
+  min-width:0;
+  width:100%;
+  box-sizing:border-box;
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 900px){
+  /* ---------- Causa raíz del desborde horizontal ----------
+     .dash-main (#vistaKanban) es un flex-item de .dash-layout pero
+     nunca tuvo min-width:0. Como el kanban trae columnas de ancho fijo
+     (flex-shrink:0), ese ancho se propaga hacia arriba y fuerza a TODA
+     la página a medir ~1200px aunque el teléfono tenga 390px — de ahí
+     que el header pareciera "no fijo" (en realidad toda la página,
+     header incluido, era ancha y scrolleaba horizontal) y que el 50%
+     de los selects se calculara sobre ese ancho gigante. */
+  #vistaKanban,
+  #vistaDetalleLead{
+    min-width:0;
+  }
+
   .crm-kanban{
     display:flex;
     overflow-x:auto;
@@ -451,6 +484,19 @@
     min-width:220px;
     max-width:220px;
     flex-shrink:0;
+  }
+
+  /* ---------- La causa real del desborde de página ----------
+     .crm-kanban en mobile usa columnas de ancho fijo (220px × 6) con
+     su propio scroll interno. Pero #vistaKanban (el <main>) es un ítem
+     flex de .dash-layout, y por defecto un ítem flex NUNCA se encoge
+     más allá del contenido más ancho que tenga adentro (min-width:auto
+     es el valor inicial). Sin este min-width:0, el kanban empujaba a
+     TODO el <main> —título, buscador, filtros— a ser tan ancho como
+     el propio tablero, volviendo desplazable de costado a la página
+     entera en vez de solo al tablero. */
+  #vistaKanban{
+    min-width:0;
   }
 
   /* ---------- Encabezado fijo (teléfono y tablet) ----------
@@ -487,16 +533,9 @@
     flex:1 1 100%;
     width:100%;
   }
-  .crm-toolbar #filtroCanal,
-  .crm-toolbar #filtroVendedor{
-    flex:0 1 calc(50% - 6px);
-    width:calc(50% - 6px);
-    max-width:calc(50% - 6px);
-    min-width:0;
-    box-sizing:border-box;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+  .crm-toolbar-selects{
+    flex:1 1 100%;
+    width:100%;
   }
 }
 
@@ -504,4 +543,13 @@
   .crm-detalle-grid{
     grid-template-columns:1fr;
   }
+}
+
+/* ---------- Evitar que la PÁGINA scrollee de lado, solo el tablero ----------
+   Si algo llegara a ser levemente más ancho que la pantalla, esto evita
+   que arrastres toda la vista (encabezado incluido) hacia los costados.
+   El único que puede moverse horizontalmente es .crm-kanban, que ya
+   tiene su propio overflow-x:auto arriba. */
+html, body{
+  overflow-x:hidden;
 }
