@@ -463,6 +463,17 @@
   min-width:0;
   width:100%;
   box-sizing:border-box;
+  /* iOS Safari le da su propio look de "píldora" nativa al <select> y
+     a veces ignora el width:100% que le pedimos. Se lo quitamos y le
+     ponemos una flecha propia para que el ancho se respete igual en
+     cualquier navegador. */
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23141213' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 16px center;
+  padding-right:38px;
 }
 
 /* ---------- Responsive ---------- */
