@@ -464,9 +464,9 @@
   width:100%;
   box-sizing:border-box;
   /* iOS Safari le da su propio look de "píldora" nativa al <select> y
-     a veces ignora el width:100% que le pedimos. Se lo quitamos y le
-     ponemos una flecha propia para que el ancho se respete igual en
-     cualquier navegador. */
+     a veces ignora el width:100% que le pedimos dentro de un flex item.
+     Se lo quitamos y le ponemos una flecha propia para que el ancho se
+     respete igual en cualquier navegador. */
   -webkit-appearance:none;
   -moz-appearance:none;
   appearance:none;
@@ -554,6 +554,19 @@
     flex:1 1 100%;
     width:100%;
     flex-direction:column;
+  }
+  /* En escritorio "flex:1 1 0" reparte el ancho 50/50 entre los dos
+     selects (fila). En mobile la fila pasa a columna y ese mismo
+     flex-basis pasaría a controlar el ALTO, no el ancho — y en algunos
+     Safari reales el <select> igual no termina de tomar el 100% del
+     ancho por seguir "flexeando". Acá lo sacamos del todo del cálculo
+     flex y lo dejamos como bloque simple a ancho completo, sin
+     ambigüedad posible. */
+  .crm-toolbar-selects select{
+    display:block;
+    flex:none;
+    width:100%;
+    max-width:100%;
   }
 }
 
