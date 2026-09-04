@@ -452,11 +452,20 @@
    en modo ancho:"auto" (mismo modo que "Cambiar etapa"), que por
    diseño NO se estira al 100% — se queda del ancho de su texto. Acá
    se sobreescribe ese modo solo dentro de la toolbar del CRM, para
-   que sí ocupen todo el ancho disponible. */
+   que sí ocupen todo el ancho disponible.
+
+   Los dos selects viven dentro de un <details> ("Filtros"): en
+   escritorio se fuerza siempre visible (misma vista de siempre), y en
+   mobile/tablet queda colapsado por defecto — un botón "Filtros" lo
+   despliega con un pequeño script inline en crm.html. */
+.crm-filtros-colapsables{
+  flex:1 1 350px;
+  min-width:0;
+}
+
 .crm-toolbar-selects{
   display:flex;
   gap:12px;
-  flex:1 1 350px;
   min-width:0;
 }
 
@@ -556,6 +565,10 @@
     flex:1 1 100%;
     width:100%;
   }
+  .crm-filtros-colapsables{
+    flex:1 1 100%;
+    width:100%;
+  }
   .crm-toolbar-selects{
     flex:1 1 100%;
     width:100%;
@@ -567,6 +580,52 @@
   .crm-toolbar-selects > div{
     flex:none;
     width:100%;
+  }
+
+  /* ---------- Filtros colapsables (solo mobile/tablet) ----------
+     Colapsado por defecto (el botón "Filtros" controla la clase
+     ".abierto" con un pequeño script inline en crm.html). En
+     escritorio el CSS de más abajo los deja siempre visibles. */
+  .crm-filtros-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    width:100%;
+    padding:11px 14px;
+    background:#fff;
+    border:1px solid var(--gold-line);
+    border-radius:4px;
+    font-family:inherit;
+    font-size:14px;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .crm-filtros-toggle svg{
+    flex-shrink:0;
+    opacity:0.6;
+    transition:transform .15s ease;
+  }
+  .crm-filtros-colapsables.abierto .crm-filtros-toggle svg{
+    transform:rotate(180deg);
+  }
+  .crm-toolbar-selects{
+    display:none;
+    margin-top:10px;
+  }
+  .crm-filtros-colapsables.abierto .crm-toolbar-selects{
+    display:flex;
+  }
+}
+
+/* En escritorio los filtros se ven siempre — el botón "Filtros" ni
+   se muestra, y da igual si la clase ".abierto" está o no. */
+@media (min-width: 901px){
+  .crm-filtros-toggle{
+    display:none;
+  }
+  .crm-toolbar-selects{
+    display:flex !important;
   }
 }
 
