@@ -446,11 +446,13 @@
 }
 
 /* ---------- Contenedor de los dos selects de filtro ----------
-   En vez de calcular el ancho de cada <select> por separado (donde
-   Safari se negaba a encoger el que tiene texto más largo), se agrupan
-   en un contenedor propio con flex interno de columnas iguales — cada
-   select vale "flex:1 1 0" con min-width:0 dentro de un padre de ancho
-   ya resuelto. Este patrón no se desborda en ningún navegador. */
+   dropdown-linence.js reemplaza cada <select> por un botón visual
+   (.ln-dropdown-trigger) dentro de un <div> propio — el <select>
+   original queda oculto y fuera de flujo. Estos dos filtros se crean
+   en modo ancho:"auto" (mismo modo que "Cambiar etapa"), que por
+   diseño NO se estira al 100% — se queda del ancho de su texto. Acá
+   se sobreescribe ese modo solo dentro de la toolbar del CRM, para
+   que sí ocupen todo el ancho disponible. */
 .crm-toolbar-selects{
   display:flex;
   gap:12px;
@@ -458,22 +460,26 @@
   min-width:0;
 }
 
-.crm-toolbar-selects select{
+.crm-toolbar-selects > div{
   flex:1 1 0;
   min-width:0;
   width:100%;
+}
+
+.crm-toolbar-selects .ln-dropdown{
+  display:block;
+  width:100%;
+}
+
+.crm-toolbar-selects .ln-dropdown-trigger{
+  width:100%;
+  min-width:0;
   box-sizing:border-box;
-  /* iOS Safari le da su propio look de "píldora" nativa al <select> y
-     a veces ignora el width:100% que le pedimos dentro de un flex item.
-     Se lo quitamos y le ponemos una flecha propia para que el ancho se
-     respete igual en cualquier navegador. */
-  -webkit-appearance:none;
-  -moz-appearance:none;
-  appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23141213' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;
-  background-position:right 16px center;
-  padding-right:38px;
+}
+
+.crm-toolbar-selects .ln-dropdown-lista{
+  left:0;
+  right:0;
 }
 
 /* ---------- Responsive ---------- */
@@ -555,18 +561,12 @@
     width:100%;
     flex-direction:column;
   }
-  /* En escritorio "flex:1 1 0" reparte el ancho 50/50 entre los dos
-     selects (fila). En mobile la fila pasa a columna y ese mismo
-     flex-basis pasaría a controlar el ALTO, no el ancho — y en algunos
-     Safari reales el <select> igual no termina de tomar el 100% del
-     ancho por seguir "flexeando". Acá lo sacamos del todo del cálculo
-     flex y lo dejamos como bloque simple a ancho completo, sin
-     ambigüedad posible. */
-  .crm-toolbar-selects select{
-    display:block;
+  /* En mobile la fila pasa a columna: cada <div> (el que envuelve al
+     botón visual del dropdown) se saca del cálculo flex y se deja como
+     bloque simple a ancho completo, apilado uno debajo del otro. */
+  .crm-toolbar-selects > div{
     flex:none;
     width:100%;
-    max-width:100%;
   }
 }
 
