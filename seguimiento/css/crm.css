@@ -18,6 +18,12 @@
   min-width:0;
 }
 
+/* El buscador crece más que el resto (filtros y botón) para que se
+   note como el campo principal, tal como pediste para escritorio. */
+.crm-toolbar #buscadorLead{
+  flex:2.5 1 320px;
+}
+
 .crm-toolbar button{
   flex:0 0 auto;
 }
@@ -536,6 +542,7 @@
   .crm-toolbar-selects{
     flex:1 1 100%;
     width:100%;
+    flex-direction:column;
   }
 }
 
