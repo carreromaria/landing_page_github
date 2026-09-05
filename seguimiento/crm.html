@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css?v=4">
+<link rel="stylesheet" href="css/crm.css?v=5">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 </head>
 <body>
@@ -53,40 +53,59 @@
 
   <!-- ================= VISTA: TABLERO KANBAN ================= -->
   <main class="dash-main" id="vistaKanban">
-    <div class="crm-top-fijo">
-      <h1>CRM</h1>
-      <p class="subtitulo">Gestiona tus leads desde el primer contacto hasta el cierre.</p>
+    <div class="crm-top-fijo" id="crmTopWrap">
+      <div class="crm-top-encabezado">
+        <h1>CRM</h1>
+        <button type="button" class="crm-top-toggle" id="crmTopToggle" aria-expanded="false" aria-label="Mostrar buscador y filtros">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
 
-      <div class="dash-toolbar crm-toolbar">
-        <input type="search" id="buscadorLead" placeholder="Buscar por nombre o teléfono…">
-        <div class="crm-filtros-colapsables" id="crmFiltrosWrap">
-          <button type="button" class="crm-filtros-toggle" id="crmFiltrosToggle" aria-expanded="false">
-            <span>Filtros</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div class="crm-toolbar-selects">
-            <select id="filtroCanal">
-              <option value="">Todos los canales</option>
-              <option value="REF">LANDING PAGE-REF</option>
-              <option value="SWR">SHOWROOM-SWR</option>
-              <option value="WSP">WHATSAPP-WSP</option>
-              <option value="INS">INSTAGRAM-INS</option>
-              <option value="FAC">FACEBOOK-FAC</option>
-              <option value="TIK">TIKTOK-TIK</option>
-            </select>
-            <select id="filtroVendedor">
-              <option value="">Todos los vendedores</option>
-            </select>
+      <div class="crm-top-colapsable" id="crmTopColapsable">
+        <p class="subtitulo">Gestiona tus leads desde el primer contacto hasta el cierre.</p>
+
+        <div class="dash-toolbar crm-toolbar">
+          <input type="search" id="buscadorLead" placeholder="Buscar por nombre o teléfono…">
+          <div class="crm-filtros-colapsables" id="crmFiltrosWrap">
+            <button type="button" class="crm-filtros-toggle" id="crmFiltrosToggle" aria-expanded="false">
+              <span>Filtros</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="crm-toolbar-selects">
+              <select id="filtroCanal">
+                <option value="">Todos los canales</option>
+                <option value="REF">LANDING PAGE-REF</option>
+                <option value="SWR">SHOWROOM-SWR</option>
+                <option value="WSP">WHATSAPP-WSP</option>
+                <option value="INS">INSTAGRAM-INS</option>
+                <option value="FAC">FACEBOOK-FAC</option>
+                <option value="TIK">TIKTOK-TIK</option>
+              </select>
+              <select id="filtroVendedor">
+                <option value="">Todos los vendedores</option>
+              </select>
+            </div>
           </div>
+          <button class="btn-nuevo-proyecto" id="btnNuevoLead">+ Nuevo lead</button>
         </div>
-        <button class="btn-nuevo-proyecto" id="btnNuevoLead">+ Nuevo lead</button>
       </div>
     </div>
 
     <script>
-      // Toggle simple del panel de filtros en mobile/tablet (en
-      // escritorio el CSS lo deja siempre visible y este botón ni se
-      // muestra, así que este script no afecta esa vista).
+      // Toggle del bloque completo (subtítulo + buscador + filtros +
+      // "+ Nuevo lead") en mobile/tablet. En escritorio el CSS lo deja
+      // siempre visible y este botón ni se muestra.
+      (function(){
+        var toggle = document.getElementById('crmTopToggle');
+        var wrap = document.getElementById('crmTopWrap');
+        if (!toggle || !wrap) return;
+        toggle.addEventListener('click', function(){
+          var abierto = wrap.classList.toggle('abierto');
+          toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        });
+      })();
+
+      // Toggle del panel de filtros (los dos selects) en mobile/tablet.
       (function(){
         var toggle = document.getElementById('crmFiltrosToggle');
         var wrap = document.getElementById('crmFiltrosWrap');
