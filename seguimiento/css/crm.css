@@ -616,6 +616,58 @@
   .crm-filtros-colapsables.abierto .crm-toolbar-selects{
     display:flex;
   }
+
+  /* ---------- Colapsable general (subtítulo + buscador + filtros +
+     "+ Nuevo lead") en mobile/tablet ----------
+     Solo "CRM" y la flechita quedan siempre visibles; todo lo demás
+     arranca oculto para dejarle el máximo espacio posible a las
+     tarjetas, y se despliega con el botón. */
+  .crm-top-encabezado{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .crm-top-encabezado h1{
+    margin-bottom:0;
+  }
+  .crm-top-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    flex-shrink:0;
+    background:#fff;
+    border:1px solid var(--gold-line);
+    border-radius:50%;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .crm-top-toggle svg{
+    transition:transform .15s ease;
+  }
+  .crm-top-fijo.abierto .crm-top-toggle svg{
+    transform:rotate(180deg);
+  }
+  .crm-top-colapsable{
+    display:none;
+  }
+  .crm-top-fijo.abierto .crm-top-colapsable{
+    display:block;
+    margin-top:16px;
+  }
+}
+
+/* En escritorio todo el bloque se ve siempre — el botón toggle ni se
+   muestra, y da igual si la clase ".abierto" está o no. */
+@media (min-width: 901px){
+  .crm-top-toggle{
+    display:none;
+  }
+  .crm-top-colapsable{
+    display:block !important;
+  }
 }
 
 /* En escritorio los filtros se ven siempre — el botón "Filtros" ni
