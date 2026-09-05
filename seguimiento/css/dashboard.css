@@ -682,6 +682,89 @@ html, body{height:100%; background:var(--cream);}
   .dash-main{padding:22px 18px;}
   .fila-proyecto{grid-template-columns:90px 1fr 70px;}
   .fila-proyecto .tipo-col, .fila-proyecto .etapa-col, .fila-proyecto .estado-col{display:none;}
+
+  /* ---------- Encabezado colapsable de "Proyectos" (teléfono y tablet) ----------
+     Mismo patrón usado en el CRM: solo el título + flechita quedan
+     siempre visibles, el resto (subtítulo, buscador, filtro y botón)
+     se despliega al tocar, para dejarle más espacio a la lista. */
+  .dash-top-encabezado{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .dash-top-encabezado h1{
+    margin-bottom:0;
+  }
+  .dash-top-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:34px;
+    height:34px;
+    flex-shrink:0;
+    background:#fff;
+    border:1px solid var(--gold-line);
+    border-radius:50%;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .dash-top-toggle svg{
+    transition:transform .15s ease;
+  }
+  .dash-top-fijo.abierto .dash-top-toggle svg{
+    transform:rotate(180deg);
+  }
+  .dash-top-colapsable{
+    display:none;
+  }
+  .dash-top-fijo.abierto .dash-top-colapsable{
+    display:block;
+    margin-top:16px;
+  }
+
+  /* El buscador, el filtro y el botón quedan apilados a ancho
+     completo (igual que en el CRM). */
+  .dash-top-colapsable .dash-toolbar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .dash-top-colapsable .dash-toolbar input[type="search"]{
+    width:100%;
+    min-width:0;
+  }
+  .dash-top-colapsable .btn-nuevo-proyecto{
+    width:100%;
+  }
+
+  /* El <select> "Todos los estados" es reemplazado por un botón
+     visual (dropdown-linence.js) en modo ancho:"auto", que por diseño
+     no se estira solo — se sobreescribe acá para que ocupe todo el
+     ancho, igual que en el CRM. */
+  .dash-top-colapsable .ln-dropdown{
+    display:block;
+    width:100%;
+  }
+  .dash-top-colapsable .ln-dropdown-trigger{
+    width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+  .dash-top-colapsable .ln-dropdown-lista{
+    left:0;
+    right:0;
+  }
+}
+
+/* En escritorio el bloque se ve siempre — el botón toggle ni se
+   muestra, y da igual si la clase ".abierto" está o no. */
+@media (min-width:901px){
+  .dash-top-toggle{
+    display:none;
+  }
+  .dash-top-colapsable{
+    display:block !important;
+  }
 }
 
 @media (max-width:640px){
