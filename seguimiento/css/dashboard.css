@@ -687,6 +687,10 @@ html, body{height:100%; background:var(--cream);}
      Mismo patrón usado en el CRM: solo el título + flechita quedan
      siempre visibles, el resto (subtítulo, buscador, filtro y botón)
      se despliega al tocar, para dejarle más espacio a la lista. */
+  .dash-top-fijo{
+    margin-bottom:20px;
+  }
+
   .dash-top-encabezado{
     display:flex;
     align-items:center;
