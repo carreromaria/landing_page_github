@@ -51,19 +51,45 @@
   </aside>
 
   <main class="dash-main">
-    <h1>Proyectos</h1>
-    <p class="subtitulo">Gestiona el seguimiento de todos los proyectos activos de Linence.</p>
+    <div class="dash-top-fijo" id="dashTopWrap">
+      <div class="dash-top-encabezado">
+        <h1>Proyectos</h1>
+        <button type="button" class="dash-top-toggle" id="dashTopToggle" aria-expanded="false" aria-label="Mostrar buscador y filtros">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
 
-    <div class="dash-toolbar">
-      <input type="search" id="buscador" placeholder="Buscar por código o cliente…">
-      <select id="filtroEstado">
-        <option value="">Todos los estados</option>
-        <option value="pendiente">Pendiente</option>
-        <option value="en_proceso">En proceso</option>
-        <option value="completada">Completada</option>
-      </select>
-      <button class="btn-nuevo-proyecto" id="btnNuevoProyecto">+ Nuevo proyecto</button>
+      <div class="dash-top-colapsable" id="dashTopColapsable">
+        <p class="subtitulo">Gestiona el seguimiento de todos los proyectos activos de Linence.</p>
+
+        <div class="dash-toolbar">
+          <input type="search" id="buscador" placeholder="Buscar por código o cliente…">
+          <select id="filtroEstado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="completada">Completada</option>
+          </select>
+          <button class="btn-nuevo-proyecto" id="btnNuevoProyecto">+ Nuevo proyecto</button>
+        </div>
+      </div>
     </div>
+
+    <script>
+      // Toggle del bloque completo (subtítulo + buscador + filtro +
+      // "+ Nuevo proyecto") en mobile/tablet. En escritorio el CSS lo
+      // deja siempre visible y este botón ni se muestra. Mismo patrón
+      // usado en el CRM.
+      (function(){
+        var toggle = document.getElementById('dashTopToggle');
+        var wrap = document.getElementById('dashTopWrap');
+        if (!toggle || !wrap) return;
+        toggle.addEventListener('click', function(){
+          var abierto = wrap.classList.toggle('abierto');
+          toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        });
+      })();
+    </script>
 
     <div class="tabla-proyectos">
       <div class="fila-proyecto encabezado">
