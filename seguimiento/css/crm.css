@@ -402,11 +402,20 @@
   display:flex;
   gap:10px;
   flex-wrap:wrap;
+  margin-bottom:32px;
 }
 
 .crm-acciones-cierre button{
   flex:1;
   min-width:160px;
+}
+
+/* Refuerzo del espacio hacia la caja "Eliminar lead" (o cualquier
+   panel) que venga justo después de los botones de cierre — así el
+   espacio queda garantizado sin depender solo del margin-bottom de
+   arriba. */
+.crm-acciones-cierre + .panel-seccion{
+  margin-top:32px;
 }
 
 /* Los estilos del toast ahora van 100% en línea desde crm.js (ver
