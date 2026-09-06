@@ -461,6 +461,8 @@ function abrirDetalleLead(id) {
     construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen) || (lead.numCotizacion || '—');
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
   document.getElementById('detalleEmail').textContent = lead.email || '—';
+  document.getElementById('detalleFechaCreacion').textContent = formatearFechaHora(lead.creadoEn);
+  document.getElementById('detalleFechaEtapa').textContent = formatearFechaHora(lead.etapaActualizadaEn || lead.creadoEn);
 
   const proyectoVinculadoEl = document.getElementById('detalleProyectoVinculado');
   if (lead.proyectoVinculado) {
@@ -520,6 +522,15 @@ function formatearFechaNota(iso) {
   } catch {
     return '';
   }
+}
+
+/** Formatea un Timestamp de Firestore como fecha+hora legible (es-CL). */
+function formatearFechaHora(timestamp) {
+  const fecha = timestamp?.toDate?.();
+  if (!fecha) return '—';
+  return fecha.toLocaleDateString('es-CL', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
 }
 
 document.getElementById('btnVolverKanban').addEventListener('click', () => {
@@ -834,7 +845,8 @@ function armarProyectoDesdeLead(lead) {
     codigoCotizacion: construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen),
     observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',
     token: generarToken(),
-    leadOrigenId: lead.id
+    leadOrigenId: lead.id,
+    leadCreadoEn: lead.creadoEn || null
   };
 }
 
