@@ -755,6 +755,17 @@ function renderDetalle(p, historial) {
   document.getElementById('detalleCliente').textContent = p.cliente || 'Sin nombre';
   document.getElementById('detalleTipo').textContent = p.tipoProyecto || '';
 
+  const leadCreadoEl = document.getElementById('detalleLeadCreado');
+  const fechaLead = p.leadCreadoEn?.toDate?.();
+  if (fechaLead) {
+    leadCreadoEl.textContent = 'Lead creado el ' + fechaLead.toLocaleDateString('es-CL', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    leadCreadoEl.style.display = '';
+  } else {
+    leadCreadoEl.style.display = 'none';
+  }
+
   const enlace = `${window.location.origin}/seguimiento/proyecto.html?codigo=${encodeURIComponent(p.codigo)}&token=${encodeURIComponent(p.token || '')}`;
   document.getElementById('detalleEnlaceCliente').href = enlace;
 
