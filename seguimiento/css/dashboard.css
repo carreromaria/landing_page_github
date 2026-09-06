@@ -411,6 +411,16 @@ html, body{height:100%; background:var(--cream);}
   margin-bottom:6px;
 }
 
+/* Fecha de creación del lead de origen (CRM), mostrada bajo el
+   nombre del cliente en la vista de detalle del proyecto. */
+.crm-lead-creado-meta{
+  font-size:12px;
+  color:var(--gold);
+  opacity:0.85;
+  margin-top:-10px;
+  margin-bottom:16px;
+}
+
 /* ---- Punto 6: prefijo LIN- fijo ---- */
 .campo-codigo-prefijo{
   display:flex;
