@@ -378,6 +378,7 @@ export async function cambiarEtapaLead(id, nuevaEtapa) {
   const ref = doc(db, "leads", id);
   await updateDoc(ref, {
     etapa: nuevaEtapa,
+    etapaActualizadaEn: serverTimestamp(),
     actualizadoEn: serverTimestamp(),
     fechaUltimoContacto: serverTimestamp()
   });
@@ -396,6 +397,7 @@ export async function marcarLeadGanado(id, codigoProyecto) {
     etapa: "Ganado",
     proyectoVinculado: codigoProyecto,
     fechaGanadoOPerdido: serverTimestamp(),
+    etapaActualizadaEn: serverTimestamp(),
     actualizadoEn: serverTimestamp()
   });
 }
@@ -407,6 +409,7 @@ export async function marcarLeadPerdido(id, motivo) {
     etapa: "Perdido",
     motivoPerdida: motivo,
     fechaGanadoOPerdido: serverTimestamp(),
+    etapaActualizadaEn: serverTimestamp(),
     actualizadoEn: serverTimestamp()
   });
 }
