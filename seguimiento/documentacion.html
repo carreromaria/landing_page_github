@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentación · Panel Interno · LINENCE</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="shortcut icon" type="image/png" href="../favicon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/dropdown-linence.css">
+<link rel="stylesheet" href="css/documentacion.css?v=1">
+</head>
+<body>
+
+<!-- ================= GUARDIA DE SESIÓN ================= -->
+<div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
+
+<!-- Topbar solo visible en mobile -->
+<div class="dash-topbar-mobile" id="dashTopbarMobile" style="display:none;">
+  <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
+    <span></span><span></span><span></span>
+  </button>
+  <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-topbar-mobile">
+</div>
+
+<!-- ================= LAYOUT PRINCIPAL ================= -->
+<div class="dash-layout" id="dashLayout" style="display:none;">
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="dash-sidebar" id="dashSidebar">
+    <button id="btnCerrarSidebar" class="btn-cerrar-sidebar" aria-label="Cerrar menú">×</button>
+    <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-sidebar-desktop">
+    <ul class="dash-nav">
+      <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
+      <li><a href="crm.html">👥 <span class="texto">CRM</span></a></li>
+      <li><a href="documentacion.html" class="activo">🗂️ <span class="texto">Documentación</span></a></li>
+      <li><span class="dash-nav-disabled">📄 <span class="texto">Cotizaciones</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
+      <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
+    </ul>
+    <div class="dash-user">
+      <div class="nombre" id="staffNombre">—</div>
+      <div class="rol" id="staffRol">—</div>
+      <button id="btnCerrarSesion">Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <h1>Documentación</h1>
+    <p class="subtitulo">Busca un cliente por RUT y genera sus documentos listos para descargar o imprimir.</p>
+
+    <!-- ---- Buscador por RUT ---- -->
+    <form class="doc-buscador" id="formBuscarRut">
+      <input type="text" id="inputRutBuscar" placeholder="Buscar por RUT del cliente. Ej: 16.252.778-9" autocomplete="off">
+      <button type="submit" class="btn-primario">Buscar</button>
+    </form>
+
+    <div class="doc-no-encontrado" id="docNoEncontrado">
+      No encontramos ningún proyecto con ese RUT. Revisa que esté bien escrito o créalo primero en Proyectos.
+    </div>
+
+    <div class="doc-cliente-resultado" id="docClienteResultado">
+      <div class="nombre" id="docClienteNombre">—</div>
+      <div class="meta" id="docClienteMeta">—</div>
+    </div>
+
+    <!-- ---- Cotización provisional ---- -->
+    <section class="panel-seccion doc-cotizacion-panel" id="docCotizacionPanel">
+      <button type="button" class="datos-proyecto-toggle" id="cotizacionToggle">
+        <h2>Datos de cotización (provisional)</h2>
+        <span class="flecha-datos" id="flechaCotizacion">⌄</span>
+      </button>
+
+      <form id="formCotizacion" style="display:none;">
+        <div class="form-grid">
+          <div class="campo">
+            <label for="cotNumero">N° de cotización</label>
+            <input type="text" id="cotNumero" placeholder="Ej. COT-WSP-00001">
+          </div>
+          <div class="campo">
+            <label for="cotFechaCotizacion">Fecha de cotización</label>
+            <input type="date" id="cotFechaCotizacion">
+          </div>
+          <div class="campo">
+            <label for="cotFechaValidez">Válida hasta</label>
+            <input type="date" id="cotFechaValidez">
+          </div>
+        </div>
+
+        <p class="form-section-title">Ítems cotizados</p>
+        <div class="doc-items-tabla" id="cotItemsTabla"></div>
+        <button type="button" class="doc-item-agregar" id="btnAgregarItem">+ Agregar ítem</button>
+
+        <div class="doc-totales">
+          <div class="total-item"><span class="label">Subtotal</span><span class="valor" id="cotSubtotal">$0</span></div>
+          <div class="total-item">
+            <span class="label">IVA</span>
+            <input type="number" id="cotIva" value="0" min="0" style="width:100%; padding:6px 8px; border:1px solid var(--gold-line); border-radius:4px;">
+          </div>
+          <div class="total-item destacado"><span class="label">Total</span><span class="valor" id="cotTotal">$0</span></div>
+          <div class="total-item">
+            <span class="label">% Abono</span>
+            <input type="number" id="cotAbonoPorcentaje" value="60" min="0" max="100" style="width:100%; padding:6px 8px; border:1px solid var(--gold-line); border-radius:4px;">
+          </div>
+          <div class="total-item destacado"><span class="label">Monto abono</span><span class="valor" id="cotAbonoMonto">$0</span></div>
+          <div class="total-item"><span class="label">Saldo</span><span class="valor" id="cotSaldo">$0</span></div>
+        </div>
+
+        <p class="form-section-title">Datos del abono y la instalación</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="cotFormaPago">Forma de pago</label>
+            <input type="text" id="cotFormaPago" placeholder="Ej. Transferencia - Efectivo">
+          </div>
+          <div class="campo">
+            <label for="cotMedioPago">Medio de pago del abono</label>
+            <input type="text" id="cotMedioPago" placeholder="Ej. Transferencia">
+          </div>
+          <div class="campo">
+            <label for="cotBanco">Banco</label>
+            <input type="text" id="cotBanco" placeholder="Ej. Estado y Falabella">
+          </div>
+          <div class="campo">
+            <label for="cotFechaPago">Fecha del pago del abono</label>
+            <input type="date" id="cotFechaPago">
+          </div>
+          <div class="campo">
+            <label for="cotFechaInstalacion">Fecha real de instalación</label>
+            <input type="date" id="cotFechaInstalacion">
+          </div>
+          <div class="campo">
+            <label for="cotHoraInicio">Hora de inicio</label>
+            <input type="time" id="cotHoraInicio">
+          </div>
+          <div class="campo">
+            <label for="cotHoraTermino">Hora de término</label>
+            <input type="time" id="cotHoraTermino">
+          </div>
+          <div class="campo campo-full">
+            <label for="cotObservaciones">Observaciones del abono</label>
+            <input type="text" id="cotObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
+          </div>
+        </div>
+
+        <div class="modal-error" id="cotizacionError"></div>
+        <div class="modal-acciones">
+          <button type="submit" class="btn-primario">Guardar datos de cotización</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- ---- Grilla de documentos ---- -->
+    <section class="panel-seccion">
+      <h2>Documentos del proyecto</h2>
+      <div class="docs-grid" id="docsGrid"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ================= MODAL: VISTA PREVIA DOCUMENTO ================= -->
+<div class="modal-overlay" id="modalDocumento">
+  <div class="modal-box modal-box-documento">
+    <div class="doc-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCerrarModalDoc">Cerrar</button>
+      <button type="button" class="btn-secundario" id="btnImprimirDoc">Imprimir</button>
+      <button type="button" class="btn-primario" id="btnDescargarDoc">Descargar PDF</button>
+    </div>
+    <div class="doc-hoja-scroll">
+      <div id="hojaDocumentoImprimir"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= NOTIFICACIONES TOAST ================= -->
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script type="module" src="js/documentacion.js?v=1"></script>
+</body>
+</html>
