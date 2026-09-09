@@ -136,6 +136,14 @@
             <input type="date" id="cotFechaInstalacion">
           </div>
           <div class="campo">
+            <label for="cotFechaContrato">Fecha del contrato</label>
+            <input type="date" id="cotFechaContrato">
+          </div>
+          <div class="campo">
+            <label for="cotPlazoDias">Plazo de ejecución (días hábiles)</label>
+            <input type="number" id="cotPlazoDias" min="0" placeholder="Ej. 16">
+          </div>
+          <div class="campo">
             <label for="cotHoraInicio">Hora de inicio</label>
             <input type="time" id="cotHoraInicio">
           </div>
@@ -146,6 +154,35 @@
           <div class="campo campo-full">
             <label for="cotObservaciones">Observaciones del abono</label>
             <input type="text" id="cotObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
+          </div>
+          <div class="campo">
+            <label for="cotInstalador">Instalador responsable</label>
+            <input type="text" id="cotInstalador" placeholder="Ej. Abraham Quintero">
+          </div>
+        </div>
+
+        <p class="form-section-title">Selección para Descripción de Cotización</p>
+        <p class="subtitulo" style="margin-bottom:14px;">Marca lo que aplique a este proyecto. Lo que no esté en la lista, agrégalo en "Otros".</p>
+        <div class="form-grid">
+          <div class="campo campo-full">
+            <label>Materiales</label>
+            <div class="catalogo-grid" id="catMateriales"></div>
+            <input type="text" id="cotMaterialesOtros" placeholder="Otros / color específico (ej. Nogal Terracota), separados por coma" style="margin-top:8px;">
+          </div>
+          <div class="campo campo-full">
+            <label>Herrajes</label>
+            <div class="catalogo-grid" id="catHerrajes"></div>
+            <input type="text" id="cotHerrajesOtros" placeholder="Otros herrajes no listados, separados por coma" style="margin-top:8px;">
+          </div>
+          <div class="campo campo-full">
+            <label>Cubiertas</label>
+            <div class="catalogo-grid" id="catCubiertas"></div>
+            <input type="text" id="cotCubiertasOtros" placeholder="Otra cubierta / color (ej. Blanco Luna), separados por coma" style="margin-top:8px;">
+          </div>
+          <div class="campo campo-full">
+            <label>Accesorios</label>
+            <div class="catalogo-grid" id="catAccesorios"></div>
+            <input type="text" id="cotAccesoriosOtros" placeholder="Otros accesorios no listados, separados por coma" style="margin-top:8px;">
           </div>
         </div>
 
