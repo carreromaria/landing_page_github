@@ -704,3 +704,124 @@
 html, body{
   overflow-x:hidden;
 }
+
+
+
+
+
+/* ================= COTIZACIÓN (agregar al final de crm.css) ================= */
+
+.crm-cotizacion-tabla-wrapper {
+  margin: 14px 0 20px;
+  overflow-x: auto;
+}
+
+.crm-cotizacion-tabla {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #ece4d3;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.crm-cotizacion-tabla thead th {
+  background: #141213;
+  color: #d3bb8c;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 600;
+}
+
+.crm-cotizacion-tabla tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f0ece1;
+  vertical-align: middle;
+}
+
+.crm-cotizacion-tabla tbody tr:last-child td { border-bottom: none; }
+
+.crm-cotizacion-tabla select,
+.crm-cotizacion-tabla input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid #d3bb8c;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.cot-item-valor-unitario {
+  font-size: 13.5px;
+  color: #6b6b6b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cot-item-eliminar {
+  background: none;
+  border: none;
+  color: #c14b32;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.cot-item-eliminar:hover { color: #8f3624; }
+
+#btnAgregarItemCotizacion { margin-top: 10px; }
+
+.crm-cotizacion-totales {
+  max-width: 320px;
+  margin-left: auto;
+  background: #faf7f2;
+  border: 1px solid #ece4d3;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.crm-cotizacion-total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+
+.crm-cotizacion-total-row label {
+  font-size: 13px;
+  color: #141213;
+  font-weight: 500;
+}
+
+.crm-cotizacion-total-row input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid #d3bb8c;
+  border-radius: 6px;
+  text-align: right;
+  font-size: 13.5px;
+}
+
+.crm-cotizacion-abono-final {
+  border-top: 1px solid #ece4d3;
+  margin-top: 6px;
+  padding-top: 10px;
+  font-weight: 700;
+  color: #141213;
+}
+
+.crm-cotizacion-abono-final span:last-child {
+  color: #d6a52c;
+}
+
+.crm-cotizacion-acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  margin-bottom: 28px;
+}
