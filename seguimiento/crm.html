@@ -190,6 +190,52 @@
       <div class="crm-proyecto-vinculado" id="detalleProyectoVinculado" style="display:none;"></div>
     </div>
 
+    <!-- ================= COTIZACIÓN ================= -->
+    <div class="crm-bitacora-titulo">Cotización</div>
+
+    <div class="crm-detalle-dato">
+      <div class="etiqueta">Proyecto (se arma automático con las descripciones)</div>
+      <div class="valor" id="cotProyectoAuto">—</div>
+    </div>
+
+    <div class="crm-cotizacion-tabla-wrapper">
+      <table class="crm-cotizacion-tabla">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Cantidad (ml)</th>
+            <th>Valor unitario</th>
+            <th>Total línea</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cotizacionItemsBody"></tbody>
+      </table>
+      <button type="button" class="btn-secundario" id="btnAgregarItemCotizacion">+ Agregar servicio</button>
+    </div>
+
+    <div class="crm-cotizacion-totales">
+      <div class="crm-cotizacion-total-row">
+        <span>Total general</span>
+        <span id="cotTotalGeneral">$0</span>
+      </div>
+      <div class="crm-cotizacion-total-row">
+        <label for="cotPorcentajeAbono">% de abono</label>
+        <input type="text" id="cotPorcentajeAbono" inputmode="numeric" placeholder="Ej. 50" maxlength="3">
+      </div>
+      <div class="crm-cotizacion-total-row crm-cotizacion-abono-final">
+        <span>Abono</span>
+        <span id="cotAbono">$0</span>
+      </div>
+    </div>
+
+    <div class="modal-error" id="cotizacionError"></div>
+
+    <div class="crm-cotizacion-acciones">
+      <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
+    </div>
+
     <div class="crm-bitacora-titulo">Bitácora</div>
     <div id="listaNotas"></div>
     <p class="crm-nota-vacia" id="notasVacio" style="display:none;">Aún no hay notas registradas.</p>
