@@ -11,7 +11,7 @@ import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
-  actualizarProyecto, contarProyectosPorRut
+  actualizarProyecto, contarProyectosPorRut, listarServiciosActivos
 } from './firestore.js';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
@@ -207,6 +207,9 @@ let leadsActuales = [];
 let leadSeleccionadoId = null;
 let dejarDeEscucharLeads = null;
 
+let serviciosCatalogo = [];   // catálogo de servicios activo (código ↔ nombre)
+let cotizacionRowCounter = 0; // contador para ids únicos de filas de cotización
+
 // ---------- Referencias DOM ----------
 
 const dashCargando = document.getElementById('dashCargando');
@@ -328,6 +331,13 @@ async function inicializar() {
     poblarSelectsVendedor();
   } catch (err) {
     console.error('Error cargando staff:', err);
+  }
+
+  try {
+    serviciosCatalogo = await listarServiciosActivos();
+  } catch (err) {
+    console.error('Error cargando catálogo de servicios:', err);
+    mostrarToast('No se pudo cargar el catálogo de servicios.', 'error');
   }
 
   dejarDeEscucharLeads = escucharLeads(
@@ -490,6 +500,7 @@ function abrirDetalleLead(id) {
   document.getElementById('btnConfirmarEliminacionLead').disabled = true;
 
   renderNotas(lead.notas || []);
+  renderCotizacion(lead.cotizacion || null);
 
   vistaKanban.style.display = 'none';
   vistaDetalleLead.style.display = '';
@@ -537,6 +548,201 @@ document.getElementById('btnVolverKanban').addEventListener('click', () => {
   leadSeleccionadoId = null;
   vistaDetalleLead.style.display = 'none';
   vistaKanban.style.display = '';
+});
+
+// ---------- Cotización ----------
+// Modelo guardado en el lead: lead.cotizacion = {
+//   proyecto: "Vanitorio, Rack TV",           // se arma automático con las descripciones
+//   items: [{ codigo, descripcion, cantidad, total }],
+//   totalGeneral: number,
+//   porcentajeAbono: number,
+//   abono: number
+// }
+// El "Valor unitario" NUNCA se guarda: siempre se recalcula como
+// Total ÷ Cantidad, tal como pidió María (fabricación a medida:
+// el Total es el precio pactado, no una multiplicación).
+
+const cotizacionItemsBody = document.getElementById('cotizacionItemsBody');
+const cotProyectoAuto = document.getElementById('cotProyectoAuto');
+const cotTotalGeneral = document.getElementById('cotTotalGeneral');
+const cotPorcentajeAbono = document.getElementById('cotPorcentajeAbono');
+const cotAbono = document.getElementById('cotAbono');
+const cotizacionError = document.getElementById('cotizacionError');
+
+function opcionesCodigoServicio(codigoSeleccionado) {
+  const opciones = serviciosCatalogo.map(s =>
+    `<option value="${s.codigo}" ${s.codigo === codigoSeleccionado ? 'selected' : ''}>${escapeHtml(s.codigo)} — ${escapeHtml(s.nombre)}</option>`
+  ).join('');
+  return `<option value="">Selecciona…</option>${opciones}`;
+}
+
+/** Extrae la parte numérica de un texto de cantidad, ej. "7,40 m" -> 7.4 */
+function parsearCantidad(texto) {
+  const match = String(texto || '').replace(',', '.').match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : NaN;
+}
+
+/** Quita todo lo que no sea dígito y lo convierte a número, ej. "$1.844.721" -> 1844721 */
+function parsearMonto(texto) {
+  const limpio = String(texto || '').replace(/\D/g, '');
+  return limpio ? Number(limpio) : 0;
+}
+
+function formatearMoneda(numero) {
+  return '$' + (numero || 0).toLocaleString('es-CL');
+}
+
+function renderCotizacion(cotizacion) {
+  cotizacionItemsBody.innerHTML = '';
+  cotizacionError.textContent = '';
+  cotizacionError.classList.remove('visible');
+  cotizacionRowCounter = 0;
+
+  const items = (cotizacion?.items && cotizacion.items.length) ? cotizacion.items : [{}];
+  items.forEach(item => agregarFilaCotizacion(item));
+
+  cotPorcentajeAbono.value = cotizacion?.porcentajeAbono ?? '';
+  recalcularCotizacion();
+}
+
+function agregarFilaCotizacion(item = {}) {
+  const rowId = cotizacionRowCounter++;
+  const tr = document.createElement('tr');
+  tr.dataset.rowId = rowId;
+
+  tr.innerHTML = `
+    <td><select id="cotCod_${rowId}" class="cot-item-codigo">${opcionesCodigoServicio(item.codigo)}</select></td>
+    <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
+    <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
+    <td class="cot-item-valor-unitario" id="cotVU_${rowId}">—</td>
+    <td><input type="text" id="cotTotal_${rowId}" class="cot-item-total" inputmode="numeric" placeholder="$0" value="${item.total ? formatearMilesInput(String(item.total)) : ''}"></td>
+    <td><button type="button" class="cot-item-eliminar" data-row-id="${rowId}" aria-label="Eliminar fila">✕</button></td>
+  `;
+  cotizacionItemsBody.appendChild(tr);
+
+  mejorarSelect(`#cotCod_${rowId}`);
+
+  const selCodigo = document.getElementById(`cotCod_${rowId}`);
+  const inpDesc = document.getElementById(`cotDesc_${rowId}`);
+  const inpCant = document.getElementById(`cotCant_${rowId}`);
+  const inpTotal = document.getElementById(`cotTotal_${rowId}`);
+
+  // Al elegir un código, autocompleta la descripción SOLO si está vacía
+  // (para no pisar un texto que la persona ya haya escrito a mano).
+  selCodigo.addEventListener('change', () => {
+    if (!inpDesc.value.trim()) {
+      const servicio = serviciosCatalogo.find(s => s.codigo === selCodigo.value);
+      if (servicio) inpDesc.value = servicio.nombre;
+    }
+    recalcularCotizacion();
+  });
+
+  inpDesc.addEventListener('input', recalcularCotizacion);
+  inpCant.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
+  activarFormatoMiles(inpTotal);
+  inpTotal.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
+
+  actualizarValorUnitarioFila(rowId);
+}
+
+function actualizarValorUnitarioFila(rowId) {
+  const cantidad = parsearCantidad(document.getElementById(`cotCant_${rowId}`)?.value);
+  const total = parsearMonto(document.getElementById(`cotTotal_${rowId}`)?.value);
+  const celdaVU = document.getElementById(`cotVU_${rowId}`);
+  if (!celdaVU) return;
+
+  if (!cantidad || cantidad <= 0 || !total) {
+    celdaVU.textContent = '—';
+    return;
+  }
+  celdaVU.textContent = formatearMoneda(total / cantidad) + ' /ml';
+}
+
+document.getElementById('btnAgregarItemCotizacion').addEventListener('click', () => {
+  agregarFilaCotizacion();
+});
+
+cotizacionItemsBody.addEventListener('click', (e) => {
+  const btn = e.target.closest('.cot-item-eliminar');
+  if (!btn) return;
+  // Nunca dejar la tabla en cero filas: si es la última, solo se limpia.
+  if (cotizacionItemsBody.querySelectorAll('tr').length === 1) {
+    renderCotizacion(null);
+    return;
+  }
+  btn.closest('tr').remove();
+  recalcularCotizacion();
+});
+
+cotPorcentajeAbono.addEventListener('input', () => {
+  cotPorcentajeAbono.value = cotPorcentajeAbono.value.replace(/\D/g, '').slice(0, 3);
+  recalcularCotizacion();
+});
+
+function leerItemsCotizacion() {
+  return [...cotizacionItemsBody.querySelectorAll('tr')].map(tr => {
+    const rowId = tr.dataset.rowId;
+    return {
+      codigo: document.getElementById(`cotCod_${rowId}`).value,
+      descripcion: document.getElementById(`cotDesc_${rowId}`).value.trim(),
+      cantidad: document.getElementById(`cotCant_${rowId}`).value.trim(),
+      total: parsearMonto(document.getElementById(`cotTotal_${rowId}`).value)
+    };
+  }).filter(item => item.descripcion || item.total); // ignora filas totalmente vacías
+}
+
+function recalcularCotizacion() {
+  const items = leerItemsCotizacion();
+
+  const proyecto = items.map(i => i.descripcion).filter(Boolean).join(', ');
+  cotProyectoAuto.textContent = proyecto || '—';
+
+  const totalGeneral = items.reduce((suma, i) => suma + (i.total || 0), 0);
+  cotTotalGeneral.textContent = formatearMoneda(totalGeneral);
+
+  const porcentaje = parseInt(cotPorcentajeAbono.value, 10) || 0;
+  const abono = Math.round(totalGeneral * (porcentaje / 100));
+  cotAbono.textContent = formatearMoneda(abono);
+
+  return { proyecto, items, totalGeneral, porcentaje, abono };
+}
+
+document.getElementById('btnGuardarCotizacion').addEventListener('click', async () => {
+  if (!leadSeleccionadoId) return;
+
+  const { proyecto, items, totalGeneral, porcentaje, abono } = recalcularCotizacion();
+
+  cotizacionError.textContent = '';
+  cotizacionError.classList.remove('visible');
+
+  if (items.length === 0) {
+    cotizacionError.textContent = 'Agrega al menos un servicio antes de guardar.';
+    cotizacionError.classList.add('visible');
+    return;
+  }
+  const itemIncompleto = items.find(i => !i.codigo || !i.cantidad || !i.total);
+  if (itemIncompleto) {
+    cotizacionError.textContent = 'Cada línea necesita código, cantidad y total.';
+    cotizacionError.classList.add('visible');
+    return;
+  }
+
+  try {
+    await actualizarLead(leadSeleccionadoId, {
+      cotizacion: {
+        proyecto,
+        items,
+        totalGeneral,
+        porcentajeAbono: porcentaje,
+        abono
+      }
+    });
+    mostrarToast('Cotización guardada correctamente.');
+  } catch (err) {
+    console.error(err);
+    cotizacionError.textContent = 'Ocurrió un error al guardar. Intenta nuevamente.';
+    cotizacionError.classList.add('visible');
+  }
 });
 
 // ---------- Dropdown propio: cambiar etapa ----------
