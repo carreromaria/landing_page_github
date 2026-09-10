@@ -418,3 +418,59 @@ export async function marcarLeadPerdido(id, motivo) {
 export async function eliminarLead(id) {
   await deleteDoc(doc(db, "leads", id));
 }
+
+// ============================================================
+// ---------- Catálogo de Servicios (código ↔ nombre) ----------
+// ============================================================
+// Un mismo catálogo alimenta tanto el "Tipo de proyecto" del lead
+// como el desplegable de "Código" en la tabla de Cotización, para
+// que ambos lados siempre usen los mismos códigos.
+
+/**
+ * Lista todos los servicios del catálogo, ordenados por código.
+ * Incluye activos e inactivos (para la pantalla de administración
+ * del catálogo).
+ */
+export async function listarServiciosCatalogo() {
+  const ref = collection(db, "catalogoServicios");
+  const q = query(ref, orderBy("codigo", "asc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+/**
+ * Lista solo los servicios activos del catálogo. Se usa para poblar
+ * el desplegable de "Código" al armar una cotización, así los
+ * servicios desactivados no aparecen como opción nueva.
+ */
+export async function listarServiciosActivos() {
+  const servicios = await listarServiciosCatalogo();
+  return servicios.filter(s => s.activo !== false);
+}
+
+/**
+ * Crea un servicio nuevo en el catálogo.
+ * @param {{codigo:string, nombre:string}} datos
+ * @returns {Promise<string>} id del documento creado
+ */
+export async function crearServicioCatalogo(datos) {
+  const ref = doc(collection(db, "catalogoServicios"));
+  await setDoc(ref, {
+    ...datos,
+    activo: true,
+    creadoEn: serverTimestamp()
+  });
+  return ref.id;
+}
+
+/** Actualiza el nombre de un servicio del catálogo (el código no cambia). */
+export async function actualizarServicioCatalogo(id, datos) {
+  const ref = doc(db, "catalogoServicios", id);
+  await updateDoc(ref, datos);
+}
+
+/** Activa o desactiva un servicio del catálogo (nunca se elimina de raíz). */
+export async function cambiarEstadoServicioCatalogo(id, activo) {
+  const ref = doc(db, "catalogoServicios", id);
+  await updateDoc(ref, { activo });
+}
