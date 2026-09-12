@@ -591,7 +591,7 @@ btnDescargarPDF.addEventListener('click', async () => {
     const blob = await html2pdf().set({
       margin: 0,
       filename: nombreArchivo,
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
       jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
     }).from(plantilla).toPdf().output('blob');
 
