@@ -11,7 +11,7 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   listarServiciosActivos, obtenerLead, obtenerCotizacionVigentePorLead,
   listarCotizacionesPorLead, crearCotizacion, actualizarCotizacion,
-  escucharCotizacionesVigentes
+  escucharCotizacionesVigentes, crearServicioCatalogo
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 
@@ -44,7 +44,8 @@ const cotizacionError = document.getElementById('cotizacionError');
 const btnGuardarCotizacion = document.getElementById('btnGuardarCotizacion');
 const btnGuardarNuevaVersion = document.getElementById('btnGuardarNuevaVersion');
 const btnDescargarPDF = document.getElementById('btnDescargarPDF');
-const cotFechaEntrega = document.getElementById('cotFechaEntrega');
+const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
+const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
 const cotFormaPago = document.getElementById('cotFormaPago');
 const cotValidaDesde = document.getElementById('cotValidaDesde');
 const cotVersionesAnteriores = document.getElementById('cotVersionesAnteriores');
@@ -117,10 +118,37 @@ function parsearCantidad(texto) {
   return match ? parseFloat(match[0]) : NaN;
 }
 
+/**
+ * Fuerza que Cantidad siempre use coma como separador decimal (nunca
+ * punto), y solo permite dígitos + una coma — así el número nunca se
+ * confunde con miles ni con el formato de EE.UU.
+ */
+function activarFormatoCantidad(inputEl) {
+  inputEl.addEventListener('input', () => {
+    let valor = inputEl.value.replace(/\./g, ',').replace(/[^\d,]/g, '');
+    const primeraComa = valor.indexOf(',');
+    if (primeraComa !== -1) {
+      valor = valor.slice(0, primeraComa + 1) + valor.slice(primeraComa + 1).replace(/,/g, '');
+    }
+    inputEl.value = valor;
+  });
+}
+
 function formatearFecha(timestamp) {
   const fecha = timestamp?.toDate?.();
   if (!fecha) return '—';
   return fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+/** Arma "02 al 04-10-26" a partir de dos fechas tipo input date (AAAA-MM-DD). */
+function formatearRangoFechas(inicio, fin) {
+  if (!inicio && !fin) return '—';
+  const fechaInicio = inicio ? new Date(inicio + 'T00:00:00') : null;
+  const fechaFin = fin ? new Date(fin + 'T00:00:00') : null;
+  if (fechaInicio && fechaFin) {
+    return `${String(fechaInicio.getDate()).padStart(2, '0')} al ${formatearFechaCorta(fechaFin)}`;
+  }
+  return formatearFechaCorta(fechaInicio || fechaFin);
 }
 
 /** Formato corto DD-MM-AA, igual al que usa el documento impreso. */
@@ -213,6 +241,8 @@ async function inicializarEditor() {
   }
   editorClienteNombre.textContent = leadActual.nombre || '—';
 
+  mejorarSelect('#cotFormaPago', { ancho: 'auto' });
+
   await cargarCotizacionVigente();
   cargarVersionesAnteriores();
 }
@@ -226,7 +256,8 @@ async function cargarCotizacionVigente() {
     btnGuardarCotizacion.textContent = 'Guardar cambios';
     renderFilas(vigenteActual.items);
     cotPorcentajeAbono.value = vigenteActual.porcentajeAbono ?? '';
-    cotFechaEntrega.value = vigenteActual.fechaEntrega || '';
+    cotFechaEntregaInicio.value = vigenteActual.fechaEntregaInicio || '';
+    cotFechaEntregaFin.value = vigenteActual.fechaEntregaFin || '';
     cotFormaPago.value = vigenteActual.formaPago || '';
     cotValidaDesde.value = vigenteActual.validaDesde || '';
   } else {
@@ -235,7 +266,8 @@ async function cargarCotizacionVigente() {
     btnGuardarCotizacion.textContent = 'Guardar cotización';
     renderFilas([]);
     cotPorcentajeAbono.value = '';
-    cotFechaEntrega.value = '';
+    cotFechaEntregaInicio.value = '';
+    cotFechaEntregaFin.value = '';
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
   }
@@ -313,6 +345,7 @@ function agregarFilaCotizacion(item = {}) {
   });
 
   inpDesc.addEventListener('input', recalcularCotizacion);
+  activarFormatoCantidad(inpCant);
   inpCant.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
   activarFormatoMiles(inpTotal);
   inpTotal.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
@@ -410,8 +443,9 @@ async function guardar({ comoNuevaVersion }) {
     proyecto, items, totalGeneral,
     porcentajeAbono: porcentaje, abono,
     clienteNombre: leadActual.nombre || '',
-    fechaEntrega: cotFechaEntrega.value.trim(),
-    formaPago: cotFormaPago.value.trim(),
+    fechaEntregaInicio: cotFechaEntregaInicio.value,
+    fechaEntregaFin: cotFechaEntregaFin.value,
+    formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value
   };
 
@@ -434,6 +468,97 @@ async function guardar({ comoNuevaVersion }) {
 
 btnGuardarCotizacion.addEventListener('click', () => guardar({ comoNuevaVersion: false }));
 btnGuardarNuevaVersion.addEventListener('click', () => guardar({ comoNuevaVersion: true }));
+
+// ---------- Modal: nuevo código de servicio (sin salir de la pantalla) ----------
+
+const modalNuevoCodigo = document.getElementById('modalNuevoCodigo');
+const nuevoCodigoPrefijo = document.getElementById('nuevoCodigoPrefijo');
+const nuevoCodigoInput = document.getElementById('nuevoCodigoInput');
+const nuevoCodigoNombre = document.getElementById('nuevoCodigoNombre');
+const nuevoCodigoCategoria = document.getElementById('nuevoCodigoCategoria');
+const nuevoCodigoTipo = document.getElementById('nuevoCodigoTipo');
+const nuevoCodigoError = document.getElementById('nuevoCodigoError');
+
+/** Sugiere un prefijo de 3 letras a partir del nombre, ej. "Rack TV" -> "RAC" */
+function sugerirPrefijo(nombre) {
+  const limpio = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/[^A-Z]/g, '');
+  return limpio.slice(0, 3) || 'SRV';
+}
+
+/** Da el siguiente correlativo dentro de ese prefijo, ej. si ya existe RAC-001 -> RAC-002 */
+function generarCodigoPorPrefijo(prefijo) {
+  if (!prefijo) return '';
+  const regex = new RegExp(`^${prefijo}-(\\d+)$`);
+  const maxNumero = serviciosCatalogo.reduce((max, s) => {
+    const match = String(s.codigo || '').match(regex);
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  return `${prefijo}-${String(maxNumero + 1).padStart(3, '0')}`;
+}
+
+function actualizarPreviewCodigoNuevo() {
+  const prefijo = nuevoCodigoPrefijo.value.trim().toUpperCase();
+  nuevoCodigoPrefijo.value = prefijo;
+  nuevoCodigoInput.value = generarCodigoPorPrefijo(prefijo);
+}
+
+let prefijoNuevoTocado = false;
+nuevoCodigoPrefijo.addEventListener('input', () => {
+  prefijoNuevoTocado = true;
+  actualizarPreviewCodigoNuevo();
+});
+nuevoCodigoNombre.addEventListener('input', () => {
+  if (prefijoNuevoTocado) return;
+  nuevoCodigoPrefijo.value = sugerirPrefijo(nuevoCodigoNombre.value);
+  actualizarPreviewCodigoNuevo();
+});
+
+document.getElementById('btnNuevoCodigoDesdeAqui').addEventListener('click', () => {
+  nuevoCodigoNombre.value = '';
+  nuevoCodigoPrefijo.value = '';
+  nuevoCodigoInput.value = '';
+  nuevoCodigoCategoria.value = '';
+  nuevoCodigoTipo.value = '';
+  prefijoNuevoTocado = false;
+  nuevoCodigoError.classList.remove('visible');
+  modalNuevoCodigo.style.display = 'flex';
+});
+
+document.getElementById('btnCancelarNuevoCodigo').addEventListener('click', () => {
+  modalNuevoCodigo.style.display = 'none';
+});
+
+document.getElementById('btnGuardarNuevoCodigo').addEventListener('click', async () => {
+  const nombre = nuevoCodigoNombre.value.trim();
+  if (!nombre) {
+    nuevoCodigoError.textContent = 'Este campo es obligatorio.';
+    nuevoCodigoError.classList.add('visible');
+    return;
+  }
+  if (!nuevoCodigoInput.value) {
+    nuevoCodigoError.textContent = 'Escribe un prefijo válido para generar el código.';
+    nuevoCodigoError.classList.add('visible');
+    return;
+  }
+
+  try {
+    await crearServicioCatalogo({
+      codigo: nuevoCodigoInput.value,
+      nombre,
+      categoria: nuevoCodigoCategoria.value || null,
+      tipo: nuevoCodigoTipo.value || null
+    });
+    serviciosCatalogo = await listarServiciosActivos();
+    modalNuevoCodigo.style.display = 'none';
+    mostrarToast(`Servicio "${nombre}" creado (${nuevoCodigoInput.value}).`);
+    agregarFilaCotizacion({ codigo: nuevoCodigoInput.value, descripcion: nombre });
+  } catch (err) {
+    console.error(err);
+    nuevoCodigoError.textContent = 'Ocurrió un error al crear el servicio. Intenta de nuevo.';
+    nuevoCodigoError.classList.add('visible');
+  }
+});
 
 // ---------- Descargar PDF ----------
 // Usa los datos ya guardados (vigenteActual) para que el folio y la
@@ -486,7 +611,7 @@ function llenarPlantillaPDF(cotizacion, lead) {
   document.getElementById('pdfFecha').textContent =
     formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
   document.getElementById('pdfProyecto').textContent = cotizacion.proyecto || '—';
-  document.getElementById('pdfFechaEntrega').textContent = cotizacion.fechaEntrega || '—';
+  document.getElementById('pdfFechaEntrega').textContent = formatearRangoFechas(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin);
   document.getElementById('pdfCliente').textContent = lead.nombre || '—';
   document.getElementById('pdfTelefono').textContent = lead.telefono || '—';
   document.getElementById('pdfDireccion').textContent = formatearDireccion(lead.direccion);
