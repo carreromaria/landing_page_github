@@ -1,4 +1,4 @@
-/* ================= COTIZACIÓN (agregar al final de crm.css) Linence================= */
+/* ================= COTIZACIÓN (agregar al final de crm.css) ================= */
 
 .crm-cotizacion-resumen {
   background: #faf7f2;
@@ -75,10 +75,10 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.cot-item-valor-unitario {
+.cot-item-total {
   font-size: 13.5px;
-  color: #6b6b6b;
-  font-weight: 600;
+  color: #141213;
+  font-weight: 700;
   white-space: nowrap;
 }
 
