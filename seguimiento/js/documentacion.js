@@ -222,8 +222,7 @@ async function obtenerCotizacionParaFormulario(proyecto) {
 
     const items = (vigente.items || []).map(it => {
       const cantidadNum = parseFloat(String(it.cantidad || '').replace(',', '.')) || 0;
-      const valorUnitario = cantidadNum > 0 ? Math.round((it.total || 0) / cantidadNum) : 0;
-      return { codigo: it.codigo || '', cantidad: cantidadNum, descripcion: it.descripcion || '', valorUnitario };
+      return { codigo: it.codigo || '', cantidad: cantidadNum, descripcion: it.descripcion || '', valorUnitario: it.valorUnitario || 0 };
     });
 
     mostrarToast(`Ítems y folio cargados desde Cotizaciones (${vigente.numero}).`);
