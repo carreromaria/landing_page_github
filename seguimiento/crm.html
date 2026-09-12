@@ -41,7 +41,7 @@
       <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
       <li><a href="crm.html" class="activo">👥 <span class="texto">CRM</span></a></li>
       <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
-      <li><span class="dash-nav-disabled">📄 <span class="texto">Cotizaciones</span><span class="proximamente">Pronto</span></span></li>
+      <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
       <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
       <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
     </ul>
@@ -167,10 +167,6 @@
           <div class="valor" id="detalleVendedor">—</div>
         </div>
         <div class="crm-detalle-dato">
-          <div class="etiqueta">N° de cotización</div>
-          <div class="valor" id="detalleNumCotizacion">—</div>
-        </div>
-        <div class="crm-detalle-dato">
           <div class="etiqueta">Creado</div>
           <div class="valor" id="detalleFechaCreacion">—</div>
         </div>
@@ -190,50 +186,32 @@
       <div class="crm-proyecto-vinculado" id="detalleProyectoVinculado" style="display:none;"></div>
     </div>
 
-    <!-- ================= COTIZACIÓN ================= -->
+    <!-- ================= COTIZACIÓN (resumen, se edita en el módulo Cotizaciones) ================= -->
     <div class="crm-bitacora-titulo">Cotización</div>
 
-    <div class="crm-detalle-dato">
-      <div class="etiqueta">Proyecto (se arma automático con las descripciones)</div>
-      <div class="valor" id="cotProyectoAuto">—</div>
+    <div class="crm-cotizacion-resumen" id="cotizacionResumenVacio">
+      <p class="crm-cotizacion-texto-vacio">Este lead todavía no tiene una cotización.</p>
+      <a href="#" id="btnIrACotizacionNueva" class="btn-dorado">+ Crear cotización</a>
     </div>
 
-    <div class="crm-cotizacion-tabla-wrapper">
-      <table class="crm-cotizacion-tabla">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Cantidad (ml)</th>
-            <th>Valor unitario</th>
-            <th>Total línea</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cotizacionItemsBody"></tbody>
-      </table>
-      <button type="button" class="btn-secundario" id="btnAgregarItemCotizacion">+ Agregar servicio</button>
-    </div>
-
-    <div class="crm-cotizacion-totales">
-      <div class="crm-cotizacion-total-row">
-        <span>Total general</span>
-        <span id="cotTotalGeneral">$0</span>
+    <div class="crm-cotizacion-resumen" id="cotizacionResumenExistente" style="display:none;">
+      <div class="crm-cotizacion-resumen-fila">
+        <span class="etiqueta">N° cotización</span>
+        <span class="valor" id="cotResNumero">—</span>
       </div>
-      <div class="crm-cotizacion-total-row">
-        <label for="cotPorcentajeAbono">% de abono</label>
-        <input type="text" id="cotPorcentajeAbono" inputmode="numeric" placeholder="Ej. 50" maxlength="3">
+      <div class="crm-cotizacion-resumen-fila">
+        <span class="etiqueta">Proyecto</span>
+        <span class="valor" id="cotResProyecto">—</span>
       </div>
-      <div class="crm-cotizacion-total-row crm-cotizacion-abono-final">
-        <span>Abono</span>
-        <span id="cotAbono">$0</span>
+      <div class="crm-cotizacion-resumen-fila">
+        <span class="etiqueta">Total general</span>
+        <span class="valor" id="cotResTotal">—</span>
       </div>
-    </div>
-
-    <div class="modal-error" id="cotizacionError"></div>
-
-    <div class="crm-cotizacion-acciones">
-      <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
+      <div class="crm-cotizacion-resumen-fila">
+        <span class="etiqueta">Abono</span>
+        <span class="valor" id="cotResAbono">—</span>
+      </div>
+      <a href="#" id="btnIrACotizacionExistente" class="btn-secundario">Ver / editar cotización</a>
     </div>
 
     <div class="crm-bitacora-titulo">Bitácora</div>
@@ -356,11 +334,6 @@
           <label for="lPresupuesto">Presupuesto estimado</label>
           <input type="text" id="lPresupuesto" placeholder="Opcional" inputmode="numeric">
         </div>
-        <div class="campo">
-          <label for="lNumCotizacion">N° de cotización</label>
-          <input type="text" id="lNumCotizacion" placeholder="Ej. 00004" inputmode="numeric" maxlength="5" autocomplete="off">
-          <span class="crm-cotizacion-preview" id="lCotizacionPreview">Se verá como: CT-XXX-00000</span>
-        </div>
         <div class="campo campo-full">
           <label for="lVendedor">Vendedor asignado</label>
           <select id="lVendedor">
@@ -462,11 +435,6 @@
         <div class="campo">
           <label for="ePresupuesto">Presupuesto estimado</label>
           <input type="text" id="ePresupuesto" inputmode="numeric">
-        </div>
-        <div class="campo">
-          <label for="eNumCotizacion">N° de cotización</label>
-          <input type="text" id="eNumCotizacion" placeholder="Ej. 00004" inputmode="numeric" maxlength="5" autocomplete="off">
-          <span class="crm-cotizacion-preview" id="eCotizacionPreview">Se verá como: CT-XXX-00000</span>
         </div>
         <div class="campo campo-full">
           <label for="eVendedor">Vendedor asignado</label>
