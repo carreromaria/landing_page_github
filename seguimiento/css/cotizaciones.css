@@ -1,0 +1,222 @@
+/* ================= Cotizaciones (módulo propio) ================= */
+
+.cot-volver {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: 13.5px;
+  color: #6b6b6b;
+  text-decoration: none;
+}
+.cot-volver:hover { color: #141213; }
+
+.cot-badge-version {
+  display: inline-block;
+  background: #f0ece1;
+  color: #8a7a5a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.cot-versiones-anteriores {
+  margin: 6px 0 18px;
+}
+
+.cot-link-versiones {
+  background: none;
+  border: none;
+  color: #d6a52c;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.cot-link-versiones:hover { text-decoration: underline; }
+
+.cot-version-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #6b6b6b;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0ece1;
+}
+
+/* ================= Datos del documento (para el PDF) ================= */
+
+.cot-datos-documento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: #faf7f2;
+  border: 1px solid #ece4d3;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.cot-campo-doc {
+  flex: 1;
+  min-width: 180px;
+}
+
+.cot-campo-doc label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #141213;
+  margin-bottom: 5px;
+}
+
+.cot-campo-doc input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #d3bb8c;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* ================= Plantilla del documento PDF ================= */
+/* Se renderiza fuera de pantalla; html2pdf.js la convierte a PDF tal
+   como se ve acá, sin depender del resto del layout del panel. */
+
+.pdf-doc {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  width: 794px; /* ancho A4 aprox a 96dpi */
+  background: #fff;
+  font-family: 'Poppins', sans-serif;
+  color: #141213;
+  font-size: 13px;
+}
+
+.pdf-header {
+  background: #141213;
+  background-image: linear-gradient(120deg, #141213 0%, #141213 55%, #d6a52c 55%, #d6a52c 100%);
+  color: #fff;
+  padding: 22px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdf-header-titulo {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.pdf-header-folio {
+  font-size: 15px;
+  color: #d6a52c;
+  font-weight: 600;
+  margin-left: 14px;
+}
+
+.pdf-header-logo { height: 46px; }
+
+.pdf-empresa {
+  padding: 10px 28px;
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+.pdf-tabla-info {
+  width: calc(100% - 56px);
+  margin: 0 28px 18px;
+  border-collapse: collapse;
+}
+
+.pdf-tabla-info th {
+  background: #141213;
+  color: #fff;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border: 1px solid #141213;
+}
+
+.pdf-tabla-info td {
+  border: 1px solid #d3bb8c;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+.pdf-tabla-items {
+  width: calc(100% - 56px);
+  margin: 0 28px 0;
+  border-collapse: collapse;
+}
+
+.pdf-tabla-items thead th {
+  background: #d6a52c;
+  color: #141213;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 10px;
+  border: 1px solid #c49522;
+  text-align: left;
+}
+
+.pdf-tabla-items tbody td {
+  border: 1px solid #ece4d3;
+  padding: 10px;
+  font-size: 12.5px;
+  height: 20px;
+}
+
+.pdf-pie {
+  display: flex;
+  margin: 0 28px 18px;
+}
+
+.pdf-pie-notas {
+  flex: 1;
+  background: #141213;
+  color: #fff;
+  padding: 14px 16px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.pdf-pie-notas p { margin: 0 0 8px; }
+.pdf-pie-gracias { color: #d6a52c; font-weight: 600; }
+
+.pdf-tabla-totales {
+  border-collapse: collapse;
+  min-width: 200px;
+}
+
+.pdf-tabla-totales th {
+  background: #d6a52c;
+  color: #141213;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 1px solid #c49522;
+  text-align: left;
+}
+
+.pdf-tabla-totales td {
+  border: 1px solid #ece4d3;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  min-width: 90px;
+}
+
+.pdf-contacto {
+  background: #d6a52c;
+  color: #141213;
+  padding: 10px 28px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.pdf-contacto-fila { padding: 3px 0; }
