@@ -35,6 +35,34 @@
 }
 .cot-link-versiones:hover { text-decoration: underline; }
 
+.cot-tabla-acciones {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.cot-btn-nuevo-codigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1.5px dashed #d6a52c;
+  color: #b8860b;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  padding: 9px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease, border-style .15s ease;
+}
+.cot-btn-nuevo-codigo:hover {
+  background: #fdf7ea;
+  border-style: solid;
+}
+
 .cot-version-item {
   display: flex;
   justify-content: space-between;
@@ -70,7 +98,8 @@
   margin-bottom: 5px;
 }
 
-.cot-campo-doc input {
+.cot-campo-doc input,
+.cot-campo-doc select {
   width: 100%;
   box-sizing: border-box;
   padding: 8px 10px;
@@ -80,12 +109,28 @@
   font-family: 'Poppins', sans-serif;
 }
 
+.cot-rango-fechas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cot-rango-fechas input {
+  flex: 1;
+  min-width: 0;
+}
+
+.cot-rango-fechas span {
+  font-size: 12.5px;
+  color: #8a7a5a;
+}
+
 /* ================= Plantilla del documento PDF ================= */
 /* Se renderiza fuera de pantalla; html2pdf.js la convierte a PDF tal
    como se ve acá, sin depender del resto del layout del panel. */
 
 .pdf-doc {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: -9999px;
   width: 794px; /* ancho A4 aprox a 96dpi */
@@ -118,7 +163,22 @@
   margin-left: 14px;
 }
 
-.pdf-header-logo { height: 46px; }
+.pdf-header-logo {
+  text-align: right;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1.2;
+}
+.pdf-logo-lin { color: #fff; }
+.pdf-logo-ence { color: #d6a52c; }
+.pdf-logo-tagline {
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: .25em;
+  color: #d3bb8c;
+  margin-top: 2px;
+}
 
 .pdf-empresa {
   padding: 10px 28px;
