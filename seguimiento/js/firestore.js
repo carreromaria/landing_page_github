@@ -359,6 +359,18 @@ export async function actualizarLead(id, datos) {
 }
 
 /**
+ * Obtiene un lead puntual (lectura única, no realtime). Se usa desde
+ * pantallas que no necesitan el listado completo en vivo, como el
+ * módulo de Cotizaciones al abrir un lead por su id en la URL.
+ */
+export async function obtenerLead(id) {
+  const ref = doc(db, "leads", id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
+/**
  * Agrega una entrada a la bitácora del lead y refresca la fecha de
  * último contacto (así la alerta de "días sin contacto" se reinicia).
  * @param {string} id
@@ -473,4 +485,109 @@ export async function actualizarServicioCatalogo(id, datos) {
 export async function cambiarEstadoServicioCatalogo(id, activo) {
   const ref = doc(db, "catalogoServicios", id);
   await updateDoc(ref, { activo });
+}
+
+// ============================================================
+// ---------- Cotizaciones (colección propia, vinculada al Lead) ----------
+// ============================================================
+// Un Lead puede tener varias cotizaciones a lo largo del tiempo
+// (versiones, por negociación de precio). Solo una queda "vigente"
+// por Lead; las anteriores pasan a "reemplazada" y se conservan
+// como historial — nunca se borran.
+
+/**
+ * Crea una cotización nueva para un Lead, con folio correlativo
+ * automático (CT-XXX-00000, donde XXX es el canal de origen del
+ * lead) y número de versión también automático. Si el Lead ya tenía
+ * una cotización vigente, la marca como "reemplazada" en la misma
+ * transacción.
+ *
+ * @param {string} leadId
+ * @param {string} canalOrigen prefijo de 3 letras (ej. "WSP", "INS"), viene de lead.canalOrigen
+ * @param {{proyecto:string, items:object[], totalGeneral:number, porcentajeAbono:number, abono:number}} datos
+ * @param {string} uid
+ * @returns {Promise<string>} id de la cotización creada
+ */
+export async function crearCotizacion(leadId, canalOrigen, datos, uid) {
+  const refContador = doc(db, "contadores", "cotizaciones");
+
+  const vigenteAnterior = await obtenerCotizacionVigentePorLead(leadId);
+  const nuevaVersion = vigenteAnterior ? (vigenteAnterior.version || 1) + 1 : 1;
+
+  const nuevoId = await runTransaction(db, async (transaction) => {
+    const snapContador = await transaction.get(refContador);
+    const ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
+    const nuevoNumero = ultimo + 1;
+    const folio = `CT-${canalOrigen}-${String(nuevoNumero).padStart(5, "0")}`;
+
+    const refNueva = doc(collection(db, "cotizaciones"));
+
+    if (vigenteAnterior) {
+      transaction.update(doc(db, "cotizaciones", vigenteAnterior.id), { estado: "reemplazada" });
+    }
+
+    transaction.set(refContador, { ultimo: nuevoNumero });
+    transaction.set(refNueva, {
+      ...datos,
+      leadId,
+      numero: folio,
+      version: nuevaVersion,
+      estado: "vigente",
+      creadoPor: uid,
+      creadoEn: serverTimestamp(),
+      actualizadoEn: serverTimestamp()
+    });
+
+    return refNueva.id;
+  });
+
+  return nuevoId;
+}
+
+/** Actualiza los datos de una cotización existente (sin cambiar versión ni folio). */
+export async function actualizarCotizacion(id, datos) {
+  const ref = doc(db, "cotizaciones", id);
+  await updateDoc(ref, {
+    ...datos,
+    actualizadoEn: serverTimestamp()
+  });
+}
+
+/**
+ * Devuelve la cotización vigente de un Lead, o null si el Lead
+ * todavía no tiene ninguna.
+ */
+export async function obtenerCotizacionVigentePorLead(leadId) {
+  const ref = collection(db, "cotizaciones");
+  const q = query(ref, where("leadId", "==", leadId), where("estado", "==", "vigente"));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+/**
+ * Devuelve todas las versiones de la cotización de un Lead
+ * (vigente + reemplazadas), más reciente primero.
+ */
+export async function listarCotizacionesPorLead(leadId) {
+  const ref = collection(db, "cotizaciones");
+  const q = query(ref, where("leadId", "==", leadId));
+  const snap = await getDocs(q);
+  const cotizaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  cotizaciones.sort((a, b) => (b.version || 0) - (a.version || 0));
+  return cotizaciones;
+}
+
+/**
+ * Escucha en tiempo real todas las cotizaciones vigentes (una por
+ * Lead), para el listado principal del módulo Cotizaciones.
+ * Devuelve una función para dejar de escuchar.
+ */
+export function escucharCotizacionesVigentes(callback, onError) {
+  const ref = collection(db, "cotizaciones");
+  const q = query(ref, where("estado", "==", "vigente"), orderBy("actualizadoEn", "desc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
 }
