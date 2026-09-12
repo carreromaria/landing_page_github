@@ -171,6 +171,25 @@
   color: #8a7a5a;
 }
 
+.cat-fila-dos-campos {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+.cat-fila-dos-campos > div { flex: 1; }
+.cat-fila-dos-campos .cat-label { margin-top: 0; }
+
+.cat-modal select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d3bb8c;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  font-family: 'Poppins', sans-serif;
+  background: #fff;
+}
+
 .cat-error {
   display: none;
   color: #b23b3b;
