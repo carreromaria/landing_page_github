@@ -24,8 +24,12 @@ const catVacio = document.getElementById('catVacio');
 
 const modalServicio = document.getElementById('modalServicio');
 const modalServicioTitulo = document.getElementById('modalServicioTitulo');
+const inputPrefijo = document.getElementById('inputPrefijo');
 const inputCodigo = document.getElementById('inputCodigo');
 const inputNombre = document.getElementById('inputNombre');
+const inputCategoria = document.getElementById('inputCategoria');
+const inputTipo = document.getElementById('inputTipo');
+const filaPrefijoCodigo = document.getElementById('filaPrefijoCodigo');
 const errorNombre = document.getElementById('errorNombre');
 
 const modalEstado = document.getElementById('modalEstado');
@@ -83,6 +87,8 @@ function renderTabla() {
     tr.innerHTML = `
       <td class="cat-codigo">${escapeHtml(s.codigo)}</td>
       <td>${escapeHtml(s.nombre)}</td>
+      <td>${escapeHtml(s.categoria || '—')}</td>
+      <td>${escapeHtml(s.tipo || '—')}</td>
       <td><span class="cat-estado ${estadoClase}">${estadoTexto}</span></td>
       <td class="cat-acciones">
         <button class="cat-accion-editar" data-id="${s.id}" data-accion="editar">Editar</button>
@@ -99,26 +105,62 @@ function escapeHtml(str) {
   }[c]));
 }
 
-// ---------- Generar próximo código correlativo ----------
+// ---------- Código nuevo: prefijo (de la categoría/nombre) + correlativo ----------
+// Los códigos viejos (ej. "0018", numéricos, sin prefijo) quedan intactos:
+// esta lógica solo aplica para los servicios que se creen de aquí en adelante.
 
-function generarProximoCodigo() {
-  if (servicios.length === 0) return '0018'; // primer código libre en tu numeración actual
-  const maxCodigo = servicios.reduce((max, s) => {
-    const num = parseInt(s.codigo, 10);
-    return isNaN(num) ? max : Math.max(max, num);
-  }, 0);
-  return String(maxCodigo + 1).padStart(4, '0');
+function quitarAcentos(str) {
+  return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
+
+/** Sugiere un prefijo de 3 letras a partir del nombre, ej. "Walking Closet" -> "WAL" */
+function sugerirPrefijo(nombre) {
+  const limpio = quitarAcentos(nombre).toUpperCase().replace(/[^A-Z]/g, '');
+  return limpio.slice(0, 3) || 'SRV';
+}
+
+/** Da el siguiente correlativo DENTRO de ese prefijo, ej. si ya existe WAL-001 -> WAL-002 */
+function generarCodigoPorPrefijo(prefijo) {
+  if (!prefijo) return '';
+  const regex = new RegExp(`^${prefijo}-(\\d+)$`);
+  const maxNumero = servicios.reduce((max, s) => {
+    const match = String(s.codigo || '').match(regex);
+    return match ? Math.max(max, parseInt(match[1], 10)) : max;
+  }, 0);
+  return `${prefijo}-${String(maxNumero + 1).padStart(3, '0')}`;
+}
+
+function actualizarPreviewCodigo() {
+  const prefijo = inputPrefijo.value.trim().toUpperCase();
+  inputPrefijo.value = prefijo;
+  inputCodigo.value = generarCodigoPorPrefijo(prefijo);
+}
+
+inputPrefijo.addEventListener('input', actualizarPreviewCodigo);
 
 // ---------- Modal: nuevo / editar ----------
 
 document.getElementById('btnNuevoServicio').addEventListener('click', () => {
   modoEdicion = null;
   modalServicioTitulo.textContent = 'Nuevo servicio';
-  inputCodigo.value = generarProximoCodigo();
+  filaPrefijoCodigo.style.display = '';
   inputNombre.value = '';
+  inputPrefijo.value = '';
+  inputCodigo.value = '';
+  inputCategoria.value = '';
+  inputTipo.value = '';
   errorNombre.classList.remove('visible');
   modalServicio.style.display = 'flex';
+});
+
+// Sugiere el prefijo automáticamente al escribir el nombre, mientras la
+// persona no lo haya editado a mano todavía (si ya lo tocó, no se lo pisamos).
+let prefijoTocadoManualmente = false;
+inputPrefijo.addEventListener('input', () => { prefijoTocadoManualmente = true; });
+inputNombre.addEventListener('input', () => {
+  if (modoEdicion || prefijoTocadoManualmente) return;
+  inputPrefijo.value = sugerirPrefijo(inputNombre.value);
+  actualizarPreviewCodigo();
 });
 
 function abrirEdicion(id) {
@@ -126,8 +168,10 @@ function abrirEdicion(id) {
   if (!servicio) return;
   modoEdicion = id;
   modalServicioTitulo.textContent = 'Editar servicio';
-  inputCodigo.value = servicio.codigo;
+  filaPrefijoCodigo.style.display = 'none'; // el código ya existe, no se recalcula al editar
   inputNombre.value = servicio.nombre;
+  inputCategoria.value = servicio.categoria || '';
+  inputTipo.value = servicio.tipo || '';
   errorNombre.classList.remove('visible');
   modalServicio.style.display = 'flex';
 }
@@ -139,15 +183,28 @@ document.getElementById('btnGuardarServicio').addEventListener('click', async ()
     errorNombre.classList.add('visible');
     return;
   }
+  if (!modoEdicion && !inputCodigo.value) {
+    errorNombre.textContent = 'Escribe un prefijo válido para generar el código.';
+    errorNombre.classList.add('visible');
+    return;
+  }
+
+  const datosComunes = {
+    nombre,
+    categoria: inputCategoria.value || null,
+    tipo: inputTipo.value || null
+  };
 
   try {
     if (modoEdicion) {
-      await actualizarServicioCatalogo(modoEdicion, { nombre });
+      await actualizarServicioCatalogo(modoEdicion, datosComunes);
       mostrarToast('Servicio actualizado correctamente.');
     } else {
-      await crearServicioCatalogo({ codigo: inputCodigo.value, nombre });
+      await crearServicioCatalogo({ ...datosComunes, codigo: inputCodigo.value });
       mostrarToast('Servicio creado correctamente.');
     }
+    modoEdicion = null;
+    prefijoTocadoManualmente = false;
     modalServicio.style.display = 'none';
     await cargarServicios();
   } catch (err) {
