@@ -108,6 +108,13 @@ function formatearRutInput(valor) {
   return limpio;
 }
 
+/** Solo para mostrar: "12345678-9" -> "12.345.678-9" */
+function formatearRutParaMostrar(rut) {
+  if (!rut || !rut.includes('-')) return rut || '—';
+  const [numero, dv] = rut.split('-');
+  return `${numero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}-${dv}`;
+}
+
 function activarFormatoRut(inputEl) {
   inputEl.addEventListener('input', () => {
     const alFinal = inputEl.selectionStart === inputEl.value.length;
@@ -437,6 +444,7 @@ function abrirDetalleLead(id) {
   document.getElementById('detalleMetaProyecto').textContent =
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
   document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(lead.presupuestoEstimado);
+  document.getElementById('detalleRut').textContent = formatearRutParaMostrar(lead.rut);
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
   document.getElementById('detalleEmail').textContent = lead.email || '—';
@@ -533,6 +541,7 @@ const btnIrACotizacionExistente = document.getElementById('btnIrACotizacionExist
 async function cargarResumenCotizacion(lead) {
   cotizacionResumenVacio.style.display = 'none';
   cotizacionResumenExistente.style.display = 'none';
+  document.getElementById('detalleAbono').textContent = '—';
 
   const enlace = `cotizaciones.html?leadId=${lead.id}`;
   btnIrACotizacionNueva.href = enlace;
@@ -551,6 +560,8 @@ async function cargarResumenCotizacion(lead) {
     document.getElementById('cotResProyecto').textContent = vigente.proyecto || '—';
     document.getElementById('cotResTotal').textContent = '$' + (vigente.totalGeneral || 0).toLocaleString('es-CL');
     document.getElementById('cotResAbono').textContent =
+      `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
+    document.getElementById('detalleAbono').textContent =
       `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
     cotizacionResumenExistente.style.display = '';
   } catch (err) {
