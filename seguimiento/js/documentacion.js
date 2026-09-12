@@ -8,7 +8,7 @@
 // `cotizacion`) hasta que exista el módulo de Cotizaciones.
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
-import { buscarProyectoPorRut, actualizarProyecto } from './firestore.js';
+import { buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead } from './firestore.js';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -189,7 +189,8 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
     }
     PROYECTO_ACTUAL = proyecto;
     mostrarResultadoCliente(proyecto);
-    poblarFormCotizacion(proyecto.cotizacion || {});
+    const cotizacionParaMostrar = await obtenerCotizacionParaFormulario(proyecto);
+    poblarFormCotizacion(cotizacionParaMostrar);
     document.getElementById('docCotizacionPanel').classList.add('visible');
     renderizarDocsGrid();
   } catch (err) {
@@ -197,6 +198,47 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
     mostrarToast('No pudimos buscar el proyecto. Intenta de nuevo.', 'error');
   }
 });
+
+/**
+ * Trae el folio, los ítems y el % de abono desde la cotización real
+ * (colección "cotizaciones", vinculada por leadOrigenId), y los combina
+ * con lo que ya hubiera guardado en el Proyecto (fechas, materiales,
+ * instalador, etc. — eso sigue viviendo solo acá hasta que el módulo
+ * de Cotizaciones también los capture). Se ejecuta cada vez que se
+ * busca el RUT, así que si algo cambió en Cotizaciones después, se
+ * refleja acá sin tener que hacerlo a mano.
+ *
+ * El "Valor Unitario" que usan los documentos de Documentación se
+ * recalcula igual que en el módulo de Cotizaciones: Total ÷ Cantidad,
+ * ya que ahí el precio se pacta como total de la línea, no al revés.
+ */
+async function obtenerCotizacionParaFormulario(proyecto) {
+  const base = proyecto.cotizacion || {};
+  if (!proyecto.leadOrigenId) return base;
+
+  try {
+    const vigente = await obtenerCotizacionVigentePorLead(proyecto.leadOrigenId);
+    if (!vigente) return base;
+
+    const items = (vigente.items || []).map(it => {
+      const cantidadNum = parseFloat(String(it.cantidad || '').replace(',', '.')) || 0;
+      const valorUnitario = cantidadNum > 0 ? Math.round((it.total || 0) / cantidadNum) : 0;
+      return { codigo: it.codigo || '', cantidad: cantidadNum, descripcion: it.descripcion || '', valorUnitario };
+    });
+
+    mostrarToast(`Ítems y folio cargados desde Cotizaciones (${vigente.numero}).`);
+
+    return {
+      ...base,
+      numero: vigente.numero,
+      items,
+      abonoPorcentaje: vigente.porcentajeAbono ?? base.abonoPorcentaje
+    };
+  } catch (err) {
+    console.error('No se pudo cargar la cotización real desde el módulo Cotizaciones:', err);
+    return base;
+  }
+}
 
 function mostrarResultadoCliente(p) {
   document.getElementById('docClienteNombre').textContent = tituloCase(p.cliente) || 'Sin nombre';
