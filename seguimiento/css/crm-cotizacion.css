@@ -33,6 +33,7 @@
 .crm-cotizacion-tabla-wrapper {
   margin: 14px 0 20px;
   overflow-x: auto;
+  overflow-y: visible;
 }
 
 .crm-cotizacion-tabla {
