@@ -323,8 +323,8 @@ function agregarFilaCotizacion(item = {}) {
     <td><select id="cotCod_${rowId}" class="cot-item-codigo">${opcionesCodigoServicio(item.codigo)}</select></td>
     <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
     <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
-    <td class="cot-item-valor-unitario" id="cotVU_${rowId}">—</td>
-    <td><input type="text" id="cotTotal_${rowId}" class="cot-item-total" inputmode="numeric" placeholder="$0" value="${item.total ? formatearMilesInput(String(item.total)) : ''}"></td>
+    <td><input type="text" id="cotVU_${rowId}" class="cot-item-valor-unitario-input" inputmode="numeric" placeholder="$0" value="${item.valorUnitario ? formatearMilesInput(String(item.valorUnitario)) : ''}"></td>
+    <td class="cot-item-total" id="cotTotal_${rowId}">$0</td>
     <td><button type="button" class="cot-item-eliminar" data-row-id="${rowId}" aria-label="Eliminar fila">✕</button></td>
   `;
   cotizacionItemsBody.appendChild(tr);
@@ -334,7 +334,7 @@ function agregarFilaCotizacion(item = {}) {
   const selCodigo = document.getElementById(`cotCod_${rowId}`);
   const inpDesc = document.getElementById(`cotDesc_${rowId}`);
   const inpCant = document.getElementById(`cotCant_${rowId}`);
-  const inpTotal = document.getElementById(`cotTotal_${rowId}`);
+  const inpVU = document.getElementById(`cotVU_${rowId}`);
 
   selCodigo.addEventListener('change', () => {
     if (!inpDesc.value.trim()) {
@@ -346,24 +346,25 @@ function agregarFilaCotizacion(item = {}) {
 
   inpDesc.addEventListener('input', recalcularCotizacion);
   activarFormatoCantidad(inpCant);
-  inpCant.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
-  activarFormatoMiles(inpTotal);
-  inpTotal.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
+  inpCant.addEventListener('input', () => { actualizarTotalFila(rowId); recalcularCotizacion(); });
+  activarFormatoMiles(inpVU);
+  inpVU.addEventListener('input', () => { actualizarTotalFila(rowId); recalcularCotizacion(); });
 
-  actualizarValorUnitarioFila(rowId);
+  actualizarTotalFila(rowId);
 }
 
-function actualizarValorUnitarioFila(rowId) {
+/** Total línea = Cantidad × Valor Unitario (se calcula solo, no se edita). */
+function actualizarTotalFila(rowId) {
   const cantidad = parsearCantidad(document.getElementById(`cotCant_${rowId}`)?.value);
-  const total = parsearMonto(document.getElementById(`cotTotal_${rowId}`)?.value);
-  const celdaVU = document.getElementById(`cotVU_${rowId}`);
-  if (!celdaVU) return;
+  const valorUnitario = parsearMonto(document.getElementById(`cotVU_${rowId}`)?.value);
+  const celdaTotal = document.getElementById(`cotTotal_${rowId}`);
+  if (!celdaTotal) return;
 
-  if (!cantidad || cantidad <= 0 || !total) {
-    celdaVU.textContent = '—';
+  if (!cantidad || cantidad <= 0 || !valorUnitario) {
+    celdaTotal.textContent = '$0';
     return;
   }
-  celdaVU.textContent = formatearMoneda(total / cantidad) + ' /ml';
+  celdaTotal.textContent = formatearMoneda(Math.round(cantidad * valorUnitario));
 }
 
 document.getElementById('btnAgregarItemCotizacion').addEventListener('click', () => {
@@ -390,11 +391,16 @@ cotPorcentajeAbono.addEventListener('input', () => {
 function leerItemsCotizacion() {
   return [...cotizacionItemsBody.querySelectorAll('tr')].map(tr => {
     const rowId = tr.dataset.rowId;
+    const cantidad = document.getElementById(`cotCant_${rowId}`).value.trim();
+    const valorUnitario = parsearMonto(document.getElementById(`cotVU_${rowId}`).value);
+    const cantidadNum = parsearCantidad(cantidad) || 0;
+    const total = Math.round(cantidadNum * valorUnitario);
     return {
       codigo: document.getElementById(`cotCod_${rowId}`).value,
       descripcion: document.getElementById(`cotDesc_${rowId}`).value.trim(),
-      cantidad: document.getElementById(`cotCant_${rowId}`).value.trim(),
-      total: parsearMonto(document.getElementById(`cotTotal_${rowId}`).value)
+      cantidad,
+      valorUnitario,
+      total
     };
   }).filter(item => item.descripcion || item.total);
 }
@@ -419,7 +425,7 @@ function validarCotizacion(items) {
   if (items.length === 0) {
     return 'Agrega al menos un servicio antes de guardar.';
   }
-  const incompleto = items.find(i => !i.codigo || !i.cantidad || !i.total);
+  const incompleto = items.find(i => !i.codigo || !i.cantidad || !i.valorUnitario);
   if (incompleto) {
     return 'Cada línea necesita código, cantidad y total.';
   }
@@ -622,7 +628,7 @@ function llenarPlantillaPDF(cotizacion, lead) {
       <td>${escapeHtml(item.codigo)}</td>
       <td>${escapeHtml(item.cantidad)} m</td>
       <td>${escapeHtml(item.descripcion)}</td>
-      <td>${formatearMoneda(item.total / parsearCantidad(item.cantidad))}</td>
+      <td>${formatearMoneda(item.valorUnitario)}</td>
       <td>${formatearMoneda(item.total)}</td>
     </tr>
   `).join('');
