@@ -14,7 +14,9 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/crm.css">
+<link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/cotizaciones.css?v=1">
+<link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -103,12 +105,24 @@
 
     <div class="cot-datos-documento">
       <div class="cot-campo-doc">
-        <label for="cotFechaEntrega">Fecha de entrega</label>
-        <input type="text" id="cotFechaEntrega" placeholder="Ej. 02 al 04-10-26">
+        <label>Fecha de entrega estimada</label>
+        <div class="cot-rango-fechas">
+          <input type="date" id="cotFechaEntregaInicio">
+          <span>al</span>
+          <input type="date" id="cotFechaEntregaFin">
+        </div>
       </div>
       <div class="cot-campo-doc">
         <label for="cotFormaPago">Forma de pago</label>
-        <input type="text" id="cotFormaPago" placeholder="Ej. Transferencia - Efectivo">
+        <select id="cotFormaPago">
+          <option value="">Selecciona…</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Depósito">Depósito</option>
+          <option value="Débito">Débito</option>
+          <option value="Crédito">Crédito</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Cheque">Cheque</option>
+        </select>
       </div>
       <div class="cot-campo-doc">
         <label for="cotValidaDesde">Válida desde</label>
@@ -130,7 +144,10 @@
         </thead>
         <tbody id="cotizacionItemsBody"></tbody>
       </table>
-      <button type="button" class="btn-secundario" id="btnAgregarItemCotizacion">+ Agregar servicio</button>
+      <div class="cot-tabla-acciones">
+        <button type="button" class="btn-secundario" id="btnAgregarItemCotizacion">+ Agregar servicio</button>
+        <button type="button" class="cot-link-nuevo-codigo" id="btnNuevoCodigoDesdeAqui">+ Nuevo código de servicio</button>
+      </div>
     </div>
 
     <div class="crm-cotizacion-totales">
@@ -156,6 +173,52 @@
       <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
     </div>
   </main>
+</div>
+
+<!-- ================= Modal: nuevo código de servicio ================= -->
+<div id="modalNuevoCodigo" class="cat-modal-overlay" style="display:none;">
+  <div class="cat-modal">
+    <h2>Nuevo código de servicio</h2>
+    <p class="crm-cotizacion-texto-vacio">Se agrega al catálogo general — también quedará disponible en el módulo Catálogo de Servicios.</p>
+
+    <label class="cat-label">Nombre del servicio</label>
+    <input type="text" id="nuevoCodigoNombre" class="cat-input" placeholder="Ej: Rack TV">
+    <p id="nuevoCodigoError" class="cat-error">Este campo es obligatorio.</p>
+
+    <div class="cat-fila-dos-campos">
+      <div>
+        <label class="cat-label">Prefijo del código</label>
+        <input type="text" id="nuevoCodigoPrefijo" class="cat-input" maxlength="4" placeholder="Ej: RCK">
+      </div>
+      <div>
+        <label class="cat-label">Código</label>
+        <input type="text" id="nuevoCodigoInput" class="cat-input" readonly>
+      </div>
+    </div>
+
+    <label class="cat-label">Categoría</label>
+    <select id="nuevoCodigoCategoria">
+      <option value="">Selecciona…</option>
+      <option value="Mobiliario residencial">Mobiliario residencial</option>
+      <option value="Mobiliario comercial">Mobiliario comercial</option>
+      <option value="Mobiliario corporativo">Mobiliario corporativo</option>
+      <option value="Servicios complementarios">Servicios complementarios</option>
+    </select>
+
+    <label class="cat-label">Tipo</label>
+    <select id="nuevoCodigoTipo">
+      <option value="">Selecciona…</option>
+      <option value="PRODUCTO">Producto</option>
+      <option value="SERVICIO">Servicio</option>
+      <option value="MATERIAL">Material</option>
+      <option value="COMPONENTE">Componente</option>
+    </select>
+
+    <div class="cat-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarNuevoCodigo">Cancelar</button>
+      <button type="button" class="btn-dorado" id="btnGuardarNuevoCodigo">Crear y usar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ================= PLANTILLA DEL PDF (oculta, se llena por JS) ================= -->
