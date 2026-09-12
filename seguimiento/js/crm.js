@@ -11,7 +11,8 @@ import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
-  actualizarProyecto, contarProyectosPorRut, listarServiciosActivos
+  actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
+  obtenerCotizacionVigentePorLead
 } from './firestore.js';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
@@ -38,35 +39,6 @@ const CANALES = {
 };
 
 const DIAS_ALERTA_SIN_CONTACTO = 3;
-
-/** Igual que en dashboard.js: arma el código visible, ej. CT-WSP-00004. */
-function construirCodigoCotizacion(numero, prefijoCanal) {
-  if (!numero || !prefijoCanal) return '';
-  return `CT-${prefijoCanal}-${numero.padStart(5, '0')}`;
-}
-
-function actualizarPreviewCotizacion(prefijo) {
-  const numInput = document.getElementById(prefijo + 'NumCotizacion');
-  const canalSelect = document.getElementById(prefijo + 'Canal');
-  const preview = document.getElementById(prefijo + 'CotizacionPreview');
-  if (!numInput || !canalSelect || !preview) return;
-  const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
-  preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: CT-XXX-00000';
-}
-
-function activarSoloDigitosCotizacion(inputEl) {
-  inputEl.addEventListener('input', () => {
-    inputEl.value = inputEl.value.replace(/\D/g, '').slice(0, 5);
-  });
-}
-
-['l', 'e'].forEach(prefijo => {
-  const numInput = document.getElementById(prefijo + 'NumCotizacion');
-  const canalSelect = document.getElementById(prefijo + 'Canal');
-  activarSoloDigitosCotizacion(numInput);
-  numInput.addEventListener('input', () => actualizarPreviewCotizacion(prefijo));
-  canalSelect.addEventListener('change', () => actualizarPreviewCotizacion(prefijo));
-});
 
 // ---------- Formato de teléfono chileno (+56 9 XXXXXXXX) ----------
 // Se aplica también en Seguimiento (dashboard.js) para que ambos
@@ -207,8 +179,7 @@ let leadsActuales = [];
 let leadSeleccionadoId = null;
 let dejarDeEscucharLeads = null;
 
-let serviciosCatalogo = [];   // catálogo de servicios activo (código ↔ nombre)
-let cotizacionRowCounter = 0; // contador para ids únicos de filas de cotización
+let serviciosCatalogo = []; // catálogo de servicios activo (código ↔ nombre)
 
 // ---------- Referencias DOM ----------
 
@@ -467,8 +438,6 @@ function abrirDetalleLead(id) {
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
   document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(lead.presupuestoEstimado);
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
-  document.getElementById('detalleNumCotizacion').textContent =
-    construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen) || (lead.numCotizacion || '—');
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
   document.getElementById('detalleEmail').textContent = lead.email || '—';
   document.getElementById('detalleFechaCreacion').textContent = formatearFechaHora(lead.creadoEn);
@@ -500,7 +469,7 @@ function abrirDetalleLead(id) {
   document.getElementById('btnConfirmarEliminacionLead').disabled = true;
 
   renderNotas(lead.notas || []);
-  renderCotizacion(lead.cotizacion || null);
+  cargarResumenCotizacion(lead);
 
   vistaKanban.style.display = 'none';
   vistaDetalleLead.style.display = '';
@@ -551,199 +520,44 @@ document.getElementById('btnVolverKanban').addEventListener('click', () => {
 });
 
 // ---------- Cotización ----------
-// Modelo guardado en el lead: lead.cotizacion = {
-//   proyecto: "Vanitorio, Rack TV",           // se arma automático con las descripciones
-//   items: [{ codigo, descripcion, cantidad, total }],
-//   totalGeneral: number,
-//   porcentajeAbono: number,
-//   abono: number
-// }
-// El "Valor unitario" NUNCA se guarda: siempre se recalcula como
-// Total ÷ Cantidad, tal como pidió María (fabricación a medida:
-// el Total es el precio pactado, no una multiplicación).
+// La cotización ya NO vive dentro del lead: vive en su propia
+// colección "cotizaciones", vinculada por leadId. Acá solo se
+// muestra un resumen de la cotización vigente (si existe) y se
+// navega al módulo Cotizaciones para crear/editar.
 
-const cotizacionItemsBody = document.getElementById('cotizacionItemsBody');
-const cotProyectoAuto = document.getElementById('cotProyectoAuto');
-const cotTotalGeneral = document.getElementById('cotTotalGeneral');
-const cotPorcentajeAbono = document.getElementById('cotPorcentajeAbono');
-const cotAbono = document.getElementById('cotAbono');
-const cotizacionError = document.getElementById('cotizacionError');
+const cotizacionResumenVacio = document.getElementById('cotizacionResumenVacio');
+const cotizacionResumenExistente = document.getElementById('cotizacionResumenExistente');
+const btnIrACotizacionNueva = document.getElementById('btnIrACotizacionNueva');
+const btnIrACotizacionExistente = document.getElementById('btnIrACotizacionExistente');
 
-function opcionesCodigoServicio(codigoSeleccionado) {
-  const opciones = serviciosCatalogo.map(s =>
-    `<option value="${s.codigo}" ${s.codigo === codigoSeleccionado ? 'selected' : ''}>${escapeHtml(s.codigo)} — ${escapeHtml(s.nombre)}</option>`
-  ).join('');
-  return `<option value="">Selecciona…</option>${opciones}`;
-}
+async function cargarResumenCotizacion(lead) {
+  cotizacionResumenVacio.style.display = 'none';
+  cotizacionResumenExistente.style.display = 'none';
 
-/** Extrae la parte numérica de un texto de cantidad, ej. "7,40 m" -> 7.4 */
-function parsearCantidad(texto) {
-  const match = String(texto || '').replace(',', '.').match(/[\d.]+/);
-  return match ? parseFloat(match[0]) : NaN;
-}
-
-/** Quita todo lo que no sea dígito y lo convierte a número, ej. "$1.844.721" -> 1844721 */
-function parsearMonto(texto) {
-  const limpio = String(texto || '').replace(/\D/g, '');
-  return limpio ? Number(limpio) : 0;
-}
-
-function formatearMoneda(numero) {
-  return '$' + (numero || 0).toLocaleString('es-CL');
-}
-
-function renderCotizacion(cotizacion) {
-  cotizacionItemsBody.innerHTML = '';
-  cotizacionError.textContent = '';
-  cotizacionError.classList.remove('visible');
-  cotizacionRowCounter = 0;
-
-  const items = (cotizacion?.items && cotizacion.items.length) ? cotizacion.items : [{}];
-  items.forEach(item => agregarFilaCotizacion(item));
-
-  cotPorcentajeAbono.value = cotizacion?.porcentajeAbono ?? '';
-  recalcularCotizacion();
-}
-
-function agregarFilaCotizacion(item = {}) {
-  const rowId = cotizacionRowCounter++;
-  const tr = document.createElement('tr');
-  tr.dataset.rowId = rowId;
-
-  tr.innerHTML = `
-    <td><select id="cotCod_${rowId}" class="cot-item-codigo">${opcionesCodigoServicio(item.codigo)}</select></td>
-    <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
-    <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
-    <td class="cot-item-valor-unitario" id="cotVU_${rowId}">—</td>
-    <td><input type="text" id="cotTotal_${rowId}" class="cot-item-total" inputmode="numeric" placeholder="$0" value="${item.total ? formatearMilesInput(String(item.total)) : ''}"></td>
-    <td><button type="button" class="cot-item-eliminar" data-row-id="${rowId}" aria-label="Eliminar fila">✕</button></td>
-  `;
-  cotizacionItemsBody.appendChild(tr);
-
-  mejorarSelect(`#cotCod_${rowId}`);
-
-  const selCodigo = document.getElementById(`cotCod_${rowId}`);
-  const inpDesc = document.getElementById(`cotDesc_${rowId}`);
-  const inpCant = document.getElementById(`cotCant_${rowId}`);
-  const inpTotal = document.getElementById(`cotTotal_${rowId}`);
-
-  // Al elegir un código, autocompleta la descripción SOLO si está vacía
-  // (para no pisar un texto que la persona ya haya escrito a mano).
-  selCodigo.addEventListener('change', () => {
-    if (!inpDesc.value.trim()) {
-      const servicio = serviciosCatalogo.find(s => s.codigo === selCodigo.value);
-      if (servicio) inpDesc.value = servicio.nombre;
-    }
-    recalcularCotizacion();
-  });
-
-  inpDesc.addEventListener('input', recalcularCotizacion);
-  inpCant.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
-  activarFormatoMiles(inpTotal);
-  inpTotal.addEventListener('input', () => { actualizarValorUnitarioFila(rowId); recalcularCotizacion(); });
-
-  actualizarValorUnitarioFila(rowId);
-}
-
-function actualizarValorUnitarioFila(rowId) {
-  const cantidad = parsearCantidad(document.getElementById(`cotCant_${rowId}`)?.value);
-  const total = parsearMonto(document.getElementById(`cotTotal_${rowId}`)?.value);
-  const celdaVU = document.getElementById(`cotVU_${rowId}`);
-  if (!celdaVU) return;
-
-  if (!cantidad || cantidad <= 0 || !total) {
-    celdaVU.textContent = '—';
-    return;
-  }
-  celdaVU.textContent = formatearMoneda(total / cantidad) + ' /ml';
-}
-
-document.getElementById('btnAgregarItemCotizacion').addEventListener('click', () => {
-  agregarFilaCotizacion();
-});
-
-cotizacionItemsBody.addEventListener('click', (e) => {
-  const btn = e.target.closest('.cot-item-eliminar');
-  if (!btn) return;
-  // Nunca dejar la tabla en cero filas: si es la última, solo se limpia.
-  if (cotizacionItemsBody.querySelectorAll('tr').length === 1) {
-    renderCotizacion(null);
-    return;
-  }
-  btn.closest('tr').remove();
-  recalcularCotizacion();
-});
-
-cotPorcentajeAbono.addEventListener('input', () => {
-  cotPorcentajeAbono.value = cotPorcentajeAbono.value.replace(/\D/g, '').slice(0, 3);
-  recalcularCotizacion();
-});
-
-function leerItemsCotizacion() {
-  return [...cotizacionItemsBody.querySelectorAll('tr')].map(tr => {
-    const rowId = tr.dataset.rowId;
-    return {
-      codigo: document.getElementById(`cotCod_${rowId}`).value,
-      descripcion: document.getElementById(`cotDesc_${rowId}`).value.trim(),
-      cantidad: document.getElementById(`cotCant_${rowId}`).value.trim(),
-      total: parsearMonto(document.getElementById(`cotTotal_${rowId}`).value)
-    };
-  }).filter(item => item.descripcion || item.total); // ignora filas totalmente vacías
-}
-
-function recalcularCotizacion() {
-  const items = leerItemsCotizacion();
-
-  const proyecto = items.map(i => i.descripcion).filter(Boolean).join(', ');
-  cotProyectoAuto.textContent = proyecto || '—';
-
-  const totalGeneral = items.reduce((suma, i) => suma + (i.total || 0), 0);
-  cotTotalGeneral.textContent = formatearMoneda(totalGeneral);
-
-  const porcentaje = parseInt(cotPorcentajeAbono.value, 10) || 0;
-  const abono = Math.round(totalGeneral * (porcentaje / 100));
-  cotAbono.textContent = formatearMoneda(abono);
-
-  return { proyecto, items, totalGeneral, porcentaje, abono };
-}
-
-document.getElementById('btnGuardarCotizacion').addEventListener('click', async () => {
-  if (!leadSeleccionadoId) return;
-
-  const { proyecto, items, totalGeneral, porcentaje, abono } = recalcularCotizacion();
-
-  cotizacionError.textContent = '';
-  cotizacionError.classList.remove('visible');
-
-  if (items.length === 0) {
-    cotizacionError.textContent = 'Agrega al menos un servicio antes de guardar.';
-    cotizacionError.classList.add('visible');
-    return;
-  }
-  const itemIncompleto = items.find(i => !i.codigo || !i.cantidad || !i.total);
-  if (itemIncompleto) {
-    cotizacionError.textContent = 'Cada línea necesita código, cantidad y total.';
-    cotizacionError.classList.add('visible');
-    return;
-  }
+  const enlace = `cotizaciones.html?leadId=${lead.id}`;
+  btnIrACotizacionNueva.href = enlace;
+  btnIrACotizacionExistente.href = enlace;
 
   try {
-    await actualizarLead(leadSeleccionadoId, {
-      cotizacion: {
-        proyecto,
-        items,
-        totalGeneral,
-        porcentajeAbono: porcentaje,
-        abono
-      }
-    });
-    mostrarToast('Cotización guardada correctamente.');
+    const vigente = await obtenerCotizacionVigentePorLead(lead.id);
+
+    if (!vigente) {
+      cotizacionResumenVacio.style.display = '';
+      return;
+    }
+
+    document.getElementById('cotResNumero').textContent =
+      `${vigente.numero} (v${vigente.version})`;
+    document.getElementById('cotResProyecto').textContent = vigente.proyecto || '—';
+    document.getElementById('cotResTotal').textContent = '$' + (vigente.totalGeneral || 0).toLocaleString('es-CL');
+    document.getElementById('cotResAbono').textContent =
+      `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
+    cotizacionResumenExistente.style.display = '';
   } catch (err) {
-    console.error(err);
-    cotizacionError.textContent = 'Ocurrió un error al guardar. Intenta nuevamente.';
-    cotizacionError.classList.add('visible');
+    console.error('Error cargando cotización del lead:', err);
+    cotizacionResumenVacio.style.display = '';
   }
-});
+}
 
 // ---------- Dropdown propio: cambiar etapa ----------
 
@@ -822,7 +636,6 @@ document.getElementById('btnNuevoLead').addEventListener('click', () => {
   formNuevoLead.reset();
   document.getElementById('modalLeadError').textContent = '';
   document.getElementById('modalLeadError').classList.remove('visible');
-  document.getElementById('lCotizacionPreview').textContent = 'Se verá como: CT-XXX-00000';
   modalNuevoLead.classList.add('visible');
 });
 document.getElementById('btnCancelarNuevoLead').addEventListener('click', () => {
@@ -846,7 +659,6 @@ formNuevoLead.addEventListener('submit', async (e) => {
     presupuestoEstimado: document.getElementById('lPresupuesto').value
       ? Number(document.getElementById('lPresupuesto').value.replace(/\D/g, '')) : null,
     vendedorAsignado: document.getElementById('lVendedor').value || null,
-    numCotizacion: document.getElementById('lNumCotizacion').value.trim(),
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
     creadoPorNombre: STAFF_ACTUAL?.nombre || ''
   };
@@ -905,8 +717,6 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   document.getElementById('ePresupuesto').value = lead.presupuestoEstimado
     ? formatearMilesInput(String(lead.presupuestoEstimado)) : '';
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
-  document.getElementById('eNumCotizacion').value = lead.numCotizacion || '';
-  actualizarPreviewCotizacion('e');
   document.getElementById('modalEditarError').textContent = '';
   document.getElementById('modalEditarError').classList.remove('visible');
 
@@ -933,8 +743,7 @@ formEditarLead.addEventListener('submit', async (e) => {
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
     presupuestoEstimado: document.getElementById('ePresupuesto').value
       ? Number(document.getElementById('ePresupuesto').value.replace(/\D/g, '')) : null,
-    vendedorAsignado: document.getElementById('eVendedor').value || null,
-    numCotizacion: document.getElementById('eNumCotizacion').value.trim()
+    vendedorAsignado: document.getElementById('eVendedor').value || null
   };
 
   if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
@@ -980,8 +789,6 @@ formEditarLead.addEventListener('submit', async (e) => {
           direccion: datos.direccion,
           canalOrigen: datos.canalOrigen,
           tipoProyecto: datos.tipoProyecto.toUpperCase(),
-          numCotizacion: datos.numCotizacion,
-          codigoCotizacion: construirCodigoCotizacion(datos.numCotizacion, datos.canalOrigen),
           responsable: nombreResponsableDesdeLead({ ...leadActual, vendedorAsignado: datos.vendedorAsignado })
         });
         sincronizado = true;
@@ -1033,7 +840,9 @@ function nombreResponsableDesdeLead(lead) {
   return STAFF_ACTUAL.nombre || STAFF_ACTUAL.email || '';
 }
 
-function armarProyectoDesdeLead(lead) {
+async function armarProyectoDesdeLead(lead) {
+  const cotizacionVigente = await obtenerCotizacionVigentePorLead(lead.id);
+
   return {
     cliente: (lead.nombre || '').toUpperCase(),
     rut: lead.rut || '',
@@ -1047,8 +856,7 @@ function armarProyectoDesdeLead(lead) {
     fechaEstimadaInicio: null,
     fechaEstimadaFin: null,
     canalOrigen: lead.canalOrigen || '',
-    numCotizacion: lead.numCotizacion || '',
-    codigoCotizacion: construirCodigoCotizacion(lead.numCotizacion, lead.canalOrigen),
+    codigoCotizacion: cotizacionVigente?.numero || '',
     observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',
     token: generarToken(),
     leadOrigenId: lead.id,
@@ -1068,7 +876,7 @@ document.getElementById('btnConfirmarGanado').addEventListener('click', async ()
   btn.textContent = 'Creando…';
 
   try {
-    const datosProyecto = armarProyectoDesdeLead(lead);
+    const datosProyecto = await armarProyectoDesdeLead(lead);
 
     if (datosProyecto.rut && validarRut(datosProyecto.rut)) {
       try {
