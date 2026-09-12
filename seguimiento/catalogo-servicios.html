@@ -67,6 +67,8 @@
           <tr>
             <th>Código</th>
             <th>Nombre del servicio</th>
+            <th>Categoría</th>
+            <th>Tipo</th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
@@ -83,12 +85,38 @@
   <div class="cat-modal">
     <h2 id="modalServicioTitulo">Nuevo servicio</h2>
 
-    <label class="cat-label">Código</label>
-    <input type="text" id="inputCodigo" class="cat-input" readonly>
-
     <label class="cat-label">Nombre del servicio</label>
     <input type="text" id="inputNombre" class="cat-input" placeholder="Ej: Walking Closet">
     <p id="errorNombre" class="cat-error">Este campo es obligatorio.</p>
+
+    <div class="cat-fila-dos-campos" id="filaPrefijoCodigo">
+      <div>
+        <label class="cat-label">Prefijo del código</label>
+        <input type="text" id="inputPrefijo" class="cat-input" maxlength="4" placeholder="Ej: WAL">
+      </div>
+      <div>
+        <label class="cat-label">Código</label>
+        <input type="text" id="inputCodigo" class="cat-input" readonly>
+      </div>
+    </div>
+
+    <label class="cat-label">Categoría</label>
+    <select id="inputCategoria">
+      <option value="">Selecciona…</option>
+      <option value="Mobiliario residencial">Mobiliario residencial</option>
+      <option value="Mobiliario comercial">Mobiliario comercial</option>
+      <option value="Mobiliario corporativo">Mobiliario corporativo</option>
+      <option value="Servicios complementarios">Servicios complementarios</option>
+    </select>
+
+    <label class="cat-label">Tipo</label>
+    <select id="inputTipo">
+      <option value="">Selecciona…</option>
+      <option value="PRODUCTO">Producto</option>
+      <option value="SERVICIO">Servicio</option>
+      <option value="MATERIAL">Material</option>
+      <option value="COMPONENTE">Componente</option>
+    </select>
 
     <div class="cat-modal-acciones">
       <button id="btnCancelarServicio" class="btn-secundario">Cancelar</button>
