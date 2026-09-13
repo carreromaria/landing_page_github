@@ -400,6 +400,12 @@ observarSesionStaff((staff) => {
   cargarProyectos();
   listarUsuariosStaff().then(lista => { USUARIOS_STAFF = lista; }).catch(err => console.error(err));
   reiniciarTimersInactividad();
+
+  // Si se llega con dashboard.html?codigo=LIN-00002 (ej. desde el link
+  // "Vinculado a LIN-00002 en Seguimiento" del CRM), abre ese proyecto
+  // directo en la vista de detalle, sin pasar por el listado primero.
+  const codigoEnUrl = new URLSearchParams(window.location.search).get('codigo');
+  if (codigoEnUrl) abrirDetalle(codigoEnUrl);
 });
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
