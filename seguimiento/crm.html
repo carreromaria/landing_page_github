@@ -200,27 +200,28 @@
 
     <div class="crm-cotizacion-resumen" id="cotizacionResumenVacio">
       <p class="crm-cotizacion-texto-vacio">Este lead todavía no tiene una cotización.</p>
-      <a href="#" id="btnIrACotizacionNueva" class="btn-dorado">+ Crear cotización</a>
+      <a href="#" id="btnIrACotizacionNueva" class="btn-primario">+ Crear cotización</a>
     </div>
 
-    <div class="crm-cotizacion-resumen" id="cotizacionResumenExistente" style="display:none;">
-      <div class="crm-cotizacion-resumen-fila">
-        <span class="etiqueta">N° cotización</span>
-        <span class="valor" id="cotResNumero">—</span>
+    <div class="crm-cotizacion-card" id="cotizacionResumenExistente" style="display:none;">
+      <div class="crm-cotizacion-card-header">
+        <span class="crm-cotizacion-folio" id="cotResNumero">—</span>
+        <a href="#" id="btnIrACotizacionExistente" class="btn-secundario">Ver / editar</a>
       </div>
-      <div class="crm-cotizacion-resumen-fila">
-        <span class="etiqueta">Proyecto</span>
-        <span class="valor" id="cotResProyecto">—</span>
+      <div class="crm-detalle-grid">
+        <div class="crm-detalle-dato">
+          <div class="etiqueta">Proyecto</div>
+          <div class="valor" id="cotResProyecto">—</div>
+        </div>
+        <div class="crm-detalle-dato">
+          <div class="etiqueta">Total general</div>
+          <div class="valor" id="cotResTotal">—</div>
+        </div>
+        <div class="crm-detalle-dato crm-detalle-dato-destacado">
+          <div class="etiqueta">Abono</div>
+          <div class="valor" id="cotResAbono">—</div>
+        </div>
       </div>
-      <div class="crm-cotizacion-resumen-fila">
-        <span class="etiqueta">Total general</span>
-        <span class="valor" id="cotResTotal">—</span>
-      </div>
-      <div class="crm-cotizacion-resumen-fila">
-        <span class="etiqueta">Abono</span>
-        <span class="valor" id="cotResAbono">—</span>
-      </div>
-      <a href="#" id="btnIrACotizacionExistente" class="btn-secundario">Ver / editar cotización</a>
     </div>
 
     <div class="crm-bitacora-titulo">Bitácora</div>
