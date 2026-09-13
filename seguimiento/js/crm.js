@@ -454,7 +454,7 @@ function abrirDetalleLead(id) {
   const proyectoVinculadoEl = document.getElementById('detalleProyectoVinculado');
   if (lead.proyectoVinculado) {
     proyectoVinculadoEl.style.display = '';
-    proyectoVinculadoEl.textContent = `Vinculado a ${lead.proyectoVinculado} en Seguimiento`;
+    proyectoVinculadoEl.innerHTML = `Vinculado a <a href="dashboard.html?codigo=${encodeURIComponent(lead.proyectoVinculado)}">${escapeHtml(lead.proyectoVinculado)} en Seguimiento ↗</a>`;
   } else {
     proyectoVinculadoEl.style.display = 'none';
   }
