@@ -139,7 +139,7 @@
 }
 .cot-item-eliminar:hover { color: #8f3624; }
 
-#btnAgregarItemCotizacion { margin-top: 10px; }
+#btnAgregarItemCotizacion { height: 40px; }
 
 .crm-cotizacion-totales {
   max-width: 320px;
@@ -188,6 +188,31 @@
 .crm-cotizacion-acciones {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-top: 16px;
   margin-bottom: 28px;
+}
+
+.crm-cotizacion-acciones button {
+  height: 42px;
+  padding: 0 18px;
+  box-sizing: border-box;
+}
+
+/* "Ver PDF" es una acción de bajo compromiso (solo mirar) — más
+   discreta que "Guardar como nueva versión", que sí cambia datos. */
+#btnDescargarPDF {
+  background: transparent;
+  border: 1px solid #d3bb8c;
+  color: #6b6b6b;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+#btnDescargarPDF:hover {
+  background: #faf7f2;
+  color: #141213;
 }
