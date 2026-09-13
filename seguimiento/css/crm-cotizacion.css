@@ -34,7 +34,7 @@
 .crm-cotizacion-card {
   background: #141213;
   border-radius: 12px;
-  padding: 20px 24px;
+  padding: 18px 24px;
   margin-bottom: 8px;
 }
 
@@ -43,7 +43,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+}
+
+/* Más aire antes de "Bitácora" para que no se sienta pegado a Cotización */
+.crm-bitacora-titulo-espaciado {
+  margin-top: 40px;
 }
 
 .crm-cotizacion-folio {
@@ -51,12 +55,6 @@
   font-size: 16px;
   font-weight: 700;
   letter-spacing: .01em;
-}
-
-.crm-cotizacion-card .crm-detalle-grid { margin-bottom: 0; }
-
-.crm-cotizacion-card .crm-detalle-dato-destacado .valor {
-  color: #d6a52c;
 }
 
 .crm-cotizacion-card #btnIrACotizacionExistente {
