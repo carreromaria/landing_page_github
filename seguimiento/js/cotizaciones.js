@@ -578,6 +578,15 @@ btnDescargarPDF.addEventListener('click', async () => {
     return;
   }
 
+  // Se abre la ventana YA, de forma síncrona, en el mismo instante del
+  // clic — si se abre recién después del "await" de más abajo, algunos
+  // navegadores la bloquean silenciosamente y queda en blanco (por no
+  // venir "directamente" de la acción del usuario).
+  const ventana = window.open('', '_blank');
+  if (ventana) {
+    ventana.document.write('<p style="font-family:sans-serif;padding:24px;">Generando PDF…</p>');
+  }
+
   const original = btnDescargarPDF.textContent;
   btnDescargarPDF.textContent = 'Generando…';
   btnDescargarPDF.disabled = true;
@@ -599,8 +608,9 @@ btnDescargarPDF.addEventListener('click', async () => {
     // navegador (con zoom, páginas, rotar, imprimir y descargar ya
     // incluidos) en vez de descargarlo directo sin poder revisarlo.
     const url = URL.createObjectURL(blob);
-    const ventana = window.open(url, '_blank');
-    if (!ventana) {
+    if (ventana) {
+      ventana.location.href = url;
+    } else {
       mostrarToast('El navegador bloqueó la ventana emergente. Habilítala e intenta de nuevo.', 'error');
     }
   } catch (err) {
