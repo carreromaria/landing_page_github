@@ -82,8 +82,9 @@
 .cat-tabla tbody tr:last-child td { border-bottom: none; }
 
 .cat-codigo {
-  font-family: 'Courier New', monospace;
+  font-family: 'Poppins', sans-serif;
   font-weight: 700;
+  letter-spacing: .02em;
   color: #d6a52c;
 }
 
