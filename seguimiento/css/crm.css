@@ -925,3 +925,12 @@ html, body{
   background: #faf7f2;
   color: #141213;
 }
+
+.crm-proyecto-vinculado a {
+  color: var(--gold);
+  font-weight: 600;
+  text-decoration: none;
+}
+.crm-proyecto-vinculado a:hover {
+  text-decoration: underline;
+}
