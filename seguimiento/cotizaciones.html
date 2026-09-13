@@ -156,6 +156,17 @@
         <span>Total general</span>
         <span id="cotTotalGeneral">$0</span>
       </div>
+      <div class="crm-cotizacion-total-row crm-cotizacion-iva-toggle">
+        <label for="cotAplicaIva"><input type="checkbox" id="cotAplicaIva"> Incluir IVA (19% — para factura)</label>
+      </div>
+      <div class="crm-cotizacion-total-row" id="filaIva" style="display:none;">
+        <span>IVA (19%)</span>
+        <span id="cotIvaMonto">$0</span>
+      </div>
+      <div class="crm-cotizacion-total-row crm-cotizacion-total-con-iva" id="filaTotalConIva" style="display:none;">
+        <span>Total con IVA</span>
+        <span id="cotTotalConIva">$0</span>
+      </div>
       <div class="crm-cotizacion-total-row">
         <label for="cotPorcentajeAbono">% de abono</label>
         <input type="text" id="cotPorcentajeAbono" inputmode="numeric" placeholder="Ej. 50" maxlength="3">
@@ -290,8 +301,8 @@
       <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
     </div>
     <table class="pdf-tabla-totales">
-      <tr><th>SUB TOTAL</th><td></td></tr>
-      <tr><th>I.V.A</th><td></td></tr>
+      <tr><th>SUB TOTAL</th><td id="pdfSubtotal"></td></tr>
+      <tr><th>I.V.A</th><td id="pdfIva"></td></tr>
       <tr><th>TOTAL</th><td id="pdfTotal">—</td></tr>
       <tr><th id="pdfAbonoLabel">Abono</th><td id="pdfAbono">—</td></tr>
     </table>
