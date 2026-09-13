@@ -47,7 +47,7 @@
 
 /* Más aire antes de "Bitácora" para que no se sienta pegado a Cotización */
 .crm-bitacora-titulo-espaciado {
-  margin-top: 40px;
+  margin-top: 56px !important;
 }
 
 .crm-cotizacion-folio {
