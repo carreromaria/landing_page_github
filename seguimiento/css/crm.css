@@ -703,17 +703,88 @@
    tiene su propio overflow-x:auto arriba. */
 html, body{
   overflow-x:hidden;
-}
-
-
-
 
 
 /* ================= COTIZACIÓN (agregar al final de crm.css) ================= */
 
+/* Título de sección — mismo estilo para "Cotización" y "Bitácora",
+   más aire y una línea guía para separar visualmente cada bloque. */
+.crm-bitacora-titulo {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #b8860b;
+  margin: 26px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #ece4d3;
+}
+
+/* Estado vacío: invita a crear la cotización */
+.crm-cotizacion-resumen {
+  background: #faf7f2;
+  border: 1px dashed #d3bb8c;
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.crm-cotizacion-texto-vacio {
+  font-size: 13.5px;
+  color: #8a7a5a;
+  margin: 0 0 14px;
+}
+
+/* Estado con datos: misma tarjeta negra que "Presupuesto estimado",
+   para que se sienta parte del mismo bloque de información del lead. */
+.crm-cotizacion-card {
+  background: #141213;
+  border-radius: 12px;
+  padding: 18px 24px;
+  margin-bottom: 8px;
+}
+
+.crm-cotizacion-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Más aire antes de "Bitácora" para que no se sienta pegado a Cotización */
+.crm-bitacora-titulo-espaciado {
+  margin-top: 56px !important;
+}
+
+.crm-cotizacion-folio {
+  color: #d6a52c;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.crm-cotizacion-card #btnIrACotizacionExistente {
+  background: transparent;
+  border: 1px solid #d6a52c;
+  color: #d6a52c;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+.crm-cotizacion-card #btnIrACotizacionExistente:hover {
+  background: rgba(214, 165, 44, 0.12);
+}
+
+
 .crm-cotizacion-tabla-wrapper {
   margin: 14px 0 20px;
   overflow-x: auto;
+  overflow-y: visible;
 }
 
 .crm-cotizacion-tabla {
@@ -756,10 +827,10 @@ html, body{
   font-family: 'Poppins', sans-serif;
 }
 
-.cot-item-valor-unitario {
+.cot-item-total {
   font-size: 13.5px;
-  color: #6b6b6b;
-  font-weight: 600;
+  color: #141213;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -773,7 +844,7 @@ html, body{
 }
 .cot-item-eliminar:hover { color: #8f3624; }
 
-#btnAgregarItemCotizacion { margin-top: 10px; }
+#btnAgregarItemCotizacion { height: 40px; }
 
 .crm-cotizacion-totales {
   max-width: 320px;
@@ -820,8 +891,37 @@ html, body{
 }
 
 .crm-cotizacion-acciones {
-  display: flex;
+  display: flex !important;
   justify-content: flex-end;
+  align-items: center;
+  gap: 14px !important;
+  flex-wrap: wrap;
   margin-top: 16px;
   margin-bottom: 28px;
+}
+
+.crm-cotizacion-acciones > * {
+  margin: 0 !important;
+}
+
+.crm-cotizacion-acciones button {
+  height: 42px;
+  padding: 0 18px;
+  box-sizing: border-box;
+}
+
+/* "Ver PDF" es una acción de bajo compromiso (solo mirar) — más
+   discreta que "Guardar como nueva versión", que sí cambia datos. */
+#btnDescargarPDF {
+  background: transparent;
+  border: 1px solid #d3bb8c;
+  color: #6b6b6b;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+#btnDescargarPDF:hover {
+  background: #faf7f2;
+  color: #141213;
 }
