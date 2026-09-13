@@ -38,9 +38,18 @@
 .cot-tabla-acciones {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 14px;
   flex-wrap: wrap;
+}
+
+.cot-tabla-acciones button {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  box-sizing: border-box;
 }
 
 .cot-btn-nuevo-codigo {
@@ -50,11 +59,7 @@
   background: #fff;
   border: 1.5px dashed #d6a52c;
   color: #b8860b;
-  font-size: 13px;
-  font-weight: 600;
   font-family: 'Poppins', sans-serif;
-  padding: 9px 16px;
-  border-radius: 6px;
   cursor: pointer;
   transition: background .15s ease, border-style .15s ease;
 }
