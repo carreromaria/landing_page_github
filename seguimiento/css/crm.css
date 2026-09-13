@@ -828,6 +828,13 @@ html, body{
 }
 
 .cot-item-total {
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 1px solid #ece4d3;
+  border-radius: 6px;
+  background: #faf7f2;
   font-size: 13.5px;
   color: #141213;
   font-weight: 700;
@@ -876,6 +883,29 @@ html, body{
   border-radius: 6px;
   text-align: right;
   font-size: 13.5px;
+}
+
+.crm-cotizacion-iva-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #141213;
+  cursor: pointer;
+}
+.crm-cotizacion-iva-toggle input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #d6a52c;
+  cursor: pointer;
+}
+
+.crm-cotizacion-total-con-iva {
+  font-weight: 700;
+  border-top: 1px solid #ece4d3;
+  padding-top: 8px;
+  margin-top: 2px;
 }
 
 .crm-cotizacion-abono-final {
