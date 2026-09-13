@@ -38,6 +38,11 @@ const editorFolioVersion = document.getElementById('editorFolioVersion');
 const cotizacionItemsBody = document.getElementById('cotizacionItemsBody');
 const cotProyectoAuto = document.getElementById('cotProyectoAuto');
 const cotTotalGeneral = document.getElementById('cotTotalGeneral');
+const cotAplicaIva = document.getElementById('cotAplicaIva');
+const filaIva = document.getElementById('filaIva');
+const cotIvaMonto = document.getElementById('cotIvaMonto');
+const filaTotalConIva = document.getElementById('filaTotalConIva');
+const cotTotalConIva = document.getElementById('cotTotalConIva');
 const cotPorcentajeAbono = document.getElementById('cotPorcentajeAbono');
 const cotAbono = document.getElementById('cotAbono');
 const cotizacionError = document.getElementById('cotizacionError');
@@ -256,6 +261,7 @@ async function cargarCotizacionVigente() {
     btnGuardarCotizacion.textContent = 'Guardar cambios';
     renderFilas(vigenteActual.items);
     cotPorcentajeAbono.value = vigenteActual.porcentajeAbono ?? '';
+    cotAplicaIva.checked = !!vigenteActual.aplicaIva;
     cotFechaEntregaInicio.value = vigenteActual.fechaEntregaInicio || '';
     cotFechaEntregaFin.value = vigenteActual.fechaEntregaFin || '';
     cotFormaPago.value = vigenteActual.formaPago || '';
@@ -266,6 +272,7 @@ async function cargarCotizacionVigente() {
     btnGuardarCotizacion.textContent = 'Guardar cotización';
     renderFilas([]);
     cotPorcentajeAbono.value = '';
+    cotAplicaIva.checked = false;
     cotFechaEntregaInicio.value = '';
     cotFechaEntregaFin.value = '';
     cotFormaPago.value = '';
@@ -383,6 +390,8 @@ cotizacionItemsBody.addEventListener('click', (e) => {
   recalcularCotizacion();
 });
 
+cotAplicaIva.addEventListener('change', recalcularCotizacion);
+
 cotPorcentajeAbono.addEventListener('input', () => {
   cotPorcentajeAbono.value = cotPorcentajeAbono.value.replace(/\D/g, '').slice(0, 3);
   recalcularCotizacion();
@@ -414,11 +423,24 @@ function recalcularCotizacion() {
   const totalGeneral = items.reduce((suma, i) => suma + (i.total || 0), 0);
   cotTotalGeneral.textContent = formatearMoneda(totalGeneral);
 
+  const aplicaIva = cotAplicaIva.checked;
+  const ivaMonto = aplicaIva ? Math.round(totalGeneral * 0.19) : 0;
+  const totalConIva = totalGeneral + ivaMonto;
+
+  filaIva.style.display = aplicaIva ? '' : 'none';
+  filaTotalConIva.style.display = aplicaIva ? '' : 'none';
+  cotIvaMonto.textContent = formatearMoneda(ivaMonto);
+  cotTotalConIva.textContent = formatearMoneda(totalConIva);
+
+  // El Abono se calcula sobre el total con IVA cuando aplica; si no,
+  // sobre el total general (neto), igual que siempre.
+  const baseAbono = aplicaIva ? totalConIva : totalGeneral;
+
   const porcentaje = parseInt(cotPorcentajeAbono.value, 10) || 0;
-  const abono = Math.round(totalGeneral * (porcentaje / 100));
+  const abono = Math.round(baseAbono * (porcentaje / 100));
   cotAbono.textContent = formatearMoneda(abono);
 
-  return { proyecto, items, totalGeneral, porcentaje, abono };
+  return { proyecto, items, totalGeneral, aplicaIva, ivaMonto, totalConIva, porcentaje, abono };
 }
 
 function validarCotizacion(items) {
@@ -433,7 +455,7 @@ function validarCotizacion(items) {
 }
 
 async function guardar({ comoNuevaVersion }) {
-  const { proyecto, items, totalGeneral, porcentaje, abono } = recalcularCotizacion();
+  const { proyecto, items, totalGeneral, aplicaIva, ivaMonto, totalConIva, porcentaje, abono } = recalcularCotizacion();
 
   cotizacionError.textContent = '';
   cotizacionError.classList.remove('visible');
@@ -447,6 +469,7 @@ async function guardar({ comoNuevaVersion }) {
 
   const datos = {
     proyecto, items, totalGeneral,
+    aplicaIva, ivaMonto, totalConIva,
     porcentajeAbono: porcentaje, abono,
     clienteNombre: leadActual.nombre || '',
     fechaEntregaInicio: cotFechaEntregaInicio.value,
@@ -649,7 +672,15 @@ function llenarPlantillaPDF(cotizacion, lead) {
   document.getElementById('pdfValidaDesde').textContent =
     `Esta cotización de su proyecto es válida desde ${validaDesdeFecha}`;
 
-  document.getElementById('pdfTotal').textContent = formatearMoneda(cotizacion.totalGeneral);
+  if (cotizacion.aplicaIva) {
+    document.getElementById('pdfSubtotal').textContent = formatearMoneda(cotizacion.totalGeneral);
+    document.getElementById('pdfIva').textContent = formatearMoneda(cotizacion.ivaMonto);
+    document.getElementById('pdfTotal').textContent = formatearMoneda(cotizacion.totalConIva);
+  } else {
+    document.getElementById('pdfSubtotal').textContent = '';
+    document.getElementById('pdfIva').textContent = '';
+    document.getElementById('pdfTotal').textContent = formatearMoneda(cotizacion.totalGeneral);
+  }
   document.getElementById('pdfAbonoLabel').textContent = `Abono ${cotizacion.porcentajeAbono || 0}%`;
   document.getElementById('pdfAbono').textContent = formatearMoneda(cotizacion.abono);
 }
