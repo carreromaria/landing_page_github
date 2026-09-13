@@ -44,12 +44,13 @@
 }
 
 .cot-tabla-acciones button {
-  height: 40px;
-  padding: 0 16px;
+  height: 40px !important;
+  padding: 0 16px !important;
   font-size: 13px;
   font-weight: 600;
   border-radius: 6px;
   box-sizing: border-box;
+  line-height: 1 !important;
 }
 
 .cot-btn-nuevo-codigo {
