@@ -557,10 +557,6 @@ async function cargarResumenCotizacion(lead) {
 
     document.getElementById('cotResNumero').textContent =
       `${vigente.numero} (v${vigente.version})`;
-    document.getElementById('cotResProyecto').textContent = vigente.proyecto || '—';
-    document.getElementById('cotResTotal').textContent = '$' + (vigente.totalGeneral || 0).toLocaleString('es-CL');
-    document.getElementById('cotResAbono').textContent =
-      `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
     document.getElementById('detalleAbono').textContent =
       `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
     cotizacionResumenExistente.style.display = '';
