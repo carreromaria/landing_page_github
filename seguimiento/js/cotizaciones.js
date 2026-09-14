@@ -614,18 +614,31 @@ btnDescargarPDF.addEventListener('click', async () => {
   btnDescargarPDF.textContent = 'Generando…';
   btnDescargarPDF.disabled = true;
 
+  const plantilla = document.getElementById('plantillaPDF');
+  const overlay = document.getElementById('pdfOverlay');
+
   try {
     llenarPlantillaPDF(vigenteActual, leadActual);
 
-    const plantilla = document.getElementById('plantillaPDF');
     const nombreArchivo = `Cotizacion_${(leadActual.nombre || 'cliente').replace(/\s+/g, '_')}_${vigenteActual.numero}.pdf`;
+
+    // La plantilla se muestra de verdad (no solo "escondida" con CSS)
+    // justo para el instante de la captura — html2canvas necesita que
+    // el elemento esté realmente visible y con su tamaño real, o el
+    // PDF sale en blanco. La tapa oscura de arriba evita que el usuario
+    // vea el destello del documento real mientras tanto.
+    overlay.classList.add('visible');
+    plantilla.style.display = 'block';
 
     const blob = await html2pdf().set({
       margin: 0,
       filename: nombreArchivo,
-      html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
     }).from(plantilla).toPdf().output('blob');
+
+    plantilla.style.display = 'none';
+    overlay.classList.remove('visible');
 
     // Se abre en una pestaña nueva usando el visor de PDF nativo del
     // navegador (con zoom, páginas, rotar, imprimir y descargar ya
@@ -639,6 +652,8 @@ btnDescargarPDF.addEventListener('click', async () => {
     }
   } catch (err) {
     console.error(err);
+    plantilla.style.display = 'none';
+    overlay.classList.remove('visible');
     mostrarToast('No se pudo generar el PDF. Intenta nuevamente.', 'error');
   } finally {
     btnDescargarPDF.textContent = original;
