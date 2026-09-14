@@ -136,28 +136,51 @@
    como se ve acá, sin depender del resto del layout del panel. */
 
 .pdf-doc {
-  display: none;
   width: 794px; /* ancho A4 aprox a 96dpi */
   background: #fff;
   font-family: 'Poppins', sans-serif;
   color: #141213;
   font-size: 13px;
+  margin: 0 auto;
 }
 
-.pdf-doc-overlay {
+/* ================= Modal de vista previa / descarga del PDF ================= */
+
+.cot-pdf-modal-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: #141213;
-  z-index: 999999;
-  align-items: center;
+  background: rgba(20, 18, 19, 0.6);
+  z-index: 9999;
+  align-items: flex-start;
   justify-content: center;
-  color: #d3bb8c;
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  letter-spacing: .02em;
+  padding: 24px 16px;
+  overflow-y: auto;
 }
-.pdf-doc-overlay.visible { display: flex; }
+.cot-pdf-modal-overlay.visible { display: flex; }
+
+.cot-pdf-modal {
+  background: #f2ede4;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 860px;
+  width: 100%;
+}
+
+.cot-pdf-modal-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cot-pdf-modal-scroll {
+  max-height: 75vh;
+  overflow-y: auto;
+  background: #ddd7cc;
+  padding: 20px;
+  border-radius: 8px;
+}
 
 .pdf-header {
   background: #141213;
