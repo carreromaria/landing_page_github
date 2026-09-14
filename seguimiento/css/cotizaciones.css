@@ -136,7 +136,7 @@
    como se ve acá, sin depender del resto del layout del panel. */
 
 .pdf-doc {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: -9999px;
   width: 794px; /* ancho A4 aprox a 96dpi */
