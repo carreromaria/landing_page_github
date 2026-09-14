@@ -836,9 +836,11 @@ html, body{
   border-radius: 6px;
   background: #fff;
   font-size: 13.5px;
+  font-family: 'Poppins', sans-serif;
   color: #141213;
   font-weight: 700;
   white-space: nowrap;
+  line-height: normal;
 }
 
 .cot-item-eliminar {
