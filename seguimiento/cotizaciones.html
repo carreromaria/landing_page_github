@@ -233,13 +233,20 @@
   </div>
 </div>
 
-<!-- Tapa la plantilla mientras se genera el PDF (se necesita mostrar la
-     plantilla de verdad, no solo escondida con CSS, para que el generador
-     la capture bien) -->
-<div id="pdfOverlay" class="pdf-doc-overlay">Generando PDF…</div>
-
-<!-- ================= PLANTILLA DEL PDF (oculta, se llena por JS) ================= -->
-<div id="plantillaPDF" class="pdf-doc">
+<!-- ================= MODAL: VISTA PREVIA / DESCARGA DEL PDF ================= -->
+<!-- La plantilla vive SIEMPRE visible de verdad adentro de este modal
+     (nunca escondida con display:none ni sacada de pantalla) — así el
+     generador de PDF la captura tal cual se ve, igual que ya funciona
+     en el módulo Documentación. -->
+<div class="cot-pdf-modal-overlay" id="modalPdfCotizacion">
+  <div class="cot-pdf-modal">
+    <div class="cot-pdf-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCerrarModalPdf">Cerrar</button>
+      <button type="button" class="btn-secundario" id="btnImprimirPdf">Imprimir</button>
+      <button type="button" class="btn-primario" id="btnDescargarPdfModal">Descargar PDF</button>
+    </div>
+    <div class="cot-pdf-modal-scroll">
+      <div id="plantillaPDF" class="pdf-doc">
   <div class="pdf-header">
     <div class="pdf-header-izq">
       <div class="pdf-header-titulo">COTIZACIÓN</div>
@@ -317,6 +324,9 @@
     <div class="pdf-contacto-fila">🌐 Linence.cl</div>
     <div class="pdf-contacto-fila">📘 📷 🎵 Linence.cl</div>
     <div class="pdf-contacto-fila">📱 +569 57039988</div>
+  </div>
+</div>
+    </div>
   </div>
 </div>
 
