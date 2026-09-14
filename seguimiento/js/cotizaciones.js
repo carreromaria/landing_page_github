@@ -331,7 +331,7 @@ function agregarFilaCotizacion(item = {}) {
     <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
     <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
     <td><input type="text" id="cotVU_${rowId}" class="cot-item-valor-unitario-input" inputmode="numeric" placeholder="$0" value="${item.valorUnitario ? formatearMilesInput(String(item.valorUnitario)) : ''}"></td>
-    <td class="cot-item-total" id="cotTotal_${rowId}">$0</td>
+    <td><span class="cot-item-total" id="cotTotal_${rowId}">$0</span></td>
     <td><button type="button" class="cot-item-eliminar" data-row-id="${rowId}" aria-label="Eliminar fila">✕</button></td>
   `;
   cotizacionItemsBody.appendChild(tr);
