@@ -630,6 +630,12 @@ btnDescargarPDF.addEventListener('click', async () => {
     overlay.classList.add('visible');
     plantilla.style.display = 'block';
 
+    // Le da tiempo al navegador de pintar la plantilla antes de
+    // capturarla — si se captura en el mismo instante en que pasa de
+    // "display:none" a visible, puede salir en blanco porque el
+    // navegador todavía no terminó de dibujarla.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     const blob = await html2pdf().set({
       margin: 0,
       filename: nombreArchivo,
