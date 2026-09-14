@@ -138,7 +138,8 @@
 .pdf-doc {
   position: fixed;
   top: 0;
-  left: -9999px;
+  left: 0;
+  z-index: -1;
   width: 794px; /* ancho A4 aprox a 96dpi */
   background: #fff;
   font-family: 'Poppins', sans-serif;
