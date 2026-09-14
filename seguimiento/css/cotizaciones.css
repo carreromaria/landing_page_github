@@ -136,16 +136,28 @@
    como se ve acá, sin depender del resto del layout del panel. */
 
 .pdf-doc {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: -1;
+  display: none;
   width: 794px; /* ancho A4 aprox a 96dpi */
   background: #fff;
   font-family: 'Poppins', sans-serif;
   color: #141213;
   font-size: 13px;
 }
+
+.pdf-doc-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #141213;
+  z-index: 999999;
+  align-items: center;
+  justify-content: center;
+  color: #d3bb8c;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+.pdf-doc-overlay.visible { display: flex; }
 
 .pdf-header {
   background: #141213;
