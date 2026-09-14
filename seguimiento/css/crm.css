@@ -828,13 +828,13 @@ html, body{
 }
 
 .cot-item-total {
-  display: inline-block;
+  display: block;
   width: 100%;
   box-sizing: border-box;
   padding: 7px 9px;
-  border: 1px solid #ece4d3;
+  border: 1px solid #d3bb8c;
   border-radius: 6px;
-  background: #faf7f2;
+  background: #fff;
   font-size: 13.5px;
   color: #141213;
   font-weight: 700;
