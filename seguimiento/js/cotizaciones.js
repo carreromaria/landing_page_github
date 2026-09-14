@@ -633,6 +633,7 @@ btnDescargarPDF.addEventListener('click', async () => {
     const url = URL.createObjectURL(blob);
     if (ventana) {
       ventana.location.href = url;
+      mostrarToast('PDF generado y abierto en una pestaña nueva.');
     } else {
       mostrarToast('El navegador bloqueó la ventana emergente. Habilítala e intenta de nuevo.', 'error');
     }
