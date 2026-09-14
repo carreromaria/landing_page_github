@@ -594,76 +594,57 @@ document.getElementById('btnGuardarNuevoCodigo').addEventListener('click', async
 // versión que salen en el PDF sean siempre los reales. Si el lead
 // todavía no tiene cotización guardada, pide guardar primero.
 
-btnDescargarPDF.addEventListener('click', async () => {
+const modalPdfCotizacion = document.getElementById('modalPdfCotizacion');
+
+btnDescargarPDF.addEventListener('click', () => {
   if (!vigenteActual) {
     cotizacionError.textContent = 'Guarda la cotización primero: el PDF necesita el folio real.';
     cotizacionError.classList.add('visible');
     return;
   }
 
-  // Se abre la ventana YA, de forma síncrona, en el mismo instante del
-  // clic — si se abre recién después del "await" de más abajo, algunos
-  // navegadores la bloquean silenciosamente y queda en blanco (por no
-  // venir "directamente" de la acción del usuario).
-  const ventana = window.open('', '_blank');
-  if (ventana) {
-    ventana.document.write('<p style="font-family:sans-serif;padding:24px;">Generando PDF…</p>');
-  }
+  llenarPlantillaPDF(vigenteActual, leadActual);
+  modalPdfCotizacion.classList.add('visible');
+});
 
-  const original = btnDescargarPDF.textContent;
-  btnDescargarPDF.textContent = 'Generando…';
-  btnDescargarPDF.disabled = true;
+document.getElementById('btnCerrarModalPdf').addEventListener('click', () => {
+  modalPdfCotizacion.classList.remove('visible');
+});
+modalPdfCotizacion.addEventListener('click', (e) => {
+  if (e.target === modalPdfCotizacion) modalPdfCotizacion.classList.remove('visible');
+});
 
-  const plantilla = document.getElementById('plantillaPDF');
-  const overlay = document.getElementById('pdfOverlay');
+document.getElementById('btnImprimirPdf').addEventListener('click', () => {
+  window.print();
+});
+
+document.getElementById('btnDescargarPdfModal').addEventListener('click', async () => {
+  const btn = document.getElementById('btnDescargarPdfModal');
+  const original = btn.textContent;
+  btn.textContent = 'Generando…';
+  btn.disabled = true;
 
   try {
-    llenarPlantillaPDF(vigenteActual, leadActual);
-
+    const plantilla = document.getElementById('plantillaPDF');
     const nombreArchivo = `Cotizacion_${(leadActual.nombre || 'cliente').replace(/\s+/g, '_')}_${vigenteActual.numero}.pdf`;
 
-    // La plantilla se muestra de verdad (no solo "escondida" con CSS)
-    // justo para el instante de la captura — html2canvas necesita que
-    // el elemento esté realmente visible y con su tamaño real, o el
-    // PDF sale en blanco. La tapa oscura de arriba evita que el usuario
-    // vea el destello del documento real mientras tanto.
-    overlay.classList.add('visible');
-    plantilla.style.display = 'block';
-
-    // Le da tiempo al navegador de pintar la plantilla antes de
-    // capturarla — si se captura en el mismo instante en que pasa de
-    // "display:none" a visible, puede salir en blanco porque el
-    // navegador todavía no terminó de dibujarla.
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    const blob = await html2pdf().set({
+    // La plantilla ya está genuinamente visible dentro del modal (nunca
+    // escondida ni fuera de pantalla) — html2canvas la captura tal cual
+    // se ve, igual que ya funciona en Documentación.
+    await html2pdf().set({
       margin: 0,
       filename: nombreArchivo,
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    }).from(plantilla).toPdf().output('blob');
+    }).from(plantilla).save();
 
-    plantilla.style.display = 'none';
-    overlay.classList.remove('visible');
-
-    // Se abre en una pestaña nueva usando el visor de PDF nativo del
-    // navegador (con zoom, páginas, rotar, imprimir y descargar ya
-    // incluidos) en vez de descargarlo directo sin poder revisarlo.
-    const url = URL.createObjectURL(blob);
-    if (ventana) {
-      ventana.location.href = url;
-      mostrarToast('PDF generado y abierto en una pestaña nueva.');
-    } else {
-      mostrarToast('El navegador bloqueó la ventana emergente. Habilítala e intenta de nuevo.', 'error');
-    }
+    mostrarToast('PDF descargado correctamente.');
   } catch (err) {
     console.error(err);
-    plantilla.style.display = 'none';
-    overlay.classList.remove('visible');
     mostrarToast('No se pudo generar el PDF. Intenta nuevamente.', 'error');
   } finally {
-    btnDescargarPDF.textContent = original;
-    btnDescargarPDF.disabled = false;
+    btn.textContent = original;
+    btn.disabled = false;
   }
 });
 
