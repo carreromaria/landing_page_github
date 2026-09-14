@@ -322,3 +322,63 @@
 }
 
 .pdf-contacto-fila { padding: 3px 0; }
+
+/* ============================================================
+   RESPONSIVE — Teléfono y tablet (≤900px)
+   Mismo patrón que el CRM: el encabezado del listado queda
+   "sticky" debajo del topbar mobile, y los botones de acciones
+   pasan a ancho completo y con estilo sólido para que se note
+   que son botones reales. Nada de acá toca escritorio (≥901px).
+   ============================================================ */
+@media (max-width: 900px) {
+
+  /* ---------- Encabezado fijo del listado (igual que CRM) ---------- */
+  #vistaListaCotizaciones .cat-header {
+    position: sticky;
+    top: 54px;
+    z-index: 150;
+    background: var(--cream);
+    margin: 0 -18px 20px;
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid var(--gold-line);
+  }
+
+  /* ---------- Fila de fechas / forma de pago del editor ---------- */
+  .cot-datos-documento {
+    flex-direction: column;
+  }
+
+  /* ---------- Acciones de la tabla de ítems, a ancho completo ---------- */
+  .cot-tabla-acciones {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cot-tabla-acciones button {
+    width: 100%;
+  }
+
+  /* "+ Agregar servicio" pasa a botón dorado sólido — el mismo
+     estilo que ya se ve bien en el botón "+ Agregar servicio" del
+     módulo Catálogo — para que se note que es un botón real y no
+     solo texto con un borde fino. */
+  #btnAgregarItemCotizacion {
+    background: var(--gold);
+    border: none;
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(20, 18, 19, .18);
+  }
+  #btnAgregarItemCotizacion:hover,
+  #btnAgregarItemCotizacion:active {
+    opacity: 0.9;
+  }
+
+  /* ---------- Acciones finales (Ver PDF / Guardar), a ancho completo ---------- */
+  .crm-cotizacion-acciones {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .crm-cotizacion-acciones button {
+    width: 100%;
+  }
+}
