@@ -205,3 +205,29 @@
   gap: 10px;
   margin-top: 24px;
 }
+
+/* ============================================================
+   RESPONSIVE — Teléfono y tablet (≤900px)
+   Mismo quiebre y mismo patrón que ya usa el CRM (.crm-top-fijo):
+   el encabezado (título + subtítulo + botón) queda "sticky" justo
+   debajo del topbar mobile (que mide 54px y ya es sticky desde
+   dashboard.css), y solo el contenido de abajo hace scroll.
+   Nada de acá toca el layout de escritorio (≥901px).
+   ============================================================ */
+@media (max-width: 900px) {
+  #vistaCatalogo .cat-header {
+    position: sticky;
+    top: 54px;
+    z-index: 150;
+    background: var(--cream);
+    margin: 0 -18px 20px;
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid var(--gold-line);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #vistaCatalogo .cat-header .btn-dorado {
+    width: 100%;
+  }
+}
