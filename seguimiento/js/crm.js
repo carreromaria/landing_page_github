@@ -265,6 +265,30 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
   window.location.href = 'login.html';
 });
 
+// ---------- Copiar al portapapeles ----------
+// Los botones .btn-copiar viven junto a Presupuesto, Abono, RUT,
+// Teléfono y Correo en la tarjeta resumen del lead. Cada uno trae
+// data-copiar="<id del elemento con el valor>".
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-copiar');
+  if (!btn) return;
+
+  const destino = document.getElementById(btn.dataset.copiar);
+  const texto = destino?.textContent?.trim();
+  if (!texto || texto === '—') return;
+
+  try {
+    await navigator.clipboard.writeText(texto);
+    mostrarToast('Copiado al portapapeles.');
+    btn.classList.add('copiado');
+    setTimeout(() => btn.classList.remove('copiado'), 1200);
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo copiar. Selecciona el texto manualmente.', 'error');
+  }
+});
+
 // ---------- Toast simple ----------
 
 // Estilos en línea a propósito: así el toast nunca depende de que
