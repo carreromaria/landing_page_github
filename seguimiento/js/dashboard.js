@@ -413,6 +413,31 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
   window.location.href = 'login.html';
 });
 
+// ---------- Copiar al portapapeles (Datos del proyecto) ----------
+// Los botones .btn-copiar viven junto a Cliente, RUT, Teléfono, Correo
+// y Dirección dentro de #resumenDatos. Cada uno copia el texto de su
+// propio ".resumen-valor" hermano (no un id fijo, porque estas filas
+// se regeneran completas cada vez que se abre un proyecto).
+
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.btn-copiar');
+  if (!btn) return;
+
+  const valorEl = btn.closest('li')?.querySelector('.resumen-valor');
+  const texto = valorEl?.textContent?.trim();
+  if (!texto || texto === '—') return;
+
+  try {
+    await navigator.clipboard.writeText(texto);
+    mostrarToast('Copiado al portapapeles.');
+    btn.classList.add('copiado');
+    setTimeout(() => btn.classList.remove('copiado'), 1200);
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo copiar. Selecciona el texto manualmente.', 'error');
+  }
+});
+
 // ---------- Cierre de sesión por inactividad (40 min) ----------
 const INACTIVIDAD_MIN = 40;
 const AVISO_ANTES_MIN = 1;
@@ -886,15 +911,25 @@ function renderDetalle(p, historial) {
   const fechaInicioLegible = p.fechaEstimadaInicio || p.fechaEstimadaInstalacion;
   const fechaFinLegible = p.fechaEstimadaFin || p.fechaEstimadaInstalacion;
 
+  const iconoCopiar = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+  const filaCopiable = (label, valor) => `
+    <li>
+      <span class="resumen-label">${label}</span>
+      <span class="resumen-valor-copiable">
+        <span class="resumen-valor">${valor}</span>
+        <button type="button" class="btn-copiar" aria-label="Copiar ${label.toLowerCase()}">${iconoCopiar}</button>
+      </span>
+    </li>`;
+
   document.getElementById('resumenDatos').innerHTML = `
-    <li><span class="resumen-label">Cliente</span><span class="resumen-valor">${p.cliente || '—'}</span></li>
-    <li><span class="resumen-label">RUT</span><span class="resumen-valor">${p.rut || '—'}</span></li>
-    <li><span class="resumen-label">Teléfono</span><span class="resumen-valor">${p.telefono || '—'}</span></li>
-    <li><span class="resumen-label">Correo</span><span class="resumen-valor">${p.email || '—'}</span></li>
+    ${filaCopiable('Cliente', p.cliente || '—')}
+    ${filaCopiable('RUT', p.rut || '—')}
+    ${filaCopiable('Teléfono', p.telefono || '—')}
+    ${filaCopiable('Correo', p.email || '—')}
     <li><span class="resumen-label">Tipo de proyecto</span><span class="resumen-valor">${p.tipoProyecto || '—'}</span></li>
     <li><span class="resumen-label">Categoría</span>${filaCategoria}</li>
     <li><span class="resumen-label">Responsable</span><span class="resumen-valor">${p.responsable || 'Por asignar'}</span></li>
-    <li><span class="resumen-label">Dirección</span><span class="resumen-valor">${(p.direccion && typeof p.direccion === 'object') ? (formatearDireccion(p.direccion) || '—') : (p.direccion || '—')}</span></li>
+    ${filaCopiable('Dirección', (p.direccion && typeof p.direccion === 'object') ? (formatearDireccion(p.direccion) || '—') : (p.direccion || '—'))}
     <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${formatearRangoFechas(fechaInicioLegible, fechaFinLegible)}</span></li>
     <li><span class="resumen-label">Canal de origen</span><span class="resumen-valor">${canalLegible}</span></li>
     <li><span class="resumen-label">N° de cotización</span><span class="resumen-valor">${p.codigoCotizacion || '—'}</span></li>
