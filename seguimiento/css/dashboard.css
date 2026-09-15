@@ -504,6 +504,28 @@ html, body{height:100%; background:var(--cream);}
 .resumen-datos li:last-child{border-bottom:none;}
 .resumen-datos .resumen-label{opacity:0.55;}
 .resumen-datos .resumen-valor{font-weight:500; text-align:right;}
+
+.resumen-valor-copiable{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.btn-copiar{
+  background:none;
+  border:none;
+  padding:2px;
+  color:var(--ink);
+  opacity:0.4;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  flex-shrink:0;
+  transition:opacity .15s ease, color .15s ease;
+}
+.btn-copiar:hover{ opacity:0.9; color:var(--gold); }
+.btn-copiar.copiado{ color:#2e7d32; opacity:1; }
+
 .badge-categoria{
   padding:2px 10px;
   border-radius:999px;
