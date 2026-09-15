@@ -215,6 +215,18 @@
    Nada de acá toca el layout de escritorio (≥901px).
    ============================================================ */
 @media (max-width: 900px) {
+  /* ---------- Causa raíz del "zoom" al entrar ----------
+     Mismo bug que ya se arregló en el CRM (#vistaKanban): sin
+     min-width:0, la tabla del catálogo (min-width:520px) empuja a
+     todo #vistaCatalogo — y por lo tanto a toda la página — a medirse
+     más ancho que la pantalla del teléfono. Eso hace que Safari
+     renderice todo "achicado" hasta que el usuario hace zoom manual.
+     Con esto, la tabla scrollea de lado sola (ya tiene overflow-x:auto)
+     y el resto de la página se queda al ancho real del teléfono. */
+  #vistaCatalogo {
+    min-width: 0;
+  }
+
   #vistaCatalogo .cat-header {
     position: sticky;
     top: 54px;
