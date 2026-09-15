@@ -247,7 +247,7 @@ function renderListaCotizaciones(cotizaciones) {
       <td>${formatearMoneda(c.totalGeneral)}</td>
       <td>${formatearMoneda(c.abono)}</td>
       <td>${formatearFecha(c.actualizadoEn)}</td>
-      <td><a href="cotizaciones.html?leadId=${c.leadId}" class="cat-accion-editar">Ver / editar</a></td>
+      <td><a href="cotizaciones.html?leadId=${c.leadId}" class="cot-btn-ver">Ver / editar</a></td>
     `;
     tablaCotizacionesBody.appendChild(tr);
   });
