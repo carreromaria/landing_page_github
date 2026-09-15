@@ -332,6 +332,17 @@
    ============================================================ */
 @media (max-width: 900px) {
 
+  /* ---------- Causa raíz del "zoom" al entrar ----------
+     Mismo bug ya resuelto en el CRM (#vistaKanban): sin min-width:0,
+     las tablas anchas (listado de cotizaciones y la tabla de ítems del
+     editor) empujan a todo el <main> a medirse más ancho que la
+     pantalla del teléfono, y Safari renderiza todo "achicado" hasta
+     que el usuario hace zoom manual para verlo completo. */
+  #vistaListaCotizaciones,
+  #vistaEditorCotizacion {
+    min-width: 0;
+  }
+
   /* ---------- Encabezado fijo del listado (igual que CRM) ---------- */
   #vistaListaCotizaciones .cat-header {
     position: sticky;
