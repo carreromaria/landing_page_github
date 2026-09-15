@@ -213,6 +213,29 @@
   margin-top:2px;
 }
 
+.valor-copiable{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:2px;
+}
+.valor-copiable .valor{ margin-top:0; }
+
+.btn-copiar{
+  background:none;
+  border:none;
+  padding:2px;
+  color:var(--gold);
+  opacity:0.65;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  flex-shrink:0;
+  transition:opacity .15s ease;
+}
+.btn-copiar:hover{ opacity:1; }
+.btn-copiar.copiado{ color:#6fbf73; opacity:1; }
+
 .crm-contacto{
   display:flex;
   align-items:center;
@@ -221,6 +244,7 @@
   color:var(--sand);
   margin-top:10px;
 }
+.crm-contacto span{ flex:1; }
 
 .crm-icono-contacto{
   color:var(--gold);
