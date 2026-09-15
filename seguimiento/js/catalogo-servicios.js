@@ -40,6 +40,13 @@ const toastEl = document.getElementById('catToast');
 
 // ---------- Guardia de sesión (mismo patrón que crm.js / dashboard.js) ----------
 
+const dashTopbarMobile = document.getElementById('dashTopbarMobile');
+
+function actualizarVisibilidadTopbar() {
+  dashTopbarMobile.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
+}
+window.addEventListener('resize', actualizarVisibilidadTopbar);
+
 observarSesionStaff((staff) => {
   if (!staff) {
     window.location.href = 'login.html';
@@ -47,6 +54,7 @@ observarSesionStaff((staff) => {
   }
   document.getElementById('dashCargando').style.display = 'none';
   document.getElementById('dashLayout').style.display = '';
+  actualizarVisibilidadTopbar();
   document.getElementById('staffNombre').textContent = staff.nombre || '—';
   document.getElementById('staffRol').textContent = staff.rol || '—';
   cargarServicios();
@@ -56,6 +64,25 @@ document.getElementById('btnCerrarSesion')?.addEventListener('click', async () =
   await cerrarSesion();
   window.location.href = 'login.html';
 });
+
+// ---------- Sidebar mobile (mismo patrón que crm.js) ----------
+
+const btnAbrirSidebar = document.getElementById('btnAbrirSidebar');
+const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const dashSidebar = document.getElementById('dashSidebar');
+
+function abrirSidebar() {
+  dashSidebar.classList.add('abierto');
+  sidebarOverlay.classList.add('visible');
+}
+function cerrarSidebar() {
+  dashSidebar.classList.remove('abierto');
+  sidebarOverlay.classList.remove('visible');
+}
+btnAbrirSidebar?.addEventListener('click', abrirSidebar);
+btnCerrarSidebar?.addEventListener('click', cerrarSidebar);
+sidebarOverlay?.addEventListener('click', cerrarSidebar);
 
 // ---------- Carga y render ----------
 
