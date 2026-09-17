@@ -183,38 +183,24 @@
   border-radius:4px;
 }
 
-/* ---------- La hoja imprimible (A4) ---------- */
+/* ---------- La hoja imprimible (tamaño Carta — igual que el Word real) ---------- */
 .hoja-documento{
-  width:210mm;
-  min-height:297mm;
+  width:215.9mm;
+  min-height:279.4mm;
   margin:0 auto;
   background:#fff;
   color:var(--ink);
   font-family:'Poppins', sans-serif;
   box-shadow:0 4px 18px rgba(0,0,0,0.25);
   display:flex; flex-direction:column;
+  position:relative; /* para la marca de agua (.pdf-doc-marca-agua, en pdf-documentos.css) */
 }
-.hoja-header{
-  background:var(--ink);
-  color:#fff;
-  padding:22px 40px;
-  display:flex; justify-content:space-between; align-items:center;
-  border-bottom:4px solid var(--gold);
-}
-.hoja-header .hoja-titulo{
-  font-size:18px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;
-}
-.hoja-header .hoja-codigo{color:var(--gold); font-weight:600; margin-left:8px;}
-.hoja-header img{height:30px;}
 
-.hoja-datos-empresa{
-  display:flex; flex-wrap:wrap; gap:4px 24px;
-  padding:10px 40px;
-  background:var(--sand-soft);
-  font-size:10.5px;
-  color:var(--ink);
-  opacity:0.85;
-}
+/* .hoja-header / .hoja-datos-empresa / .hoja-footer ya no se usan: el
+   encabezado y pie reales (diagonal negro/dorado + contacto) viven en
+   pdf-documentos.css (.pdf-header / .pdf-empresa / .pdf-contacto),
+   compartidos con el módulo Cotizaciones — encabezadoHoja()/pieHoja()
+   en documentacion.js ahora arman ese mismo markup. */
 
 .hoja-cuerpo{
   padding:34px 40px;
@@ -234,14 +220,6 @@
 .hoja-cuerpo li{margin-bottom:4px;}
 .hoja-cuerpo strong{color:var(--ink);}
 
-.hoja-footer{
-  background:var(--gold);
-  color:var(--ink);
-  padding:12px 40px;
-  display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;
-  font-size:11px; font-weight:600;
-}
-
 @media (max-width: 720px){
   .doc-item-fila{grid-template-columns:1fr 1fr; grid-template-areas:
     "codigo cantidad" "descripcion descripcion" "valor quitar";}
@@ -256,5 +234,5 @@
     position:absolute; top:0; left:0;
     box-shadow:none;
   }
-  @page{ size:A4; margin:0; }
+  @page{ size:letter; margin:0; }
 }
