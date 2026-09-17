@@ -196,9 +196,73 @@
   border-radius: 8px;
 }
 
+/* ================= Descripción de Cotización: resumen + modal grande ================= */
+/* En pantalla ya no se ve el checklist completo (recargaba visualmente
+   la cotización) — se ve un resumen y se edita en un modal aparte. */
+
+.cot-desc-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: #faf7f2;
+  border: 1px solid #ece4d3;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 22px 0 16px;
+}
+
+.cot-desc-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 18, 19, 0.6);
+  z-index: 9500;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+}
+.cot-desc-modal-overlay.visible { display: flex; }
+
+.cot-desc-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 22px;
+  max-width: 920px;
+  width: 100%;
+}
+
+.cot-desc-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ece4d3;
+}
+.cot-desc-modal-header .btn-primario {
+  white-space: nowrap;
+}
+
+.cot-desc-modal-scroll {
+  max-height: 72vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* El modal de "+ Agregar opción" puede abrirse encima de este modal
+   grande — se asegura que siempre quede por delante, sin depender
+   del z-index que traiga .cat-modal-overlay desde otra hoja de estilos. */
+#modalNuevaOpcionDescripcion {
+  z-index: 10000;
+}
+
 /* ================= Checklist de Descripción de Cotización ================= */
-/* Sección en pantalla del editor (no es la plantilla del PDF, esa
-   usa .pdf-dc-* del archivo compartido). */
+/* Contenido de adentro del modal grande de arriba (no es la plantilla
+   del PDF, esa usa .pdf-dc-* del archivo compartido). */
 
 .cot-desc-seccion {
   margin-bottom: 20px;
@@ -286,6 +350,15 @@
   /* ---------- Fila de fechas / forma de pago del editor ---------- */
   .cot-datos-documento {
     flex-direction: column;
+  }
+
+  /* ---------- Resumen de Descripción de Cotización, apilado ---------- */
+  .cot-desc-resumen {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cot-desc-resumen button {
+    width: 100%;
   }
 
   /* ---------- Checklist de Descripción de Cotización, a una columna ---------- */
