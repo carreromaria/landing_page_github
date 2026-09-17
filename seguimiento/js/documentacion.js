@@ -8,10 +8,20 @@
 // `cotizacion`) hasta que exista el módulo de Cotizaciones.
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
-import { buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead } from './firestore.js';
+import {
+  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead,
+  listarCatalogoDescripcionActivo
+} from './firestore.js';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
+let catalogoDescripcionActivo = []; // catálogo de Materiales/Herrajes/Cubiertas/Accesorios, para el documento DC
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
 
 // ============================================================
 // Guardia de sesión (idéntica a dashboard.html/crm.html)
@@ -325,14 +335,6 @@ function poblarFormCotizacion(cot) {
   document.getElementById('cotHoraTermino').value = cot.horaTermino || '';
   document.getElementById('cotObservaciones').value = cot.observaciones || '';
   document.getElementById('cotInstalador').value = cot.instalador || 'Abraham Quintero';
-  renderCatalogoCheckboxes('catMateriales', CATALOGO_MATERIALES, cot.materiales);
-  renderCatalogoCheckboxes('catHerrajes', CATALOGO_HERRAJES, cot.herrajes);
-  renderCatalogoCheckboxes('catCubiertas', CATALOGO_CUBIERTAS, cot.cubiertas);
-  renderCatalogoCheckboxes('catAccesorios', CATALOGO_ACCESORIOS, cot.accesorios);
-  document.getElementById('cotMaterialesOtros').value = (cot.materialesOtros || []).join(', ');
-  document.getElementById('cotHerrajesOtros').value = (cot.herrajesOtros || []).join(', ');
-  document.getElementById('cotCubiertasOtros').value = (cot.cubiertasOtros || []).join(', ');
-  document.getElementById('cotAccesoriosOtros').value = (cot.accesoriosOtros || []).join(', ');
 
   const tabla = document.getElementById('cotItemsTabla');
   tabla.innerHTML = '';
@@ -368,14 +370,6 @@ document.getElementById('formCotizacion').addEventListener('submit', async (e) =
     horaTermino: document.getElementById('cotHoraTermino').value,
     observaciones: document.getElementById('cotObservaciones').value.trim(),
     instalador: document.getElementById('cotInstalador').value.trim() || 'Abraham Quintero',
-    materiales: leerCatalogoCheckboxes('catMateriales'),
-    herrajes: leerCatalogoCheckboxes('catHerrajes'),
-    cubiertas: leerCatalogoCheckboxes('catCubiertas'),
-    accesorios: leerCatalogoCheckboxes('catAccesorios'),
-    materialesOtros: document.getElementById('cotMaterialesOtros').value.split(',').map(s => s.trim()).filter(Boolean),
-    herrajesOtros: document.getElementById('cotHerrajesOtros').value.split(',').map(s => s.trim()).filter(Boolean),
-    cubiertasOtros: document.getElementById('cotCubiertasOtros').value.split(',').map(s => s.trim()).filter(Boolean),
-    accesoriosOtros: document.getElementById('cotAccesoriosOtros').value.split(',').map(s => s.trim()).filter(Boolean),
     // Totales ya calculados, para que los documentos no tengan que recalcular.
     subtotal: totales.subtotal,
     total: totales.total,
@@ -396,51 +390,10 @@ document.getElementById('formCotizacion').addEventListener('submit', async (e) =
 // ============================================================
 // Catálogo de opciones para la Descripción de Cotización (DC)
 // ============================================================
-const CATALOGO_MATERIALES = [
-  'Melamina blanca de 15 mm', 'Melamina blanca de 18 mm',
-  'Melamina de color de 15 mm', 'Melamina de color de 18 mm',
-  'MDF blanco de 15 mm', 'MDF blanco de 18 mm', 'MDF blanco de 3 mm', 'MDF de color de 3 mm',
-  'Tapacantos blanco 0.4 mm x 22 mm', 'Tapacantos blanco 2 mm x 22 mm', 'Tapacantos blanco alto brillo 1.5 mm x 22 mm',
-  'Tapacantos de color 0.4 mm x 22 mm', 'Tapacantos de color 2 mm x 22 mm', 'Tapacantos de color alto brillo 1.5 mm x 22 mm'
-];
-const CATALOGO_HERRAJES = [
-  'Bisagras de cazoletas de 90° (cierre normal)', 'Bisagras de cazoletas de 90° (cierre suave)',
-  'Bisagras de cazoleta de 165° (cierre normal)', 'Bisagra de cazoleta de 165° (cierre suave)',
-  'Bisagra de cazoleta de 175° (cierre normal)', 'Bisagra de cazoleta de 175° (cierre suave)',
-  'Correderas telescópicas (cierre normal)', 'Correderas telescópicas (cierre suave)',
-  'Correderas telescópicas ocultas (cierre suave)', 'Bombín hidráulico (cierre suave)',
-  'Brazo compás (cierre normal)', 'Push to Open'
-];
-const CATALOGO_CUBIERTAS = [
-  'Cuarzo canto pulido y respaldo recto', 'Cuarzo con regrueso y respaldo recto',
-  'Granito canto pulido y respaldo recto', 'Granito con regrueso y respaldo recto',
-  'Postformado canto recto y respaldo recto', 'Postformado canto curvo y respaldo curvo'
-];
-const CATALOGO_ACCESORIOS = [
-  'Especiero metálico (cierre suave)', 'Especiero en melamina (cierre suave)', 'Cubertero en PVC',
-  'Magic corner metálico', 'Magic corner en melamina', 'Esquinero extraíble tipo riñón', 'Rotonda esquina 180°',
-  'Basurero extraíble 3 x 10 litros (cierre suave)', 'Basurero extraíble 20L x 10L (cierre suave)',
-  'Basurero extraíble 2 x 27,5 litros (cierre suave)', 'Basurero extraíble 18L x 6L (cierre suave)',
-  'Cestas extraíbles 3 niveles 30 cm (cierre suave)', 'Cesta extraíble 2 niveles 40 cm (cierre suave)',
-  'Escurreplatos con bandeja de acero inoxidable 60 cm', 'Escurreplatos con bandeja de acero inoxidable 90 cm',
-  'Luces led con canaleta (luz cálida)', 'Luces led con canaleta (luz fría)', 'Luces led con canaletas (luz RGB)'
-];
-
-/** Dibuja un catálogo de checkboxes dentro de #contenedorId, marcando los que ya estén guardados. */
-function renderCatalogoCheckboxes(contenedorId, catalogo, seleccionados = []) {
-  const contenedor = document.getElementById(contenedorId);
-  contenedor.innerHTML = catalogo.map((opcion, i) => `
-    <label>
-      <input type="checkbox" value="${opcion.replace(/"/g, '&quot;')}" id="${contenedorId}_${i}" ${seleccionados.includes(opcion) ? 'checked' : ''}>
-      ${opcion}
-    </label>
-  `).join('');
-}
-
-/** Lee las opciones marcadas de un catálogo ya dibujado con renderCatalogoCheckboxes. */
-function leerCatalogoCheckboxes(contenedorId) {
-  return Array.from(document.querySelectorAll(`#${contenedorId} input[type="checkbox"]:checked`)).map(c => c.value);
-}
+// El catálogo (Materiales/Herrajes/Cubiertas/Accesorios) ya no vive
+// acá: es el mismo catálogo editable de Firestore que alimenta el
+// checklist del módulo Cotizaciones (colección "catalogoDescripcion").
+// Acá solo se lee, para pintar el documento DC.
 
 function listaLineas(texto, textoVacio = 'Según cotización aprobada.') {
   const lineas = (texto || '').split('\n').map(l => l.trim()).filter(Boolean);
@@ -448,11 +401,17 @@ function listaLineas(texto, textoVacio = 'Según cotización aprobada.') {
   return lineas.map(l => `<li>${l}</li>`).join('');
 }
 
-/** Junta lo marcado del catálogo + lo escrito en "Otros" para mostrar en el documento. */
-function listaCatalogo(seleccionados = [], otros = [], textoVacio = 'Según cotización (si aplica).') {
-  const todo = [...(seleccionados || []), ...(otros || [])];
-  if (!todo.length) return `<li>${textoVacio}</li>`;
-  return todo.map(item => `<li>${item}</li>`).join('');
+/**
+ * Arma la lista de una categoría del checklist DC, resaltando en
+ * dorado (misma clase .incluido que usa la plantilla del PDF) las
+ * opciones que quedaron marcadas en la cotización real.
+ */
+function filaChecklistDC(categoria, seleccionIds = []) {
+  const opciones = catalogoDescripcionActivo.filter(o => o.categoria === categoria);
+  if (!opciones.length) return '<div class="pdf-dc-item">Sin opciones registradas en el catálogo.</div>';
+  return opciones.map(o => `
+    <div class="pdf-dc-item ${seleccionIds.includes(o.id) ? 'incluido' : ''}">${escapeHtml(o.nombre)}</div>
+  `).join('');
 }
 
 /** Chequeo mínimo para saber si ya se guardó una cotización utilizable. */
@@ -494,7 +453,7 @@ function renderizarDocsGrid() {
       </div>
     `;
     if (doc.activo) {
-      card.querySelector('.btn-vista-previa').addEventListener('click', () => {
+      card.querySelector('.btn-vista-previa').addEventListener('click', async () => {
         if (!PROYECTO_ACTUAL) {
           mostrarToast('Primero busca un cliente por RUT.', 'error');
           return;
@@ -503,7 +462,9 @@ function renderizarDocsGrid() {
           mostrarToast('Completa y guarda primero los "Datos de cotización" de este proyecto.', 'error');
           return;
         }
-        const html = doc.generar(PROYECTO_ACTUAL);
+        // generar() puede ser async (el DC trae su checklist en vivo
+        // desde el módulo Cotizaciones) o sync (el resto de documentos).
+        const html = await doc.generar(PROYECTO_ACTUAL);
         abrirModalDocumento(html, `${doc.sigla}-${PROYECTO_ACTUAL.codigo}`);
       });
     }
@@ -778,36 +739,90 @@ function generarCotizacion(p) {
 // ============================================================
 // DC — Descripción de la Cotización
 // ============================================================
-function generarDescripcionCotizacion(p) {
-  const cot = p.cotizacion || {};
+// A diferencia del resto de los documentos, este trae su checklist
+// SIEMPRE en vivo desde la cotización real del módulo Cotizaciones
+// (por leadOrigenId) — no depende de haber apretado antes "Guardar
+// datos de cotización" en este panel. Usa el mismo formato dorado/
+// negro (clases .pdf-doc / .pdf-dc-*) que la plantilla de Cotizaciones,
+// para que sea exactamente el mismo documento en los dos módulos.
+async function generarDescripcionCotizacion(p) {
   const codigo = codigoDocumento('DC', p);
   const nombreCliente = tituloCase(p.cliente) || '____________________';
   const rutCliente = formatearRutVisible(p.rut);
   const domicilioCliente = formatearDireccionSimple(p.direccion);
 
+  let seleccion = { materiales: [], herrajes: [], cubiertas: [], accesorios: [] };
+  let fecha = new Date();
+
+  if (p.leadOrigenId) {
+    try {
+      const vigente = await obtenerCotizacionVigentePorLead(p.leadOrigenId);
+      if (vigente?.descripcionCotizacion) seleccion = vigente.descripcionCotizacion;
+      if (vigente?.creadoEn?.toDate) fecha = vigente.creadoEn.toDate();
+    } catch (err) {
+      console.error('No se pudo cargar el checklist real desde el módulo Cotizaciones:', err);
+    }
+  }
+
+  if (!catalogoDescripcionActivo.length) {
+    try {
+      catalogoDescripcionActivo = await listarCatalogoDescripcionActivo();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return `
-    <div class="hoja-documento">
-      ${encabezadoHoja('Descripción de Cotización', codigo)}
-      <div class="hoja-cuerpo">
-        <h2>Descripción de Fabricación e Instalación de Mobiliario a Medida</h2>
-        <p style="text-align:center;" class="hoja-subtitulo"></p>
-
-        <p>Con fecha ${formatearFechaLarga(cot.fechaCotizacion)}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero, RUT 26.429.618-8, con domicilio comercial en Av. Salvador Allende # 500, en adelante "LINENCE SpA". EL CLIENTE: ${nombreCliente}, RUT: ${rutCliente}, con domicilio en ${domicilioCliente}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:</p>
-
-        <p><strong>1. MATERIALES A UTILIZAR EN LA FABRICACIÓN DE ESTRUCTURA DE MUEBLES Y PUERTAS:</strong></p>
-        <p>LINENCE SpA. se compromete a ejecutar los trabajos utilizando materiales de primera calidad, de acuerdo a los estándares mínimos de las marcas (Masisa/Arauco Vesto).</p>
-        <ul>${listaCatalogo(cot.materiales, cot.materialesOtros)}</ul>
-
-        <p><strong>2. HERRAJES A UTILIZAR:</strong></p>
-        <ul>${listaCatalogo(cot.herrajes, cot.herrajesOtros)}</ul>
-
-        <p><strong>3. CUBIERTAS:</strong></p>
-        <ul>${listaCatalogo(cot.cubiertas, cot.cubiertasOtros)}</ul>
-
-        <p><strong>4. ACCESORIOS:</strong></p>
-        <ul>${listaCatalogo(cot.accesorios, cot.accesoriosOtros)}</ul>
+    <div class="pdf-doc">
+      <div class="pdf-header">
+        <div class="pdf-header-izq">
+          <div class="pdf-header-titulo">DESCRIPCIÓN DE COTIZACIÓN</div>
+          <span class="pdf-header-folio">${codigo}</span>
+        </div>
+        <div class="pdf-header-logo">
+          <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
+          <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
+        </div>
       </div>
-      ${pieHoja()}
+
+      <div class="pdf-empresa">
+        <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
+        <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+        <div>CORREO ELECTRONICO: contacto@linence.cl</div>
+      </div>
+
+      <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
+
+      <p class="pdf-dc-intro">
+        Con fecha ${formatearFechaLarga(fecha.toISOString().slice(0, 10))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${nombreCliente}, RUT: ${rutCliente}, con domicilio en ${domicilioCliente}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+      </p>
+
+      <div class="pdf-dc-seccion">
+        <p class="pdf-dc-seccion-titulo">1. MATERIALES A UTILIZAR EN LA FABRICACIÓN DE ESTRUCTURA DE MUEBLES Y PUERTAS:</p>
+        <p class="pdf-dc-nota">LINENCE SpA. se compromete a ejecutar los trabajos utilizando materiales de primera calidad, de acuerdo a los estándares mínimos de las marcas (Masisa/Arauco Vesto).</p>
+        <div class="pdf-dc-lista">${filaChecklistDC('materiales', seleccion.materiales)}</div>
+      </div>
+
+      <div class="pdf-dc-seccion">
+        <p class="pdf-dc-seccion-titulo">2. HERRAJES A UTILIZAR:</p>
+        <div class="pdf-dc-lista">${filaChecklistDC('herrajes', seleccion.herrajes)}</div>
+      </div>
+
+      <div class="pdf-dc-seccion">
+        <p class="pdf-dc-seccion-titulo">3. CUBIERTAS:</p>
+        <div class="pdf-dc-lista">${filaChecklistDC('cubiertas', seleccion.cubiertas)}</div>
+      </div>
+
+      <div class="pdf-dc-seccion" style="margin-bottom:18px;">
+        <p class="pdf-dc-seccion-titulo">4. ACCESORIOS:</p>
+        <div class="pdf-dc-lista">${filaChecklistDC('accesorios', seleccion.accesorios)}</div>
+      </div>
+
+      <div class="pdf-contacto">
+        <div class="pdf-contacto-fila">🌐 Linence.cl</div>
+        <div class="pdf-contacto-fila">📘 📷 🎵 Linence.cl</div>
+        <div class="pdf-contacto-fila">📱 +569 57039988</div>
+      </div>
     </div>
   `;
 }
@@ -1144,7 +1159,10 @@ document.getElementById('btnImprimirDoc').addEventListener('click', () => {
 
 document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   const contenedor = document.getElementById('hojaDocumentoImprimir');
-  const hoja = contenedor.querySelector('.hoja-documento');
+  // La mayoría de los documentos usan .hoja-documento; la Descripción
+  // de Cotización (DC) usa .pdf-doc — mismo formato dorado/negro que
+  // el módulo Cotizaciones. Se busca cualquiera de los dos.
+  const hoja = contenedor.querySelector('.hoja-documento') || contenedor.querySelector('.pdf-doc');
   const nombreArchivo = (contenedor.dataset.archivo || 'documento') + '.pdf';
   if (!hoja || !window.html2pdf) {
     mostrarToast('No se pudo generar el PDF. Intenta de nuevo.', 'error');
