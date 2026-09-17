@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/crm.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
+<link rel="stylesheet" href="css/pdf-documentos.css?v=1">
 <link rel="stylesheet" href="css/cotizaciones.css?v=1">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -129,6 +130,10 @@
         <label for="cotValidaDesde">Válida desde</label>
         <input type="date" id="cotValidaDesde">
       </div>
+      <div class="cot-campo-doc">
+        <label for="cotClienteRut">RUT del cliente (para la Descripción de Cotización)</label>
+        <input type="text" id="cotClienteRut" placeholder="Ej. 12.345.678-9">
+      </div>
     </div>
 
     <div class="crm-cotizacion-tabla-wrapper">
@@ -177,10 +182,46 @@
       </div>
     </div>
 
+    <h2 class="cat-title" style="font-size:19px; margin:26px 0 4px;">Descripción de Cotización</h2>
+    <p class="subtitulo" style="margin-bottom:14px;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
+
+    <div class="cot-desc-seccion">
+      <div class="cot-desc-seccion-titulo">
+        <span>Materiales</span>
+        <button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button>
+      </div>
+      <div class="cot-desc-grid" id="cotDescMateriales"></div>
+    </div>
+
+    <div class="cot-desc-seccion">
+      <div class="cot-desc-seccion-titulo">
+        <span>Herrajes</span>
+        <button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button>
+      </div>
+      <div class="cot-desc-grid" id="cotDescHerrajes"></div>
+    </div>
+
+    <div class="cot-desc-seccion">
+      <div class="cot-desc-seccion-titulo">
+        <span>Cubiertas</span>
+        <button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button>
+      </div>
+      <div class="cot-desc-grid" id="cotDescCubiertas"></div>
+    </div>
+
+    <div class="cot-desc-seccion">
+      <div class="cot-desc-seccion-titulo">
+        <span>Accesorios</span>
+        <button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button>
+      </div>
+      <div class="cot-desc-grid" id="cotDescAccesorios"></div>
+    </div>
+
     <div class="modal-error" id="cotizacionError"></div>
 
     <div class="crm-cotizacion-acciones">
       <button type="button" class="btn-secundario" id="btnDescargarPDF">👁 Ver PDF</button>
+      <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
       <button type="button" class="btn-secundario" id="btnGuardarNuevaVersion" style="display:none;">Guardar como nueva versión</button>
       <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
     </div>
@@ -229,6 +270,23 @@
     <div class="cat-modal-acciones">
       <button type="button" class="btn-secundario" id="btnCancelarNuevoCodigo">Cancelar</button>
       <button type="button" class="btn-dorado" id="btnGuardarNuevoCodigo">Crear y usar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= Modal: nueva opción del catálogo de Descripción ================= -->
+<div id="modalNuevaOpcionDescripcion" class="cat-modal-overlay" style="display:none;">
+  <div class="cat-modal">
+    <h2 id="nuevaOpcionTitulo">Nueva opción</h2>
+    <p class="crm-cotizacion-texto-vacio">Se agrega al catálogo general — queda disponible para todas las cotizaciones futuras.</p>
+
+    <label class="cat-label">Nombre de la opción</label>
+    <input type="text" id="nuevaOpcionNombre" class="cat-input" placeholder="Ej: Bisagra de cazoleta de 175° (cierre suave)">
+    <p id="nuevaOpcionError" class="cat-error">Este campo es obligatorio.</p>
+
+    <div class="cat-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarNuevaOpcion">Cancelar</button>
+      <button type="button" class="btn-dorado" id="btnGuardarNuevaOpcion">Agregar</button>
     </div>
   </div>
 </div>
@@ -318,6 +376,70 @@
       <tr><th>TOTAL</th><td id="pdfTotal">—</td></tr>
       <tr><th id="pdfAbonoLabel">Abono</th><td id="pdfAbono">—</td></tr>
     </table>
+  </div>
+
+  <div class="pdf-contacto">
+    <div class="pdf-contacto-fila">🌐 Linence.cl</div>
+    <div class="pdf-contacto-fila">📘 📷 🎵 Linence.cl</div>
+    <div class="pdf-contacto-fila">📱 +569 57039988</div>
+  </div>
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: VISTA PREVIA / DESCARGA DE LA DESCRIPCIÓN DE COTIZACIÓN ================= -->
+<div class="cot-pdf-modal-overlay" id="modalPdfDescripcion">
+  <div class="cot-pdf-modal">
+    <div class="cot-pdf-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCerrarModalDC">Cerrar</button>
+      <button type="button" class="btn-secundario" id="btnImprimirDC">Imprimir</button>
+      <button type="button" class="btn-primario" id="btnDescargarDCModal">Descargar PDF</button>
+    </div>
+    <div class="cot-pdf-modal-scroll">
+      <div id="plantillaDC" class="pdf-doc">
+  <div class="pdf-header">
+    <div class="pdf-header-izq">
+      <div class="pdf-header-titulo">DESCRIPCIÓN DE COTIZACIÓN</div>
+      <span class="pdf-header-folio" id="pdfDCFolio">DC-XXX-00000</span>
+    </div>
+    <div class="pdf-header-logo">
+      <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
+      <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
+    </div>
+  </div>
+
+  <div class="pdf-empresa">
+    <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
+    <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+    <div>CORREO ELECTRONICO: contacto@linence.cl</div>
+  </div>
+
+  <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
+
+  <p class="pdf-dc-intro">
+    Con fecha <span id="pdfDCFecha">—</span>, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: <span id="pdfDCCliente">—</span>, RUT: <span id="pdfDCRut">—</span>, con domicilio en <span id="pdfDCDireccion">—</span>, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+  </p>
+
+  <div class="pdf-dc-seccion">
+    <p class="pdf-dc-seccion-titulo">1. MATERIALES A UTILIZAR EN LA FABRICACIÓN DE ESTRUCTURA DE MUEBLES Y PUERTAS:</p>
+    <p class="pdf-dc-nota">LINENCE SpA. se compromete a ejecutar los trabajos utilizando materiales de primera calidad, de acuerdo a los estándares mínimos de las marcas (Masisa/Arauco Vesto).</p>
+    <div class="pdf-dc-lista" id="pdfDCMateriales"></div>
+  </div>
+
+  <div class="pdf-dc-seccion">
+    <p class="pdf-dc-seccion-titulo">2. HERRAJES A UTILIZAR:</p>
+    <div class="pdf-dc-lista" id="pdfDCHerrajes"></div>
+  </div>
+
+  <div class="pdf-dc-seccion">
+    <p class="pdf-dc-seccion-titulo">3. CUBIERTAS:</p>
+    <div class="pdf-dc-lista" id="pdfDCCubiertas"></div>
+  </div>
+
+  <div class="pdf-dc-seccion" style="margin-bottom:18px;">
+    <p class="pdf-dc-seccion-titulo">4. ACCESORIOS:</p>
+    <div class="pdf-dc-lista" id="pdfDCAccesorios"></div>
   </div>
 
   <div class="pdf-contacto">
