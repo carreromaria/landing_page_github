@@ -60,7 +60,6 @@ const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
 const cotFormaPago = document.getElementById('cotFormaPago');
 const cotValidaDesde = document.getElementById('cotValidaDesde');
-const cotClienteRut = document.getElementById('cotClienteRut');
 const cotVersionesAnteriores = document.getElementById('cotVersionesAnteriores');
 const btnVerVersiones = document.getElementById('btnVerVersiones');
 const listaVersionesAnteriores = document.getElementById('listaVersionesAnteriores');
@@ -319,7 +318,6 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = vigenteActual.fechaEntregaFin || '';
     cotFormaPago.value = vigenteActual.formaPago || '';
     cotValidaDesde.value = vigenteActual.validaDesde || '';
-    cotClienteRut.value = vigenteActual.clienteRut || leadActual.rut || '';
     renderChecklistDescripcionCompleto(vigenteActual.descripcionCotizacion || {});
     actualizarResumenDescripcion();
   } else {
@@ -333,7 +331,6 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = '';
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
-    cotClienteRut.value = leadActual.rut || '';
     renderChecklistDescripcionCompleto({});
     actualizarResumenDescripcion();
   }
@@ -644,7 +641,6 @@ async function guardar({ comoNuevaVersion }) {
     fechaEntregaFin: cotFechaEntregaFin.value,
     formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value,
-    clienteRut: cotClienteRut.value.trim(),
     descripcionCotizacion: leerDescripcionCotizacion()
   };
 
@@ -884,7 +880,7 @@ function llenarPlantillaDC(cotizacion, lead) {
   document.getElementById('pdfDCFecha').textContent =
     formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
   document.getElementById('pdfDCCliente').textContent = lead.nombre || '—';
-  document.getElementById('pdfDCRut').textContent = cotizacion.clienteRut || lead.rut || '—';
+  document.getElementById('pdfDCRut').textContent = lead.rut || '—';
   document.getElementById('pdfDCDireccion').textContent = formatearDireccion(lead.direccion);
 
   const seleccion = cotizacion.descripcionCotizacion || {};
