@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Sembrar catálogo — Descripción de Cotización</title>
+<meta name="robots" content="noindex">
+</head>
+<body style="font-family:sans-serif; max-width:640px; margin:40px auto; line-height:1.6;">
+
+<h1>Sembrar catálogo de Descripción de Cotización</h1>
+<p>Página de un solo uso: carga en Firestore (colección <code>catalogoDescripcion</code>) las
+opciones de Materiales, Herrajes, Cubiertas y Accesorios que hoy ya usas. Es segura de correr
+más de una vez — si una opción ya existe (mismo nombre y categoría), no la duplica.</p>
+<p><strong>Después de usarla, bórrala del hosting</strong> — no queda enlazada desde ningún menú
+ni la necesitas de nuevo salvo que quieras re-sembrar.</p>
+
+<button id="btnSembrar" style="padding:10px 18px; font-size:14px; cursor:pointer;">Sembrar catálogo</button>
+<pre id="log" style="background:#f2ede4; padding:14px; border-radius:8px; margin-top:16px; white-space:pre-wrap;"></pre>
+
+<script type="module">
+import { observarSesionStaff } from './js/auth.js';
+import { listarCatalogoDescripcion, crearOpcionCatalogoDescripcion } from './js/firestore.js';
+
+const log = document.getElementById('log');
+const escribir = (linea) => { log.textContent += linea + '\n'; };
+
+// Mismas opciones que ya vivían en el checklist de Documentación,
+// ahora como catálogo editable. Si falta o sobra algo, se ajusta
+// después con "+ Agregar opción" desde Cotizaciones.
+const CATALOGO_INICIAL = {
+  materiales: [
+    'Melamina blanca de 15 mm', 'Melamina blanca de 18 mm',
+    'Melamina de color de 15 mm', 'Melamina de color de 18 mm',
+    'MDF blanco de 15 mm', 'MDF blanco de 18 mm', 'MDF blanco de 3 mm', 'MDF de color de 3 mm',
+    'Tapacantos blanco 0.4 mm x 22 mm', 'Tapacantos blanco 2 mm x 22 mm', 'Tapacantos blanco alto brillo 1.5 mm x 22 mm',
+    'Tapacantos de color 0.4 mm x 22 mm', 'Tapacantos de color 2 mm x 22 mm', 'Tapacantos de color alto brillo 1.5 mm x 22 mm'
+  ],
+  herrajes: [
+    'Bisagras de cazoletas de 90° (cierre normal)', 'Bisagras de cazoletas de 90° (cierre suave)',
+    'Bisagras de cazoleta de 165° (cierre normal)', 'Bisagra de cazoleta de 165° (cierre suave)',
+    'Bisagra de cazoleta de 175° (cierre normal)', 'Bisagra de cazoleta de 175° (cierre suave)',
+    'Correderas telescópicas (cierre normal)', 'Correderas telescópicas (cierre suave)',
+    'Correderas telescópicas ocultas (cierre suave)', 'Bombín hidráulico (cierre suave)',
+    'Brazo compás (cierre normal)', 'Push to Open'
+  ],
+  cubiertas: [
+    'Cuarzo canto pulido y respaldo recto', 'Cuarzo con regrueso y respaldo recto',
+    'Granito canto pulido y respaldo recto', 'Granito con regrueso y respaldo recto',
+    'Postformado canto recto y respaldo recto', 'Postformado canto curvo y respaldo curvo'
+  ],
+  accesorios: [
+    'Especiero metálico (cierre suave)', 'Especiero en melamina (cierre suave)', 'Cubertero en PVC',
+    'Magic corner metálico', 'Magic corner en melamina', 'Esquinero extraíble tipo riñón', 'Rotonda esquina 180°',
+    'Basurero extraíble 3 x 10 litros (cierre suave)', 'Basurero extraíble 20L x 10L (cierre suave)',
+    'Basurero extraíble 2 x 27,5 litros (cierre suave)', 'Basurero extraíble 18L x 6L (cierre suave)',
+    'Cestas extraíbles 3 niveles 30 cm (cierre suave)', 'Cesta extraíble 2 niveles 40 cm (cierre suave)',
+    'Escurreplatos con bandeja de acero inoxidable 60 cm', 'Escurreplatos con bandeja de acero inoxidable 90 cm',
+    'Luces led con canaleta (luz cálida)', 'Luces led con canaleta (luz fría)', 'Luces led con canaletas (luz RGB)'
+  ]
+};
+
+observarSesionStaff((staff) => {
+  if (!staff) {
+    escribir('Necesitas iniciar sesión como staff para sembrar el catálogo. Abre esta página después de hacer login en el panel.');
+    document.getElementById('btnSembrar').disabled = true;
+    return;
+  }
+  escribir(`Sesión ok: ${staff.nombre || staff.email}. Lista para sembrar.`);
+});
+
+document.getElementById('btnSembrar').addEventListener('click', async () => {
+  document.getElementById('btnSembrar').disabled = true;
+  log.textContent = '';
+  escribir('Revisando catálogo existente…');
+
+  const existentes = await listarCatalogoDescripcion();
+  const yaExiste = (categoria, nombre) =>
+    existentes.some(o => o.categoria === categoria && o.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
+
+  let creados = 0, saltados = 0;
+
+  for (const categoria of Object.keys(CATALOGO_INICIAL)) {
+    for (const nombre of CATALOGO_INICIAL[categoria]) {
+      if (yaExiste(categoria, nombre)) {
+        escribir(`— ya existía: [${categoria}] ${nombre}`);
+        saltados++;
+        continue;
+      }
+      await crearOpcionCatalogoDescripcion({ categoria, nombre });
+      escribir(`✓ creado: [${categoria}] ${nombre}`);
+      creados++;
+    }
+  }
+
+  escribir(`\nListo. ${creados} opciones creadas, ${saltados} ya existían.`);
+  document.getElementById('btnSembrar').disabled = false;
+});
+</script>
+</body>
+</html>
