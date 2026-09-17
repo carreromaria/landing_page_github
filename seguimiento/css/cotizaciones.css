@@ -153,18 +153,10 @@
   color: #8a7a5a;
 }
 
-/* ================= Plantilla del documento PDF ================= */
-/* Se renderiza fuera de pantalla; html2pdf.js la convierte a PDF tal
-   como se ve acá, sin depender del resto del layout del panel. */
-
-.pdf-doc {
-  width: 794px; /* ancho A4 aprox a 96dpi */
-  background: #fff;
-  font-family: 'Poppins', sans-serif;
-  color: #141213;
-  font-size: 13px;
-  margin: 0 auto;
-}
+/* Las clases .pdf-doc / .pdf-header / .pdf-tabla-* / .pdf-contacto,
+   que arman el documento dorado/negro en sí, viven ahora en el
+   archivo compartido css/pdf-documentos.css (lo usa también
+   Documentación, para la Descripción de Cotización). */
 
 /* ================= Modal de vista previa / descarga del PDF ================= */
 
@@ -204,146 +196,61 @@
   border-radius: 8px;
 }
 
-.pdf-header {
-  background: #141213;
-  background-image: linear-gradient(120deg, #141213 0%, #141213 55%, #d6a52c 55%, #d6a52c 100%);
-  color: #fff;
-  padding: 22px 28px;
+/* ================= Checklist de Descripción de Cotización ================= */
+/* Sección en pantalla del editor (no es la plantilla del PDF, esa
+   usa .pdf-dc-* del archivo compartido). */
+
+.cot-desc-seccion {
+  margin-bottom: 20px;
+}
+
+.cot-desc-seccion-titulo {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #141213;
+  margin-bottom: 8px;
 }
 
-.pdf-header-titulo {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: .02em;
-}
-
-.pdf-header-folio {
-  font-size: 15px;
+.cot-btn-agregar-opcion {
+  background: none;
+  border: none;
   color: #d6a52c;
-  font-weight: 600;
-  margin-left: 14px;
-}
-
-.pdf-header-logo {
-  text-align: right;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  line-height: 1.2;
-}
-.pdf-logo-lin { color: #fff; }
-.pdf-logo-ence { color: #d6a52c; }
-.pdf-logo-tagline {
-  font-size: 8px;
-  font-weight: 400;
-  letter-spacing: .25em;
-  color: #d3bb8c;
-  margin-top: 2px;
-}
-
-.pdf-empresa {
-  padding: 10px 28px;
-  font-size: 11.5px;
-  line-height: 1.6;
-}
-
-.pdf-tabla-info {
-  width: calc(100% - 56px);
-  margin: 0 28px 18px;
-  border-collapse: collapse;
-}
-
-.pdf-tabla-info th {
-  background: #141213;
-  color: #fff;
-  text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 6px 10px;
-  border: 1px solid #141213;
-}
-
-.pdf-tabla-info td {
-  border: 1px solid #d3bb8c;
-  padding: 8px 10px;
   font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
 }
+.cot-btn-agregar-opcion:hover { text-decoration: underline; }
 
-.pdf-tabla-items {
-  width: calc(100% - 56px);
-  margin: 0 28px 0;
-  border-collapse: collapse;
-}
-
-.pdf-tabla-items thead th {
-  background: #d6a52c;
-  color: #141213;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 8px 10px;
-  border: 1px solid #c49522;
-  text-align: left;
-}
-
-.pdf-tabla-items tbody td {
+.cot-desc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px 14px;
+  background: #faf7f2;
   border: 1px solid #ece4d3;
-  padding: 10px;
-  font-size: 12.5px;
-  height: 20px;
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 
-.pdf-pie {
+.cot-desc-item {
   display: flex;
-  margin: 0 28px 18px;
-}
-
-.pdf-pie-notas {
-  flex: 1;
-  background: #141213;
-  color: #fff;
-  padding: 14px 16px;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.pdf-pie-notas p { margin: 0 0 8px; }
-.pdf-pie-gracias { color: #d6a52c; font-weight: 600; }
-
-.pdf-tabla-totales {
-  border-collapse: collapse;
-  min-width: 200px;
-}
-
-.pdf-tabla-totales th {
-  background: #d6a52c;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
   color: #141213;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 8px 12px;
-  border: 1px solid #c49522;
-  text-align: left;
+  padding: 3px 0;
 }
 
-.pdf-tabla-totales td {
-  border: 1px solid #ece4d3;
-  padding: 8px 12px;
+.cot-desc-vacio {
   font-size: 12.5px;
-  font-weight: 600;
-  min-width: 90px;
+  color: #8a7a5a;
+  margin: 0;
 }
-
-.pdf-contacto {
-  background: #d6a52c;
-  color: #141213;
-  padding: 10px 28px;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.pdf-contacto-fila { padding: 3px 0; }
 
 /* ============================================================
    RESPONSIVE — Teléfono y tablet (≤900px)
@@ -379,6 +286,11 @@
   /* ---------- Fila de fechas / forma de pago del editor ---------- */
   .cot-datos-documento {
     flex-direction: column;
+  }
+
+  /* ---------- Checklist de Descripción de Cotización, a una columna ---------- */
+  .cot-desc-grid {
+    grid-template-columns: 1fr;
   }
 
   /* ---------- Acciones de la tabla de ítems, a ancho completo ---------- */
