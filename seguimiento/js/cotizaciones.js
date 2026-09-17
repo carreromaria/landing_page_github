@@ -71,6 +71,10 @@ const contenedoresChecklistDescripcion = {
   cubiertas: document.getElementById('cotDescCubiertas'),
   accesorios: document.getElementById('cotDescAccesorios')
 };
+const cotDescResumenTexto = document.getElementById('cotDescResumenTexto');
+const modalDescripcionCotizacion = document.getElementById('modalDescripcionCotizacion');
+const btnEditarDescripcion = document.getElementById('btnEditarDescripcion');
+const btnCerrarDescripcion = document.getElementById('btnCerrarDescripcion');
 
 // ---------- Guardia de sesión ----------
 
@@ -317,6 +321,7 @@ async function cargarCotizacionVigente() {
     cotValidaDesde.value = vigenteActual.validaDesde || '';
     cotClienteRut.value = vigenteActual.clienteRut || leadActual.rut || '';
     renderChecklistDescripcionCompleto(vigenteActual.descripcionCotizacion || {});
+    actualizarResumenDescripcion();
   } else {
     editorFolioVersion.textContent = 'Aún no tiene cotización — se creará como versión 1';
     btnGuardarNuevaVersion.style.display = 'none';
@@ -330,6 +335,7 @@ async function cargarCotizacionVigente() {
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
     cotClienteRut.value = leadActual.rut || '';
     renderChecklistDescripcionCompleto({});
+    actualizarResumenDescripcion();
   }
   recalcularCotizacion();
 }
@@ -476,6 +482,35 @@ function leerDescripcionCotizacion() {
   return resultado;
 }
 
+/** Texto tipo "3 materiales · 5 herrajes seleccionados", solo con lo que tiene marcas. */
+function actualizarResumenDescripcion() {
+  const seleccion = leerDescripcionCotizacion();
+  const partes = CATEGORIAS_DESCRIPCION
+    .filter(categoria => seleccion[categoria].length > 0)
+    .map(categoria => `${seleccion[categoria].length} ${NOMBRES_CATEGORIA_DESCRIPCION[categoria].toLowerCase()}`);
+  cotDescResumenTexto.textContent = partes.length
+    ? `${partes.join(' · ')} seleccionados.`
+    : 'Sin opciones marcadas aún.';
+}
+
+// El checklist se vuelve a dibujar completo cada vez que cambia la
+// selección o se agrega una opción nueva (innerHTML), así que se
+// delega el evento "change" al contenedor del modal en vez de
+// engancharlo a cada checkbox por separado.
+document.querySelector('.cot-desc-modal-scroll').addEventListener('change', (e) => {
+  if (e.target.matches('input[type="checkbox"]')) actualizarResumenDescripcion();
+});
+
+btnEditarDescripcion.addEventListener('click', () => {
+  modalDescripcionCotizacion.classList.add('visible');
+});
+btnCerrarDescripcion.addEventListener('click', () => {
+  modalDescripcionCotizacion.classList.remove('visible');
+});
+modalDescripcionCotizacion.addEventListener('click', (e) => {
+  if (e.target === modalDescripcionCotizacion) modalDescripcionCotizacion.classList.remove('visible');
+});
+
 // ---------- Modal: nueva opción del catálogo de Descripción ----------
 
 let categoriaNuevaOpcion = null;
@@ -513,6 +548,7 @@ document.getElementById('btnGuardarNuevaOpcion').addEventListener('click', async
     catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
     seleccionActual[categoriaNuevaOpcion].push(nuevoId);
     renderChecklistDescripcionCategoria(categoriaNuevaOpcion, seleccionActual[categoriaNuevaOpcion]);
+    actualizarResumenDescripcion();
     modalNuevaOpcionDescripcion.style.display = 'none';
     mostrarToast(`"${nombre}" agregado al catálogo.`);
   } catch (err) {
