@@ -475,28 +475,37 @@ renderizarDocsGrid();
 
 // ============================================================
 // Encabezado y pie de página reutilizables (misma línea gráfica
-// en todos los documentos)
+// en todos los documentos — igual al Word real de LINENCE: header
+// diagonal negro/dorado, marca de agua del logo completo detrás
+// del cuerpo, y pie dorado/negro con los íconos reales de contacto).
 // ============================================================
 function encabezadoHoja(titulo, codigo) {
   return `
-    <div class="hoja-header">
-      <div><span class="hoja-titulo">${titulo}</span><span class="hoja-codigo">${codigo}</span></div>
-      <img src="assets/img/logo-wordmark-claro.png" alt="Linence">
+    <img class="pdf-doc-marca-agua" src="assets/img/logo-marca-agua.png" alt="">
+    <div class="pdf-header">
+      <div class="pdf-header-izq">
+        <div class="pdf-header-titulo">${titulo.toUpperCase()}</div>
+        <span class="pdf-header-folio">${codigo}</span>
+      </div>
+      <div class="pdf-header-logo">
+        <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
+        <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
+      </div>
     </div>
-    <div class="hoja-datos-empresa">
-      <span><strong>LINENCE SpA.</strong> · R.U.T: 78.446.739-2</span>
-      <span>DIRECCIÓN: Av. Salvador Allende 500</span>
-      <span>CORREO: contacto@linence.cl</span>
+    <div class="pdf-empresa">
+      <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
+      <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+      <div>CORREO ELECTRONICO: contacto@linence.cl</div>
     </div>
   `;
 }
 
 function pieHoja() {
   return `
-    <div class="hoja-footer">
-      <span>www.linence.cl</span>
-      <span>Instagram · Facebook · TikTok: Linence.cl</span>
-      <span>WhatsApp +56 9 5703 9988</span>
+    <div class="pdf-contacto">
+      <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" alt=""> Linence.cl</div>
+      <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" alt=""> Linence.cl</div>
+      <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" alt=""> +569 57039988</div>
     </div>
   `;
 }
