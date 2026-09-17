@@ -11,7 +11,8 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   listarServiciosActivos, obtenerLead, obtenerCotizacionVigentePorLead,
   listarCotizacionesPorLead, crearCotizacion, actualizarCotizacion,
-  escucharCotizacionesVigentes, crearServicioCatalogo
+  escucharCotizacionesVigentes, crearServicioCatalogo,
+  listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 
@@ -19,10 +20,16 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 
 let STAFF_ACTUAL = null;
 let serviciosCatalogo = [];
+let catalogoDescripcionCompleto = []; // catálogo de Materiales/Herrajes/Cubiertas/Accesorios (DC)
 let cotizacionRowCounter = 0;
 let leadActual = null;
 let vigenteActual = null;   // null si el lead todavía no tiene cotización
 let dejarDeEscuchar = null;
+
+const CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios'];
+const NOMBRES_CATEGORIA_DESCRIPCION = {
+  materiales: 'Materiales', herrajes: 'Herrajes', cubiertas: 'Cubiertas', accesorios: 'Accesorios'
+};
 
 const leadId = new URLSearchParams(window.location.search).get('leadId');
 
@@ -53,9 +60,17 @@ const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
 const cotFormaPago = document.getElementById('cotFormaPago');
 const cotValidaDesde = document.getElementById('cotValidaDesde');
+const cotClienteRut = document.getElementById('cotClienteRut');
 const cotVersionesAnteriores = document.getElementById('cotVersionesAnteriores');
 const btnVerVersiones = document.getElementById('btnVerVersiones');
 const listaVersionesAnteriores = document.getElementById('listaVersionesAnteriores');
+
+const contenedoresChecklistDescripcion = {
+  materiales: document.getElementById('cotDescMateriales'),
+  herrajes: document.getElementById('cotDescHerrajes'),
+  cubiertas: document.getElementById('cotDescCubiertas'),
+  accesorios: document.getElementById('cotDescAccesorios')
+};
 
 // ---------- Guardia de sesión ----------
 
@@ -265,6 +280,13 @@ async function inicializarEditor() {
     mostrarToast('No se pudo cargar el catálogo de servicios.', 'error');
   }
 
+  try {
+    catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo cargar el catálogo de la Descripción de Cotización.', 'error');
+  }
+
   leadActual = await obtenerLead(leadId);
   if (!leadActual) {
     mostrarToast('No se encontró ese lead.', 'error');
@@ -293,6 +315,8 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = vigenteActual.fechaEntregaFin || '';
     cotFormaPago.value = vigenteActual.formaPago || '';
     cotValidaDesde.value = vigenteActual.validaDesde || '';
+    cotClienteRut.value = vigenteActual.clienteRut || leadActual.rut || '';
+    renderChecklistDescripcionCompleto(vigenteActual.descripcionCotizacion || {});
   } else {
     editorFolioVersion.textContent = 'Aún no tiene cotización — se creará como versión 1';
     btnGuardarNuevaVersion.style.display = 'none';
@@ -304,6 +328,8 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = '';
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
+    cotClienteRut.value = leadActual.rut || '';
+    renderChecklistDescripcionCompleto({});
   }
   recalcularCotizacion();
 }
@@ -417,6 +443,85 @@ cotizacionItemsBody.addEventListener('click', (e) => {
   recalcularCotizacion();
 });
 
+// ---------- Checklist: Descripción de Cotización ----------
+
+/** Dibuja las opciones activas de una categoría, marcando las ya seleccionadas (por id). */
+function renderChecklistDescripcionCategoria(categoria, seleccionados = []) {
+  const contenedor = contenedoresChecklistDescripcion[categoria];
+  const opciones = catalogoDescripcionCompleto.filter(o => o.categoria === categoria);
+  contenedor.innerHTML = opciones.length ? opciones.map(o => `
+    <label class="cot-desc-item">
+      <input type="checkbox" value="${o.id}" ${seleccionados.includes(o.id) ? 'checked' : ''}>
+      ${escapeHtml(o.nombre)}
+    </label>
+  `).join('') : '<p class="cot-desc-vacio">Aún no hay opciones en esta categoría — agrega la primera con "+ Agregar opción".</p>';
+}
+
+function renderChecklistDescripcionCompleto(seleccion = {}) {
+  CATEGORIAS_DESCRIPCION.forEach(categoria => {
+    renderChecklistDescripcionCategoria(categoria, seleccion[categoria] || []);
+  });
+}
+
+function leerChecklistDescripcionCategoria(categoria) {
+  return [...contenedoresChecklistDescripcion[categoria].querySelectorAll('input[type="checkbox"]:checked')]
+    .map(c => c.value);
+}
+
+function leerDescripcionCotizacion() {
+  const resultado = {};
+  CATEGORIAS_DESCRIPCION.forEach(categoria => {
+    resultado[categoria] = leerChecklistDescripcionCategoria(categoria);
+  });
+  return resultado;
+}
+
+// ---------- Modal: nueva opción del catálogo de Descripción ----------
+
+let categoriaNuevaOpcion = null;
+const modalNuevaOpcionDescripcion = document.getElementById('modalNuevaOpcionDescripcion');
+const nuevaOpcionTitulo = document.getElementById('nuevaOpcionTitulo');
+const nuevaOpcionNombre = document.getElementById('nuevaOpcionNombre');
+const nuevaOpcionError = document.getElementById('nuevaOpcionError');
+
+document.querySelectorAll('.cot-btn-agregar-opcion').forEach(btn => {
+  btn.addEventListener('click', () => {
+    categoriaNuevaOpcion = btn.dataset.categoria;
+    nuevaOpcionTitulo.textContent = `Nueva opción — ${NOMBRES_CATEGORIA_DESCRIPCION[categoriaNuevaOpcion]}`;
+    nuevaOpcionNombre.value = '';
+    nuevaOpcionError.classList.remove('visible');
+    modalNuevaOpcionDescripcion.style.display = 'flex';
+    nuevaOpcionNombre.focus();
+  });
+});
+
+document.getElementById('btnCancelarNuevaOpcion').addEventListener('click', () => {
+  modalNuevaOpcionDescripcion.style.display = 'none';
+});
+
+document.getElementById('btnGuardarNuevaOpcion').addEventListener('click', async () => {
+  const nombre = nuevaOpcionNombre.value.trim();
+  if (!nombre) {
+    nuevaOpcionError.textContent = 'Escribe un nombre para la opción.';
+    nuevaOpcionError.classList.add('visible');
+    return;
+  }
+
+  try {
+    const seleccionActual = leerDescripcionCotizacion();
+    const nuevoId = await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
+    catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+    seleccionActual[categoriaNuevaOpcion].push(nuevoId);
+    renderChecklistDescripcionCategoria(categoriaNuevaOpcion, seleccionActual[categoriaNuevaOpcion]);
+    modalNuevaOpcionDescripcion.style.display = 'none';
+    mostrarToast(`"${nombre}" agregado al catálogo.`);
+  } catch (err) {
+    console.error(err);
+    nuevaOpcionError.textContent = 'Ocurrió un error al guardar. Intenta de nuevo.';
+    nuevaOpcionError.classList.add('visible');
+  }
+});
+
 cotAplicaIva.addEventListener('change', recalcularCotizacion);
 
 cotPorcentajeAbono.addEventListener('input', () => {
@@ -502,7 +607,9 @@ async function guardar({ comoNuevaVersion }) {
     fechaEntregaInicio: cotFechaEntregaInicio.value,
     fechaEntregaFin: cotFechaEntregaFin.value,
     formaPago: cotFormaPago.value,
-    validaDesde: cotValidaDesde.value
+    validaDesde: cotValidaDesde.value,
+    clienteRut: cotClienteRut.value.trim(),
+    descripcionCotizacion: leerDescripcionCotizacion()
   };
 
   try {
@@ -714,3 +821,87 @@ function llenarPlantillaPDF(cotizacion, lead) {
   document.getElementById('pdfAbonoLabel').textContent = `Abono ${cotizacion.porcentajeAbono || 0}%`;
   document.getElementById('pdfAbono').textContent = formatearMoneda(cotizacion.abono);
 }
+
+// ---------- Descargar Descripción de Cotización (documento DC) ----------
+// Mismo folio que la cotización (CT-XXX-00000 -> DC-XXX-00000) y misma
+// fuente de datos: lo que quedó marcado en el checklist de esta
+// cotización guardada. Es el mismo documento que aparece en el
+// módulo Documentación (comparten el catálogo y el formato).
+
+const modalPdfDescripcion = document.getElementById('modalPdfDescripcion');
+
+/** "CT-WSP-00002" -> "DC-WSP-00002" */
+function folioDescripcion(numeroCotizacion) {
+  return String(numeroCotizacion || '').replace(/^[A-Z]+-/, 'DC-');
+}
+
+function filaChecklistPDF(categoria, seleccionIds = []) {
+  const opciones = catalogoDescripcionCompleto.filter(o => o.categoria === categoria);
+  if (!opciones.length) return '<div class="pdf-dc-item">Sin opciones registradas en el catálogo.</div>';
+  return opciones.map(o => `
+    <div class="pdf-dc-item ${seleccionIds.includes(o.id) ? 'incluido' : ''}">${escapeHtml(o.nombre)}</div>
+  `).join('');
+}
+
+function llenarPlantillaDC(cotizacion, lead) {
+  document.getElementById('pdfDCFolio').textContent = folioDescripcion(cotizacion.numero);
+  document.getElementById('pdfDCFecha').textContent =
+    formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
+  document.getElementById('pdfDCCliente').textContent = lead.nombre || '—';
+  document.getElementById('pdfDCRut').textContent = cotizacion.clienteRut || lead.rut || '—';
+  document.getElementById('pdfDCDireccion').textContent = formatearDireccion(lead.direccion);
+
+  const seleccion = cotizacion.descripcionCotizacion || {};
+  document.getElementById('pdfDCMateriales').innerHTML = filaChecklistPDF('materiales', seleccion.materiales);
+  document.getElementById('pdfDCHerrajes').innerHTML = filaChecklistPDF('herrajes', seleccion.herrajes);
+  document.getElementById('pdfDCCubiertas').innerHTML = filaChecklistPDF('cubiertas', seleccion.cubiertas);
+  document.getElementById('pdfDCAccesorios').innerHTML = filaChecklistPDF('accesorios', seleccion.accesorios);
+}
+
+document.getElementById('btnVerDescripcion').addEventListener('click', () => {
+  if (!vigenteActual) {
+    cotizacionError.textContent = 'Guarda la cotización primero: el documento necesita el folio real.';
+    cotizacionError.classList.add('visible');
+    return;
+  }
+  llenarPlantillaDC(vigenteActual, leadActual);
+  modalPdfDescripcion.classList.add('visible');
+});
+
+document.getElementById('btnCerrarModalDC').addEventListener('click', () => {
+  modalPdfDescripcion.classList.remove('visible');
+});
+modalPdfDescripcion.addEventListener('click', (e) => {
+  if (e.target === modalPdfDescripcion) modalPdfDescripcion.classList.remove('visible');
+});
+
+document.getElementById('btnImprimirDC').addEventListener('click', () => {
+  window.print();
+});
+
+document.getElementById('btnDescargarDCModal').addEventListener('click', async () => {
+  const btn = document.getElementById('btnDescargarDCModal');
+  const original = btn.textContent;
+  btn.textContent = 'Generando…';
+  btn.disabled = true;
+
+  try {
+    const plantilla = document.getElementById('plantillaDC');
+    const nombreArchivo = `Descripcion_${(leadActual.nombre || 'cliente').replace(/\s+/g, '_')}_${folioDescripcion(vigenteActual.numero)}.pdf`;
+
+    await html2pdf().set({
+      margin: 0,
+      filename: nombreArchivo,
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    }).from(plantilla).save();
+
+    mostrarToast('PDF descargado correctamente.');
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo generar el PDF. Intenta nuevamente.', 'error');
+  } finally {
+    btn.textContent = original;
+    btn.disabled = false;
+  }
+});
