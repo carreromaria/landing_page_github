@@ -14,8 +14,17 @@
 */
 
 .pdf-doc {
-  width: 794px; /* ancho A4 aprox a 96dpi */
-  background: #fff;
+  width: 816px; /* ancho carta (Letter, 8.5in) aprox a 96dpi — el Word real de LINENCE usa Carta, no A4 */
+  background-color: #fff;
+  /* Marca de agua: PNG con la opacidad ya horneada en el propio archivo
+     (no vía CSS opacity) y puesta como fondo de un contenedor normal
+     (no un <img> con position:absolute+transform) — html2canvas no
+     renderiza bien esa combinación: la imagen sale gigante y fuera de
+     lugar. Con background-image no tiene ese problema. */
+  background-image: url('../assets/img/marca-agua.png');
+  background-repeat: no-repeat;
+  background-position: center 640px;
+  background-size: 300px auto;
   font-family: 'Poppins', sans-serif;
   color: #141213;
   font-size: 13px;
@@ -161,7 +170,27 @@
   font-weight: 600;
 }
 
-.pdf-contacto-fila { padding: 3px 0; }
+.pdf-contacto-fila {
+  padding: 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Íconos como fondo CSS de tamaño fijo (no <img> con ancho/alto por
+   CSS): mismo motivo que la marca de agua — html2canvas no siempre
+   respeta el tamaño de un <img> suelto y lo renderiza a tamaño
+   original, gigante. Con background-size:contain sobre una caja de
+   tamaño fijo, el ícono siempre sale al tamaño correcto. */
+.pdf-icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  flex-shrink: 0;
+}
+.pdf-icon-web { width: 21px; height: 16px; background-image: url('../assets/img/icono-web.png'); }
+.pdf-icon-redes { width: 24px; height: 16px; background-image: url('../assets/img/iconos-redes.png'); }
+.pdf-icon-whatsapp { width: 16px; height: 16px; background-image: url('../assets/img/icono-whatsapp.png'); }
 
 /* ============================================================
    DC — Descripción de Cotización (checklist por categoría)
