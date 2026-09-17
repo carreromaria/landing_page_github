@@ -488,6 +488,66 @@ export async function cambiarEstadoServicioCatalogo(id, activo) {
 }
 
 // ============================================================
+// ---------- Catálogo de Descripción de Cotización ----------
+// ============================================================
+// Alimenta el checklist de materiales, herrajes, cubiertas y
+// accesorios que se marca en el editor de Cotizaciones y se imprime
+// en el documento "Descripción de Cotización" (DC). Mismo patrón que
+// catalogoServicios: las opciones nunca se eliminan, solo se activan
+// o desactivan, para no perder trazabilidad de cotizaciones antiguas
+// que ya hayan usado una opción.
+//
+// Cada documento tiene: { categoria: 'materiales'|'herrajes'|'cubiertas'|'accesorios', nombre, activo }
+
+const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios'];
+
+/**
+ * Lista todas las opciones del catálogo (activas e inactivas),
+ * agrupadas por categoría en el orden fijo del documento DC y
+ * ordenadas alfabéticamente dentro de cada categoría.
+ */
+export async function listarCatalogoDescripcion() {
+  const ref = collection(db, "catalogoDescripcion");
+  const snap = await getDocs(ref);
+  const opciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  opciones.sort((a, b) => {
+    const ordenCat = ORDEN_CATEGORIAS_DESCRIPCION.indexOf(a.categoria) - ORDEN_CATEGORIAS_DESCRIPCION.indexOf(b.categoria);
+    if (ordenCat !== 0) return ordenCat;
+    return (a.nombre || '').localeCompare(b.nombre || '', 'es');
+  });
+  return opciones;
+}
+
+/** Igual que listarCatalogoDescripcion, pero solo las opciones activas. */
+export async function listarCatalogoDescripcionActivo() {
+  const opciones = await listarCatalogoDescripcion();
+  return opciones.filter(o => o.activo !== false);
+}
+
+/**
+ * Agrega una opción nueva al catálogo (ej. un herraje recién salido
+ * al mercado). Se puede crear desde el mismo checklist en Cotizaciones,
+ * sin salir de la pantalla.
+ * @param {{categoria:string, nombre:string}} datos
+ * @returns {Promise<string>} id del documento creado
+ */
+export async function crearOpcionCatalogoDescripcion(datos) {
+  const ref = doc(collection(db, "catalogoDescripcion"));
+  await setDoc(ref, {
+    ...datos,
+    activo: true,
+    creadoEn: serverTimestamp()
+  });
+  return ref.id;
+}
+
+/** Activa o desactiva una opción del catálogo (nunca se elimina de raíz). */
+export async function cambiarEstadoOpcionCatalogoDescripcion(id, activo) {
+  const ref = doc(db, "catalogoDescripcion", id);
+  await updateDoc(ref, { activo });
+}
+
+// ============================================================
 // ---------- Cotizaciones (colección propia, vinculada al Lead) ----------
 // ============================================================
 // Un Lead puede tener varias cotizaciones a lo largo del tiempo
