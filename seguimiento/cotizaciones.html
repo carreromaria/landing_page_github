@@ -182,39 +182,12 @@
       </div>
     </div>
 
-    <h2 class="cat-title" style="font-size:19px; margin:26px 0 4px;">Descripción de Cotización</h2>
-    <p class="subtitulo" style="margin-bottom:14px;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
-
-    <div class="cot-desc-seccion">
-      <div class="cot-desc-seccion-titulo">
-        <span>Materiales</span>
-        <button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button>
+    <div class="cot-desc-resumen">
+      <div>
+        <h2 class="cat-title" style="font-size:19px; margin:0 0 4px;">Descripción de Cotización</h2>
+        <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
       </div>
-      <div class="cot-desc-grid" id="cotDescMateriales"></div>
-    </div>
-
-    <div class="cot-desc-seccion">
-      <div class="cot-desc-seccion-titulo">
-        <span>Herrajes</span>
-        <button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button>
-      </div>
-      <div class="cot-desc-grid" id="cotDescHerrajes"></div>
-    </div>
-
-    <div class="cot-desc-seccion">
-      <div class="cot-desc-seccion-titulo">
-        <span>Cubiertas</span>
-        <button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button>
-      </div>
-      <div class="cot-desc-grid" id="cotDescCubiertas"></div>
-    </div>
-
-    <div class="cot-desc-seccion">
-      <div class="cot-desc-seccion-titulo">
-        <span>Accesorios</span>
-        <button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button>
-      </div>
-      <div class="cot-desc-grid" id="cotDescAccesorios"></div>
+      <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
     </div>
 
     <div class="modal-error" id="cotizacionError"></div>
@@ -226,6 +199,56 @@
       <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
     </div>
   </main>
+</div>
+
+<!-- ================= Modal: Descripción de Cotización (checklist) ================= -->
+<!-- Vive siempre en el DOM (nunca se destruye), solo se muestra/oculta con la
+     clase .visible — así lo marcado se conserva aunque el modal esté cerrado,
+     y "Guardar cotización" lee el estado real sin depender de que esté abierto. -->
+<div id="modalDescripcionCotizacion" class="cot-desc-modal-overlay">
+  <div class="cot-desc-modal">
+    <div class="cot-desc-modal-header">
+      <div>
+        <h2 class="cat-title" style="font-size:19px; margin:0;">Descripción de Cotización</h2>
+        <p class="subtitulo" style="margin:4px 0 0;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
+      </div>
+      <button type="button" class="btn-primario" id="btnCerrarDescripcion">Listo</button>
+    </div>
+
+    <div class="cot-desc-modal-scroll">
+      <div class="cot-desc-seccion">
+        <div class="cot-desc-seccion-titulo">
+          <span>Materiales</span>
+          <button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button>
+        </div>
+        <div class="cot-desc-grid" id="cotDescMateriales"></div>
+      </div>
+
+      <div class="cot-desc-seccion">
+        <div class="cot-desc-seccion-titulo">
+          <span>Herrajes</span>
+          <button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button>
+        </div>
+        <div class="cot-desc-grid" id="cotDescHerrajes"></div>
+      </div>
+
+      <div class="cot-desc-seccion">
+        <div class="cot-desc-seccion-titulo">
+          <span>Cubiertas</span>
+          <button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button>
+        </div>
+        <div class="cot-desc-grid" id="cotDescCubiertas"></div>
+      </div>
+
+      <div class="cot-desc-seccion">
+        <div class="cot-desc-seccion-titulo">
+          <span>Accesorios</span>
+          <button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button>
+        </div>
+        <div class="cot-desc-grid" id="cotDescAccesorios"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ================= Modal: nuevo código de servicio ================= -->
