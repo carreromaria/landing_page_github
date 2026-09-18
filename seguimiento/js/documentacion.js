@@ -481,7 +481,6 @@ renderizarDocsGrid();
 // ============================================================
 function encabezadoHoja(titulo, codigo) {
   return `
-    <img class="pdf-doc-marca-agua" src="assets/img/logo-marca-agua.png" alt="">
     <div class="pdf-header">
       <div class="pdf-header-izq">
         <div class="pdf-header-titulo">${titulo.toUpperCase()}</div>
@@ -503,9 +502,9 @@ function encabezadoHoja(titulo, codigo) {
 function pieHoja() {
   return `
     <div class="pdf-contacto">
-      <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" alt=""> Linence.cl</div>
-      <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" alt=""> Linence.cl</div>
-      <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" alt=""> +569 57039988</div>
+      <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" width="21" height="16" alt=""> Linence.cl</div>
+      <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" width="24" height="16" alt=""> Linence.cl</div>
+      <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" width="16" height="16" alt=""> +569 57039988</div>
     </div>
   `;
 }
@@ -1182,6 +1181,6 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
   }).from(hoja).save();
 });
