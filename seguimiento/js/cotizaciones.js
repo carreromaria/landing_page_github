@@ -801,7 +801,7 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', async 
       margin: 0,
       filename: nombreArchivo,
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm'/'pt' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js
     }).from(plantilla).save();
 
     mostrarToast('PDF descargado correctamente.');
@@ -925,7 +925,7 @@ document.getElementById('btnDescargarDCModal').addEventListener('click', async (
       margin: 0,
       filename: nombreArchivo,
       html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+      jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm'/'pt' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js
     }).from(plantilla).save();
 
     mostrarToast('PDF descargado correctamente.');
