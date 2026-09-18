@@ -1181,6 +1181,6 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
     filename: nombreArchivo,
     image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js (esto causaba el salto en blanco y el contenido cortado)
   }).from(hoja).save();
 });
