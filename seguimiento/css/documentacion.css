@@ -243,6 +243,16 @@
 @media print{
   body > *:not(#modalDocumento){ display:none !important; }
 
+  /* Reseteo general: cualquier alto máximo/scroll que traiga algún
+     contenedor genérico del sistema de modales (uno que no controlo
+     directamente, ej. de dashboard.css) queda anulado para todo lo
+     que esté dentro del modal, sin excepción. Las posiciones fijas
+     del encabezado/pie se reafirman después, más abajo. */
+  #modalDocumento, #modalDocumento *{
+    max-height:none !important;
+    overflow:visible !important;
+  }
+
   #modalDocumento{
     position:static !important;
     background:none !important;
@@ -250,8 +260,6 @@
   }
   #modalDocumento .doc-modal-acciones{ display:none !important; }
   #modalDocumento .doc-hoja-scroll{
-    max-height:none !important;
-    overflow:visible !important;
     background:none !important;
     padding:0 !important;
   }
