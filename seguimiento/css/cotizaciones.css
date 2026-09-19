@@ -429,6 +429,9 @@
   .pdf-doc{
     box-shadow:none !important;
     margin:0 !important;
+    width:100% !important; /* se adapta al papel real del navegador
+      (A4 o Carta) en vez de un ancho fijo, para que nunca quede
+      contenido cortado si el sistema no deja elegir el tamaño */
     padding-top:170px;
     padding-bottom:100px;
   }
