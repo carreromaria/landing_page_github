@@ -233,12 +233,45 @@
 }
 
 /* ---------- Solo esto se ve al imprimir ---------- */
+/* Antes usaba position:absolute sobre todo el documento para aislarlo:
+   en documentos de más de una página el navegador lo duplicaba al
+   pasar de hoja (texto superpuesto). Ahora se oculta todo lo demás
+   con display:none (no rompe la paginación normal) y el encabezado /
+   pie de página quedan "fijos" para que se repitan en cada hoja
+   impresa, como en el Word real — el cuerpo lleva relleno arriba y
+   abajo para no toparlos. */
 @media print{
-  body *{visibility:hidden;}
-  #hojaDocumentoImprimir, #hojaDocumentoImprimir *{visibility:visible;}
-  #hojaDocumentoImprimir{
-    position:absolute; top:0; left:0;
-    box-shadow:none;
+  body > *:not(#modalDocumento){ display:none !important; }
+
+  #modalDocumento{
+    position:static !important;
+    background:none !important;
+    display:block !important;
   }
+  #modalDocumento .doc-modal-acciones{ display:none !important; }
+  #modalDocumento .doc-hoja-scroll{
+    max-height:none !important;
+    overflow:visible !important;
+    background:none !important;
+    padding:0 !important;
+  }
+
+  .hoja-documento{
+    box-shadow:none !important;
+    margin:0 !important;
+    min-height:0 !important;
+    padding-top:170px;   /* alto real de encabezado + datos de empresa */
+    padding-bottom:100px; /* alto real del pie de contacto */
+  }
+  .hoja-documento > .pdf-header,
+  .hoja-documento > .pdf-empresa{
+    position:fixed; left:0; right:0;
+  }
+  .hoja-documento > .pdf-header{ top:0; }
+  .hoja-documento > .pdf-empresa{ top:90px; }
+  .hoja-documento > .pdf-contacto{
+    position:fixed; left:0; right:0; bottom:0;
+  }
+
   @page{ size:letter; margin:0; }
 }
