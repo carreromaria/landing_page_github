@@ -780,7 +780,24 @@ modalPdfCotizacion.addEventListener('click', (e) => {
   if (e.target === modalPdfCotizacion) modalPdfCotizacion.classList.remove('visible');
 });
 
+/**
+ * Mide la altura real del encabezado y el pie ya renderizados en la
+ * plantilla dada, y la deja en variables CSS — así el relleno
+ * reservado arriba/abajo para el encabezado/pie "fijos" del impreso
+ * siempre calza exacto, sin adivinar píxeles a mano.
+ * @param {HTMLElement} plantilla el .pdf-doc (plantillaPDF o plantillaDC)
+ */
+function prepararAlturasParaImprimir(plantilla) {
+  if (!plantilla) return;
+  const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
+  const encabezado = plantilla.querySelector('.pdf-encabezado-fijo');
+  const pie = plantilla.querySelector('.pdf-contacto');
+  if (encabezado) plantilla.style.setProperty('--print-pad-top', (encabezado.offsetHeight + RESPIRO) + 'px');
+  if (pie) plantilla.style.setProperty('--print-pad-bottom', (pie.offsetHeight + RESPIRO) + 'px');
+}
+
 document.getElementById('btnImprimirPdf').addEventListener('click', () => {
+  prepararAlturasParaImprimir(document.getElementById('plantillaPDF'));
   window.print();
 });
 
@@ -791,6 +808,7 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador.
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  prepararAlturasParaImprimir(document.getElementById('plantillaPDF'));
   window.print();
 });
 
@@ -888,10 +906,12 @@ modalPdfDescripcion.addEventListener('click', (e) => {
 });
 
 document.getElementById('btnImprimirDC').addEventListener('click', () => {
+  prepararAlturasParaImprimir(document.getElementById('plantillaDC'));
   window.print();
 });
 
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  prepararAlturasParaImprimir(document.getElementById('plantillaDC'));
   window.print();
 });
