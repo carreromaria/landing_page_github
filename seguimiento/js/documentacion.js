@@ -1173,10 +1173,11 @@ modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocument
 function prepararAlturasParaImprimir() {
   const hoja = document.querySelector('#hojaDocumentoImprimir .hoja-documento');
   if (!hoja) return;
+  const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
   const encabezado = hoja.querySelector('.pdf-encabezado-fijo');
   const pie = hoja.querySelector('.pdf-contacto');
-  if (encabezado) hoja.style.setProperty('--print-pad-top', encabezado.offsetHeight + 'px');
-  if (pie) hoja.style.setProperty('--print-pad-bottom', pie.offsetHeight + 'px');
+  if (encabezado) hoja.style.setProperty('--print-pad-top', (encabezado.offsetHeight + RESPIRO) + 'px');
+  if (pie) hoja.style.setProperty('--print-pad-bottom', (pie.offsetHeight + RESPIRO) + 'px');
 }
 
 document.getElementById('btnImprimirDoc').addEventListener('click', () => {
