@@ -481,20 +481,22 @@ renderizarDocsGrid();
 // ============================================================
 function encabezadoHoja(titulo, codigo) {
   return `
-    <div class="pdf-header">
-      <div class="pdf-header-izq">
-        <div class="pdf-header-titulo">${titulo.toUpperCase()}</div>
-        <span class="pdf-header-folio">${codigo}</span>
+    <div class="pdf-encabezado-fijo">
+      <div class="pdf-header">
+        <div class="pdf-header-izq">
+          <div class="pdf-header-titulo">${titulo.toUpperCase()}</div>
+          <span class="pdf-header-folio">${codigo}</span>
+        </div>
+        <div class="pdf-header-logo">
+          <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
+          <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
+        </div>
       </div>
-      <div class="pdf-header-logo">
-        <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-        <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
+      <div class="pdf-empresa">
+        <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
+        <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+        <div>CORREO ELECTRONICO: contacto@linence.cl</div>
       </div>
-    </div>
-    <div class="pdf-empresa">
-      <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-      <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-      <div>CORREO ELECTRONICO: contacto@linence.cl</div>
     </div>
   `;
 }
@@ -1161,7 +1163,24 @@ function cerrarModalDocumento() {
 document.getElementById('btnCerrarModalDoc').addEventListener('click', cerrarModalDocumento);
 modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocumento) cerrarModalDocumento(); });
 
+/**
+ * Mide la altura REAL (ya renderizada) del encabezado y el pie del
+ * documento actual, y la deja guardada en variables CSS — así el
+ * relleno reservado arriba/abajo para el encabezado/pie "fijos" del
+ * impreso siempre calza exacto, sin depender de calcular a mano
+ * cuántos píxeles mide cada uno (eso venía fallando).
+ */
+function prepararAlturasParaImprimir() {
+  const hoja = document.querySelector('#hojaDocumentoImprimir .hoja-documento');
+  if (!hoja) return;
+  const encabezado = hoja.querySelector('.pdf-encabezado-fijo');
+  const pie = hoja.querySelector('.pdf-contacto');
+  if (encabezado) hoja.style.setProperty('--print-pad-top', encabezado.offsetHeight + 'px');
+  if (pie) hoja.style.setProperty('--print-pad-bottom', pie.offsetHeight + 'px');
+}
+
 document.getElementById('btnImprimirDoc').addEventListener('click', () => {
+  prepararAlturasParaImprimir();
   window.print();
 });
 
@@ -1173,5 +1192,6 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador — no depende de esa librería.
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  prepararAlturasParaImprimir();
   window.print();
 });
