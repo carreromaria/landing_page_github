@@ -264,15 +264,16 @@
       (A4 o Carta) en vez de forzar un ancho fijo — así nunca queda
       contenido cortado a la derecha si el sistema no ofrece elegir
       el tamaño de hoja */
-    padding-top:210px;   /* alto real de encabezado + datos de empresa, con margen extra */
-    padding-bottom:100px; /* alto real del pie de contacto */
+    /* El alto real de encabezado y pie se mide con JS justo antes de
+       imprimir (prepararAlturasParaImprimir) y queda en estas
+       variables — el valor fijo de respaldo es solo por si esa
+       medición no llegó a correr. */
+    padding-top: var(--print-pad-top, 220px);
+    padding-bottom: var(--print-pad-bottom, 110px);
   }
-  .hoja-documento > .pdf-header,
-  .hoja-documento > .pdf-empresa{
-    position:fixed; left:0; right:0;
+  .hoja-documento > .pdf-encabezado-fijo{
+    position:fixed; top:0; left:0; right:0;
   }
-  .hoja-documento > .pdf-header{ top:0; }
-  .hoja-documento > .pdf-empresa{ top:115px; }
   .hoja-documento > .pdf-contacto{
     position:fixed; left:0; right:0; bottom:0;
   }
