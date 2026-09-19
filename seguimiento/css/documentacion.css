@@ -264,7 +264,7 @@
       (A4 o Carta) en vez de forzar un ancho fijo — así nunca queda
       contenido cortado a la derecha si el sistema no ofrece elegir
       el tamaño de hoja */
-    padding-top:170px;   /* alto real de encabezado + datos de empresa */
+    padding-top:210px;   /* alto real de encabezado + datos de empresa, con margen extra */
     padding-bottom:100px; /* alto real del pie de contacto */
   }
   .hoja-documento > .pdf-header,
@@ -272,7 +272,7 @@
     position:fixed; left:0; right:0;
   }
   .hoja-documento > .pdf-header{ top:0; }
-  .hoja-documento > .pdf-empresa{ top:90px; }
+  .hoja-documento > .pdf-empresa{ top:115px; }
   .hoja-documento > .pdf-contacto{
     position:fixed; left:0; right:0; bottom:0;
   }
