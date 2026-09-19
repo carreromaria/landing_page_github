@@ -1166,21 +1166,12 @@ document.getElementById('btnImprimirDoc').addEventListener('click', () => {
 });
 
 document.getElementById('btnDescargarDoc').addEventListener('click', () => {
-  const contenedor = document.getElementById('hojaDocumentoImprimir');
-  // La mayoría de los documentos usan .hoja-documento; la Descripción
-  // de Cotización (DC) usa .pdf-doc — mismo formato dorado/negro que
-  // el módulo Cotizaciones. Se busca cualquiera de los dos.
-  const hoja = contenedor.querySelector('.hoja-documento') || contenedor.querySelector('.pdf-doc');
-  const nombreArchivo = (contenedor.dataset.archivo || 'documento') + '.pdf';
-  if (!hoja || !window.html2pdf) {
-    mostrarToast('No se pudo generar el PDF. Intenta de nuevo.', 'error');
-    return;
-  }
-  window.html2pdf().set({
-    margin: 0,
-    filename: nombreArchivo,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js (esto causaba el salto en blanco y el contenido cortado)
-  }).from(hoja).save();
+  // "Descargar PDF" pasado a usar la impresión nativa del navegador en
+  // vez de html2pdf.js: después de 4 intentos distintos el generador
+  // seguía cortando contenido y dejando saltos en blanco en documentos
+  // de varias páginas, sin poder reproducir/depurar el motivo acá.
+  // El diálogo de impresión con destino "Guardar como PDF" usa la
+  // paginación real del navegador — no depende de esa librería.
+  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  window.print();
 });
