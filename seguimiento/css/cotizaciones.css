@@ -400,3 +400,21 @@
     width: 100%;
   }
 }
+
+/* ================= Solo esto se ve al imprimir / "Guardar como PDF" ================= */
+/* Mismo patrón que documentacion.css: solo el modal que esté abierto en
+   ese momento se revela para impresión; todo lo demás queda oculto.
+   Con esto "Descargar PDF" usa la paginación real del navegador en vez
+   de html2pdf.js (que cortaba contenido en documentos largos). */
+@media print {
+  body * { visibility: hidden; }
+  #modalPdfCotizacion.visible #plantillaPDF,
+  #modalPdfCotizacion.visible #plantillaPDF *,
+  #modalPdfDescripcion.visible #plantillaDC,
+  #modalPdfDescripcion.visible #plantillaDC * { visibility: visible; }
+  #plantillaPDF, #plantillaDC {
+    position: absolute; top: 0; left: 0;
+    box-shadow: none;
+  }
+  @page { size: letter; margin: 0; }
+}
