@@ -409,6 +409,16 @@
 @media print {
   body > *:not(.cot-pdf-modal-overlay.visible){ display:none !important; }
 
+  /* Reseteo general: anula cualquier alto máximo/scroll de contenedores
+     genéricos del sistema de modales que no controlo directamente
+     (ej. de dashboard.css/crm.css), para todo lo que esté dentro del
+     modal visible. Las posiciones fijas del encabezado/pie se
+     reafirman después, más abajo. */
+  .cot-pdf-modal-overlay.visible, .cot-pdf-modal-overlay.visible *{
+    max-height:none !important;
+    overflow:visible !important;
+  }
+
   .cot-pdf-modal-overlay.visible{
     position:static !important;
     background:none !important;
@@ -420,8 +430,6 @@
     background:none !important; padding:0 !important; max-width:none !important;
   }
   .cot-pdf-modal-overlay.visible .cot-pdf-modal-scroll{
-    max-height:none !important;
-    overflow:visible !important;
     background:none !important;
     padding:0 !important;
   }
