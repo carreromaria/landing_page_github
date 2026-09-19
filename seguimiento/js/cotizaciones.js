@@ -784,34 +784,14 @@ document.getElementById('btnImprimirPdf').addEventListener('click', () => {
   window.print();
 });
 
-document.getElementById('btnDescargarPdfModal').addEventListener('click', async () => {
-  const btn = document.getElementById('btnDescargarPdfModal');
-  const original = btn.textContent;
-  btn.textContent = 'Generando…';
-  btn.disabled = true;
-
-  try {
-    const plantilla = document.getElementById('plantillaPDF');
-    const nombreArchivo = `Cotizacion_${(leadActual.nombre || 'cliente').replace(/\s+/g, '_')}_${vigenteActual.numero}.pdf`;
-
-    // La plantilla ya está genuinamente visible dentro del modal (nunca
-    // escondida ni fuera de pantalla) — html2canvas la captura tal cual
-    // se ve, igual que ya funciona en Documentación.
-    await html2pdf().set({
-      margin: 0,
-      filename: nombreArchivo,
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm'/'pt' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js
-    }).from(plantilla).save();
-
-    mostrarToast('PDF descargado correctamente.');
-  } catch (err) {
-    console.error(err);
-    mostrarToast('No se pudo generar el PDF. Intenta nuevamente.', 'error');
-  } finally {
-    btn.textContent = original;
-    btn.disabled = false;
-  }
+document.getElementById('btnDescargarPdfModal').addEventListener('click', () => {
+  // Pasado a impresión nativa del navegador, igual que en Documentación:
+  // html2pdf.js cortaba contenido y dejaba saltos en blanco en
+  // documentos de varias páginas sin poder reproducirlo/depurarlo acá.
+  // El diálogo de impresión con destino "Guardar como PDF" usa la
+  // paginación real del navegador.
+  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  window.print();
 });
 
 function llenarPlantillaPDF(cotizacion, lead) {
@@ -911,29 +891,7 @@ document.getElementById('btnImprimirDC').addEventListener('click', () => {
   window.print();
 });
 
-document.getElementById('btnDescargarDCModal').addEventListener('click', async () => {
-  const btn = document.getElementById('btnDescargarDCModal');
-  const original = btn.textContent;
-  btn.textContent = 'Generando…';
-  btn.disabled = true;
-
-  try {
-    const plantilla = document.getElementById('plantillaDC');
-    const nombreArchivo = `Descripcion_${(leadActual.nombre || 'cliente').replace(/\s+/g, '_')}_${folioDescripcion(vigenteActual.numero)}.pdf`;
-
-    await html2pdf().set({
-      margin: 0,
-      filename: nombreArchivo,
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'px', format: [816, 1056], orientation: 'portrait' } // px exactos (Carta a 96dpi) — unit:'mm'/'pt' combinado con scale:2 le hace perder el cálculo de páginas a html2pdf.js
-    }).from(plantilla).save();
-
-    mostrarToast('PDF descargado correctamente.');
-  } catch (err) {
-    console.error(err);
-    mostrarToast('No se pudo generar el PDF. Intenta nuevamente.', 'error');
-  } finally {
-    btn.textContent = original;
-    btn.disabled = false;
-  }
+document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
+  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  window.print();
 });
