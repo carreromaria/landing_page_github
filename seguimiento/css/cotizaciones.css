@@ -432,15 +432,15 @@
     width:100% !important; /* se adapta al papel real del navegador
       (A4 o Carta) en vez de un ancho fijo, para que nunca quede
       contenido cortado si el sistema no deja elegir el tamaño */
-    padding-top:210px;
-    padding-bottom:100px;
+    /* Alto real de encabezado y pie, medido con JS justo antes de
+       imprimir (prepararAlturasParaImprimir) — el valor de respaldo
+       es solo por si esa medición no llegó a correr. */
+    padding-top: var(--print-pad-top, 220px);
+    padding-bottom: var(--print-pad-bottom, 110px);
   }
-  .pdf-doc > .pdf-header,
-  .pdf-doc > .pdf-empresa{
-    position:fixed; left:0; right:0;
+  .pdf-doc > .pdf-encabezado-fijo{
+    position:fixed; top:0; left:0; right:0;
   }
-  .pdf-doc > .pdf-header{ top:0; }
-  .pdf-doc > .pdf-empresa{ top:115px; }
   .pdf-doc > .pdf-contacto{
     position:fixed; left:0; right:0; bottom:0;
   }
