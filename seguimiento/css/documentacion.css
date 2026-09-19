@@ -260,6 +260,10 @@
     box-shadow:none !important;
     margin:0 !important;
     min-height:0 !important;
+    width:100% !important; /* se adapta al papel real que use el navegador
+      (A4 o Carta) en vez de forzar un ancho fijo — así nunca queda
+      contenido cortado a la derecha si el sistema no ofrece elegir
+      el tamaño de hoja */
     padding-top:170px;   /* alto real de encabezado + datos de empresa */
     padding-bottom:100px; /* alto real del pie de contacto */
   }
