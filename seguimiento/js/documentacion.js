@@ -16,6 +16,12 @@ import {
   listarCatalogoDescripcionActivo
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+// Diseño de los documentos oficiales (COT, DC, encabezado y pie) e impresión:
+// un solo archivo compartido con el módulo Cotizaciones.
+import {
+  htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
+  prepararAlturasParaImprimir, imprimirDocumentoPdf
+} from './documentos-cotizacion.js';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -234,20 +240,6 @@ function isoLocal(fecha) {
   return `${a}-${m}-${d}`;
 }
 
-/** "2026-10-30" → "30-10-26" (mismo formato corto del PDF de Cotizaciones). */
-function formatearFechaCorta(isoFecha) {
-  if (!isoFecha) return '';
-  const [anio, mes, dia] = isoFecha.split('-');
-  return `${dia}-${mes}-${anio.slice(2)}`;
-}
-
-/** Rango de entrega igual al del PDF de Cotizaciones: "10 al 30-10-26". */
-function formatearRangoEntrega(inicio, fin) {
-  if (!inicio && !fin) return '—';
-  if (inicio && fin) return `${inicio.split('-')[2]} al ${formatearFechaCorta(fin)}`;
-  return formatearFechaCorta(inicio || fin);
-}
-
 /**
  * Convierte la cotización vigente (formato del módulo Cotizaciones) al
  * formato `cotizacion` que ya usan todos los generadores de documentos.
@@ -347,19 +339,6 @@ async function prepararProyectoConCotizacion(proyecto) {
   };
 }
 
-/** "Calle Número, Sector - Comuna": idéntico al formato del módulo Cotizaciones. */
-function formatearDireccionLead(direccion) {
-  if (!direccion) return '—';
-  if (typeof direccion === 'string') return direccion;
-  const partes = [];
-  if (direccion.calle || direccion.numero) {
-    partes.push([direccion.calle, direccion.numero].filter(Boolean).join(' '));
-  }
-  const zona = [direccion.sector, direccion.comuna].filter(Boolean).join(' - ');
-  if (zona) partes.push(zona);
-  return partes.join(', ') || '—';
-}
-
 /**
  * Datos del cliente para los documentos COT y DC. Salen del LEAD, igual
  * que en el módulo Cotizaciones, para que ambos módulos impriman
@@ -367,18 +346,10 @@ function formatearDireccionLead(direccion) {
  * los datos del proyecto.
  */
 function datosClienteDocumento(p) {
-  const lead = p.lead;
-  if (lead) {
-    return {
-      nombre: lead.nombre || '—',
-      telefono: lead.telefono || '—',
-      rut: lead.rut || '—',
-      direccion: formatearDireccionLead(lead.direccion)
-    };
-  }
+  if (p.lead) return p.lead;
   return {
-    nombre: tituloCase(p.cliente) || '—',
-    telefono: p.telefono || '—',
+    nombre: tituloCase(p.cliente),
+    telefono: p.telefono,
     rut: formatearRutVisible(p.rut),
     direccion: formatearDireccionSimple(p.direccion)
   };
@@ -547,19 +518,6 @@ function listaLineas(texto, textoVacio = 'Según cotización aprobada.') {
 }
 
 /**
- * Arma la lista de una categoría del checklist DC, resaltando en
- * dorado (misma clase .incluido que usa la plantilla del PDF) las
- * opciones que quedaron marcadas en la cotización real.
- */
-function filaChecklistDC(categoria, seleccionIds = []) {
-  const opciones = catalogoDescripcionActivo.filter(o => o.categoria === categoria);
-  if (!opciones.length) return '<div class="pdf-dc-item">Sin opciones registradas en el catálogo.</div>';
-  return opciones.map(o => `
-    <div class="pdf-dc-item ${seleccionIds.includes(o.id) ? 'incluido' : ''}">${escapeHtml(o.nombre)}</div>
-  `).join('');
-}
-
-/**
  * ¿Se puede generar este documento? COT y DC exigen la cotización real
  * del módulo Cotizaciones. El resto (contrato, comprobante de abono)
  * también la usa, pero acepta datos antiguos ya guardados en el
@@ -650,35 +608,11 @@ renderizarDocsGrid();
 // del cuerpo, y pie dorado/negro con los íconos reales de contacto).
 // ============================================================
 function encabezadoHoja(titulo, codigo) {
-  return `
-    <div class="pdf-encabezado-fijo">
-      <div class="pdf-header">
-        <div class="pdf-header-izq">
-          <div class="pdf-header-titulo">${titulo.toUpperCase()}</div>
-          <span class="pdf-header-folio">${codigo}</span>
-        </div>
-        <div class="pdf-header-logo">
-          <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-          <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
-        </div>
-      </div>
-      <div class="pdf-empresa">
-        <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-        <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-        <div>CORREO ELECTRONICO: contacto@linence.cl</div>
-      </div>
-    </div>
-  `;
+  return htmlEncabezado(titulo, codigo);
 }
 
 function pieHoja() {
-  return `
-    <div class="pdf-contacto">
-      <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" width="21" height="16" alt=""> Linence.cl</div>
-      <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" width="24" height="16" alt=""> Linence.cl</div>
-      <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" width="16" height="16" alt=""> +569 57039988</div>
-    </div>
-  `;
+  return htmlPie();
 }
 
 // ============================================================
@@ -857,92 +791,12 @@ function generarPortada(p) {
 // COT — Cotización
 // ============================================================
 function generarCotizacion(p) {
-  const cot = p.cotizacion || {};
-  const cli = datosClienteDocumento(p);
-  const codigo = cot.numero || codigoDocumento('COT', p);
-
-  const filas = (cot.items || []).map(it => `
-      <tr>
-        <td>${escapeHtml(it.codigo)}</td>
-        <td>${escapeHtml(it.cantidad)} m</td>
-        <td>${escapeHtml(it.descripcion)}</td>
-        <td>${formatearCLP(it.valorUnitario)}</td>
-        <td>${formatearCLP(it.total)}</td>
-      </tr>
-  `).join('');
-
-  // Igual que el PDF de Cotizaciones: las filas SUB TOTAL e I.V.A. siempre
-  // están, pero solo llevan monto cuando la cotización aplica IVA.
-  const subtotal = cot.aplicaIva ? formatearCLP(cot.subtotal) : '';
-  const iva = cot.aplicaIva ? formatearCLP(cot.iva) : '';
-  const fecha = cot.fechaCotizacion ? formatearFechaCorta(cot.fechaCotizacion) : '—';
-  const validaDesde = cot.validaDesde ? formatearFechaCorta(cot.validaDesde) : '—';
-
-  // Es el mismo documento que se descarga en el módulo Cotizaciones
-  // (misma estructura y mismas clases de css/pdf-documentos.css).
-  return `
-    <div class="pdf-doc">
-      ${encabezadoHoja('Cotización', codigo)}
-
-      <table class="pdf-tabla-info">
-        <tr>
-          <th>FECHA:</th>
-          <th>PROYECTO:</th>
-          <th>FECHA DE ENTREGA:</th>
-        </tr>
-        <tr>
-          <td>${fecha}</td>
-          <td>${escapeHtml(cot.proyecto || '—')}</td>
-          <td>${formatearRangoEntrega(cot.fechaEntregaInicio, cot.fechaEntregaFin)}</td>
-        </tr>
-        <tr>
-          <th>CLIENTE:</th>
-          <th colspan="2">TELÉFONO:</th>
-        </tr>
-        <tr>
-          <td>${escapeHtml(cli.nombre)}</td>
-          <td colspan="2">${escapeHtml(cli.telefono)}</td>
-        </tr>
-        <tr>
-          <th>DIRECCIÓN:</th>
-          <th colspan="2">FORMA DE PAGO:</th>
-        </tr>
-        <tr>
-          <td>${escapeHtml(cli.direccion)}</td>
-          <td colspan="2">${escapeHtml(cot.formaPago || '—')}</td>
-        </tr>
-      </table>
-
-      <table class="pdf-tabla-items">
-        <thead>
-          <tr>
-            <th>CODIGO</th>
-            <th>CANTIDAD</th>
-            <th>DESCRIPCIÓN</th>
-            <th>VALOR UNITARIO</th>
-            <th>TOTAL</th>
-          </tr>
-        </thead>
-        <tbody>${filas}</tbody>
-      </table>
-
-      <div class="pdf-pie">
-        <div class="pdf-pie-notas">
-          <p>Esta cotización de su proyecto es válida desde ${validaDesde}</p>
-          <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
-          <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
-        </div>
-        <table class="pdf-tabla-totales">
-          <tr><th>SUB TOTAL</th><td>${subtotal}</td></tr>
-          <tr><th>I.V.A</th><td>${iva}</td></tr>
-          <tr><th>TOTAL</th><td>${formatearCLP(cot.total)}</td></tr>
-          <tr><th>Abono ${cot.abonoPorcentaje || 0}%</th><td>${formatearCLP(cot.abonoMonto)}</td></tr>
-        </table>
-      </div>
-
-      ${pieHoja()}
-    </div>
-  `;
+  // Es el mismo documento que se descarga en el módulo Cotizaciones:
+  // el diseño sale de js/documentos-cotizacion.js (fuente única).
+  return `<div class="pdf-doc">${htmlCotizacion({
+    cotizacion: p.cotizacionReal,
+    cliente: datosClienteDocumento(p)
+  })}</div>`;
 }
 
 // ============================================================
@@ -954,14 +808,6 @@ function generarCotizacion(p) {
 // .pdf-dc-*) que la plantilla de Cotizaciones, para que sea
 // exactamente el mismo documento en los dos módulos.
 async function generarDescripcionCotizacion(p) {
-  const vigente = p.cotizacionReal;
-  // Mismo folio que en Cotizaciones: CT-WSP-00002 -> DC-WSP-00002
-  const codigo = vigente?.numero ? String(vigente.numero).replace(/^[A-Z]+-/, 'DC-') : codigoDocumento('DC', p);
-  const cli = datosClienteDocumento(p);
-
-  const seleccion = { materiales: [], herrajes: [], cubiertas: [], accesorios: [], ...(vigente?.descripcionCotizacion || {}) };
-  const fecha = vigente?.creadoEn?.toDate ? vigente.creadoEn.toDate() : new Date();
-
   // Se relee el catálogo cada vez, así las opciones nuevas agregadas
   // en Cotizaciones aparecen sin tener que recargar esta página.
   try {
@@ -970,40 +816,11 @@ async function generarDescripcionCotizacion(p) {
     console.error(err);
   }
 
-  return `
-    <div class="pdf-doc">
-      ${encabezadoHoja('Descripción de cotización', codigo)}
-
-      <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
-
-      <p class="pdf-dc-intro">
-        Con fecha ${formatearFechaCorta(isoLocal(fecha))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml(cli.nombre)}, RUT: ${escapeHtml(cli.rut)}, con domicilio en ${escapeHtml(cli.direccion)}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
-      </p>
-
-      <div class="pdf-dc-seccion">
-        <p class="pdf-dc-seccion-titulo">1. MATERIALES A UTILIZAR EN LA FABRICACIÓN DE ESTRUCTURA DE MUEBLES Y PUERTAS:</p>
-        <p class="pdf-dc-nota">LINENCE SpA. se compromete a ejecutar los trabajos utilizando materiales de primera calidad, de acuerdo a los estándares mínimos de las marcas (Masisa/Arauco Vesto).</p>
-        <div class="pdf-dc-lista">${filaChecklistDC('materiales', seleccion.materiales)}</div>
-      </div>
-
-      <div class="pdf-dc-seccion">
-        <p class="pdf-dc-seccion-titulo">2. HERRAJES A UTILIZAR:</p>
-        <div class="pdf-dc-lista">${filaChecklistDC('herrajes', seleccion.herrajes)}</div>
-      </div>
-
-      <div class="pdf-dc-seccion">
-        <p class="pdf-dc-seccion-titulo">3. CUBIERTAS:</p>
-        <div class="pdf-dc-lista">${filaChecklistDC('cubiertas', seleccion.cubiertas)}</div>
-      </div>
-
-      <div class="pdf-dc-seccion" style="margin-bottom:18px;">
-        <p class="pdf-dc-seccion-titulo">4. ACCESORIOS:</p>
-        <div class="pdf-dc-lista">${filaChecklistDC('accesorios', seleccion.accesorios)}</div>
-      </div>
-
-      ${pieHoja()}
-    </div>
-  `;
+  return `<div class="pdf-doc">${htmlDescripcion({
+    cotizacion: p.cotizacionReal,
+    cliente: datosClienteDocumento(p),
+    catalogo: catalogoDescripcionActivo
+  })}</div>`;
 }
 
 // ============================================================
@@ -1333,26 +1150,22 @@ document.getElementById('btnCerrarModalDoc').addEventListener('click', cerrarMod
 modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocumento) cerrarModalDocumento(); });
 
 /**
- * Mide la altura REAL (ya renderizada) del encabezado y el pie del
- * documento actual, y la deja guardada en variables CSS — así el
- * relleno reservado arriba/abajo para el encabezado/pie "fijos" del
- * impreso siempre calza exacto, sin depender de calcular a mano
- * cuántos píxeles mide cada uno (eso venía fallando).
+ * Imprime el documento abierto. Los documentos oficiales dorado/negro
+ * (COT y DC, clase .pdf-doc) usan la zona de impresión limpia
+ * compartida con Cotizaciones; el resto (hoja-documento) sigue con su
+ * flujo de siempre, midiendo antes el alto real de encabezado y pie.
  */
-function prepararAlturasParaImprimir() {
-  const hoja = document.querySelector('#hojaDocumentoImprimir .hoja-documento, #hojaDocumentoImprimir .pdf-doc');
-  if (!hoja) return;
-  const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
-  const encabezado = hoja.querySelector('.pdf-encabezado-fijo');
-  const pie = hoja.querySelector('.pdf-contacto');
-  if (encabezado) hoja.style.setProperty('--print-pad-top', (encabezado.offsetHeight + RESPIRO) + 'px');
-  if (pie) hoja.style.setProperty('--print-pad-bottom', (pie.offsetHeight + RESPIRO) + 'px');
+function imprimirDocumentoActual() {
+  const pdfDoc = document.querySelector('#hojaDocumentoImprimir .pdf-doc');
+  if (pdfDoc) {
+    imprimirDocumentoPdf(pdfDoc);
+    return;
+  }
+  prepararAlturasParaImprimir(document.querySelector('#hojaDocumentoImprimir .hoja-documento'));
+  window.print();
 }
 
-document.getElementById('btnImprimirDoc').addEventListener('click', () => {
-  prepararAlturasParaImprimir();
-  window.print();
-});
+document.getElementById('btnImprimirDoc').addEventListener('click', imprimirDocumentoActual);
 
 document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // "Descargar PDF" pasado a usar la impresión nativa del navegador en
@@ -1362,6 +1175,5 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador — no depende de esa librería.
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
-  prepararAlturasParaImprimir();
-  window.print();
+  imprimirDocumentoActual();
 });
