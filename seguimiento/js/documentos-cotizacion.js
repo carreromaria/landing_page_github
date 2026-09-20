@@ -203,7 +203,16 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
   const seleccion = cotizacion.descripcionCotizacion || {};
 
+  // El cuerpo va dentro de una tabla con thead/tfoot vacíos ("espaciadores"): al
+  // imprimir, el navegador repite esos dos bloques en CADA hoja, dejando libre
+  // el lugar del encabezado y el pie fijos. Sin esto, el relleno solo existía en
+  // la primera y última hoja y el texto de las demás quedaba debajo del encabezado.
+  // En pantalla los espaciadores no se ven (ver css/pdf-documentos.css).
   return `${htmlEncabezado('Descripción de cotización', folioDescripcion(cotizacion.numero))}
+
+<table class="pdf-paginado">
+<thead><tr><td><div class="pdf-espaciador pdf-espaciador-arriba"></div></td></tr></thead>
+<tbody><tr><td>
 
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
@@ -232,6 +241,10 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
     <div class="pdf-dc-lista">${filaChecklist(catalogo, 'accesorios', seleccion.accesorios)}</div>
   </div>
 
+</td></tr></tbody>
+<tfoot><tr><td><div class="pdf-espaciador pdf-espaciador-abajo"></div></td></tr></tfoot>
+</table>
+
 ${htmlPie()}`;
 }
 
@@ -249,8 +262,21 @@ export function prepararAlturasParaImprimir(plantilla) {
   const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
   const encabezado = plantilla.querySelector('.pdf-encabezado-fijo');
   const pie = plantilla.querySelector('.pdf-contacto');
-  if (encabezado) plantilla.style.setProperty('--print-pad-top', (encabezado.offsetHeight + RESPIRO) + 'px');
-  if (pie) plantilla.style.setProperty('--print-pad-bottom', (pie.offsetHeight + RESPIRO) + 'px');
+  const arriba = encabezado ? (encabezado.offsetHeight + RESPIRO) + 'px' : null;
+  const abajo = pie ? (pie.offsetHeight + RESPIRO) + 'px' : null;
+
+  // Documentos de varias hojas (con .pdf-paginado): el espacio se reserva en los
+  // espaciadores que el navegador repite en cada hoja, y el relleno del documento va en 0.
+  // Documentos de una hoja (Cotización): el relleno del documento alcanza.
+  const paginado = !!plantilla.querySelector('.pdf-paginado');
+  if (arriba) {
+    plantilla.style.setProperty('--print-esp-top', paginado ? arriba : '0px');
+    plantilla.style.setProperty('--print-pad-top', paginado ? '0px' : arriba);
+  }
+  if (abajo) {
+    plantilla.style.setProperty('--print-esp-bottom', paginado ? abajo : '0px');
+    plantilla.style.setProperty('--print-pad-bottom', paginado ? '0px' : abajo);
+  }
 }
 
 /**
