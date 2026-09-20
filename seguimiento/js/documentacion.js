@@ -12,9 +12,10 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  buscarProyectoPorRut, obtenerCotizacionVigentePorLead,
+  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead,
   listarCatalogoDescripcionActivo
 } from './firestore.js';
+import { mejorarSelect } from './components/dropdown-linence.js';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -102,10 +103,12 @@ function mostrarToast(mensaje, tipo = 'exito') {
   toast.innerHTML = `<span class="toast-icono">${tipo === 'error' ? '⚠️' : '✓'}</span><span>${mensaje}</span>`;
   contenedor.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('visible'));
+  // Los mensajes largos necesitan más tiempo en pantalla para poder leerse.
+  const duracion = Math.min(9000, Math.max(3200, String(mensaje).length * 55));
   setTimeout(() => {
     toast.classList.remove('visible');
     setTimeout(() => toast.remove(), 300);
-  }, 3200);
+  }, duracion);
 }
 
 // ============================================================
@@ -186,6 +189,7 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
   document.getElementById('docNoEncontrado').classList.remove('visible');
   document.getElementById('docClienteResultado').classList.remove('visible');
   document.getElementById('docAvisoCotizacion').style.display = 'none';
+  document.getElementById('docDatosPanel').style.display = 'none';
 
   if (!rutLimpio) {
     mostrarToast('Escribe un RUT para buscar.', 'error');
@@ -202,7 +206,10 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
     }
     PROYECTO_ACTUAL = proyecto;
     mostrarResultadoCliente(proyecto);
-    mostrarAvisoCotizacion(await prepararProyectoConCotizacion(proyecto));
+    const p = await prepararProyectoConCotizacion(proyecto);
+    mostrarAvisoCotizacion(p);
+    poblarFormDatos(p.datosEfectivos);
+    document.getElementById('docDatosPanel').style.display = 'block';
     renderizarDocsGrid();
   } catch (err) {
     console.error(err);
@@ -316,12 +323,16 @@ async function prepararProyectoConCotizacion(proyecto) {
     }
   }
 
+  const datosEfectivos = datosDocumentosEfectivos(proyecto, vigente);
+
   return {
     ...proyecto,
     codigoCotizacion: vigente?.numero || proyecto.codigoCotizacion,
     cotizacionReal: vigente,
     errorCotizacion,
-    cotizacion: combinarCotizacion(proyecto.cotizacion, vigente)
+    datosEfectivos,
+    // Cotización real + datos de contrato/abono/instalación ya resueltos
+    cotizacion: { ...combinarCotizacion(proyecto.cotizacion, vigente), ...datosEfectivos }
   };
 }
 
@@ -345,6 +356,126 @@ function mostrarAvisoCotizacion(p) {
   aviso.innerHTML = contenido;
   aviso.style.display = 'block';
 }
+
+// ============================================================
+// Datos de contrato, abono e instalación
+// ============================================================
+// Son los datos que el módulo Cotizaciones NO captura y que necesitan
+// el Contrato, el Comprobante de Abono, el Acta de Entrega, el Manual
+// y la Garantía. Viven en el proyecto (campo `datosDocumentos`) y no en
+// la cotización a propósito: la cotización se versiona y se reemplaza,
+// pero el abono y la instalación pertenecen al proyecto.
+//
+// Prioridad de cada dato: lo guardado en `datosDocumentos` → lo que ya
+// hubiera en el antiguo formulario provisional (`proyecto.cotizacion`)
+// → un valor sugerido calculado desde el propio proyecto/cotización.
+
+const CAMPOS_DATOS = {
+  fechaContrato:    { id: 'ddFechaContrato',    etiqueta: 'fecha del contrato' },
+  plazoDias:        { id: 'ddPlazoDias',        etiqueta: 'plazo de ejecución' },
+  autorizaImagenes: { id: 'ddAutorizaImagenes', etiqueta: 'uso de imágenes' },
+  medioPago:        { id: 'ddMedioPago',        etiqueta: 'medio de pago' },
+  banco:            { id: 'ddBanco',            etiqueta: 'banco' },
+  fechaPago:        { id: 'ddFechaPago',        etiqueta: 'fecha del pago del abono' },
+  fechaInstalacion: { id: 'ddFechaInstalacion', etiqueta: 'fecha de instalación' },
+  horaInicio:       { id: 'ddHoraInicio',       etiqueta: 'hora de inicio' },
+  horaTermino:      { id: 'ddHoraTermino',      etiqueta: 'hora de término' },
+  instalador:       { id: 'ddInstalador',       etiqueta: 'instalador responsable' },
+  relacionCliente:  { id: 'ddRelacionCliente',  etiqueta: 'relación de quien recibe con el cliente' },
+  otrosElementos:   { id: 'ddOtrosElementos',   etiqueta: 'otros elementos entregados' },
+  observaciones:    { id: 'ddObservaciones',    etiqueta: 'observaciones' }
+};
+
+const esVacio = (v) => v === undefined || v === null || v === '' || v === 0;
+
+function fechaDeTimestamp(ts) {
+  return ts?.toDate ? isoLocal(ts.toDate()) : '';
+}
+
+/** Valores sugeridos: salen del propio proyecto y de la cotización, no se inventan. */
+function datosPorDefecto(proyecto, vigente) {
+  return {
+    // El proyecto se crea cuando el cliente acepta (lead "Ganado"): esa es la fecha del contrato.
+    fechaContrato: fechaDeTimestamp(proyecto.creadoEn) || fechaDeTimestamp(vigente?.creadoEn),
+    plazoDias: 16,
+    // Fin del plazo de entrega comprometido en la cotización.
+    fechaInstalacion: vigente?.fechaEntregaFin || vigente?.fechaEntregaInicio || '',
+    instalador: 'Abraham Quintero',
+    relacionCliente: 'Titular del proyecto'
+  };
+}
+
+function datosDocumentosEfectivos(proyecto, vigente) {
+  const legado = proyecto.cotizacion || {};
+  const guardado = proyecto.datosDocumentos || {};
+  const defecto = datosPorDefecto(proyecto, vigente);
+  const resultado = {};
+  Object.keys(CAMPOS_DATOS).forEach(k => {
+    const valor = [guardado[k], legado[k], defecto[k]].find(v => !esVacio(v));
+    resultado[k] = valor === undefined ? '' : valor;
+  });
+  return resultado;
+}
+
+function poblarFormDatos(datos = {}) {
+  Object.entries(CAMPOS_DATOS).forEach(([k, { id }]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = datos[k] ?? '';
+  });
+  document.getElementById('formDatosDoc').style.display = 'none';
+  document.getElementById('flechaDatosDoc').textContent = '⌄';
+  document.getElementById('datosDocError').textContent = '';
+}
+
+mejorarSelect('#ddAutorizaImagenes', { ancho: 'auto' });
+
+document.getElementById('datosDocToggle').addEventListener('click', () => {
+  const form = document.getElementById('formDatosDoc');
+  const abierto = form.style.display !== 'none';
+  form.style.display = abierto ? 'none' : 'block';
+  document.getElementById('flechaDatosDoc').textContent = abierto ? '⌄' : '⌃';
+});
+
+/** Abre el panel y resalta los campos que faltan para generar un documento. */
+function abrirPanelDatos(faltantes) {
+  document.getElementById('formDatosDoc').style.display = 'block';
+  document.getElementById('flechaDatosDoc').textContent = '⌃';
+  faltantes.forEach(k => {
+    const el = document.getElementById(CAMPOS_DATOS[k].id);
+    el.style.outline = '2px solid var(--gold)';
+    el.style.outlineOffset = '1px';
+    el.addEventListener('input', () => { el.style.outline = ''; }, { once: true });
+  });
+  const primero = document.getElementById(CAMPOS_DATOS[faltantes[0]].id);
+  primero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  primero.focus({ preventScroll: true });
+}
+
+document.getElementById('formDatosDoc').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!PROYECTO_ACTUAL) return;
+  const errorEl = document.getElementById('datosDocError');
+  errorEl.textContent = '';
+
+  try {
+    // Solo se guarda lo que difiere del valor sugerido: así, mientras no lo
+    // cambies, la fecha de instalación sigue a la fecha de entrega de la cotización.
+    const p = await prepararProyectoConCotizacion(PROYECTO_ACTUAL);
+    const defecto = datosPorDefecto(PROYECTO_ACTUAL, p.cotizacionReal);
+    const datosDocumentos = {};
+    Object.entries(CAMPOS_DATOS).forEach(([k, { id }]) => {
+      let valor = String(document.getElementById(id).value ?? '').trim();
+      if (k === 'plazoDias') valor = Number(valor) > 0 ? String(Number(valor)) : '';
+      datosDocumentos[k] = (valor === String(defecto[k] ?? '')) ? '' : (k === 'plazoDias' ? Number(valor) : valor);
+    });
+    await actualizarProyecto(PROYECTO_ACTUAL.codigo, { datosDocumentos });
+    PROYECTO_ACTUAL.datosDocumentos = datosDocumentos;
+    mostrarToast('Datos guardados. Ya puedes abrir los documentos.');
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No pudimos guardar los datos. Intenta de nuevo.';
+  }
+});
 
 function mostrarResultadoCliente(p) {
   document.getElementById('docClienteNombre').textContent = tituloCase(p.cliente) || 'Sin nombre';
@@ -400,11 +531,11 @@ const DOCUMENTOS = [
   { sigla: 'CB',  nombre: 'Carta de Bienvenida', activo: true, generar: generarCartaBienvenida },
   { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
   { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarDescripcionCotizacion },
-  { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, generar: generarContratoVenta },
-  { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, generar: generarManualUso },
-  { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, generar: generarCertificadoGarantia },
-  { sigla: 'ER',  nombre: 'Acta de Entrega y Recepción Conforme', activo: true, generar: generarActaEntrega },
-  { sigla: 'CR',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, generar: generarComprobanteAbono },
+  { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, campos: ['fechaContrato', 'plazoDias'], generar: generarContratoVenta },
+  { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, campos: ['fechaInstalacion'], generar: generarManualUso },
+  { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, campos: ['fechaInstalacion'], generar: generarCertificadoGarantia },
+  { sigla: 'ER',  nombre: 'Acta de Entrega y Recepción Conforme', activo: true, campos: ['fechaInstalacion', 'horaInicio', 'horaTermino', 'instalador', 'relacionCliente'], generar: generarActaEntrega },
+  { sigla: 'CR',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
   { sigla: 'TP',  nombre: 'Tarjeta de Servicio Postventa', activo: true, generar: generarTarjetaPostventa },
   { sigla: 'EG',  nombre: 'Tarjeta de Evaluación en Google', activo: true, generar: generarTarjetaEvaluacionGoogle }
 ];
@@ -439,6 +570,17 @@ function renderizarDocsGrid() {
             p.errorCotizacion
               ? 'No pudimos leer la cotización de este proyecto. Intenta de nuevo.'
               : 'Este proyecto todavía no tiene una cotización en el módulo Cotizaciones. Créala ahí y vuelve a intentar.',
+            'error'
+          );
+          return;
+        }
+        // Cada documento declara qué datos necesita para salir completo,
+        // sin líneas en blanco para llenar a lápiz.
+        const faltantes = (doc.campos || []).filter(k => esVacio(p.datosEfectivos[k]));
+        if (faltantes.length) {
+          abrirPanelDatos(faltantes);
+          mostrarToast(
+            `Para generar "${doc.nombre}" falta: ${faltantes.map(k => CAMPOS_DATOS[k].etiqueta).join(', ')}. Complétalo arriba en "Datos de contrato, abono e instalación", guarda y vuelve a abrirlo.`,
             'error'
           );
           return;
@@ -552,6 +694,8 @@ function generarContratoVenta(p) {
   const abonoPct = cot.abonoPorcentaje ?? 60;
   const saldoPct = 100 - abonoPct;
   const plazoDias = cot.plazoDias || 16;
+  // Si ya se definió en "Datos de contrato", sale marcada; si no, queda ( ) para marcar en la firma.
+  const casillaImagenes = (opcion) => cot.autorizaImagenes === opcion ? '(X)' : '( )';
 
   return `
     <div class="hoja-documento">
@@ -624,21 +768,20 @@ function generarContratoVenta(p) {
 
         <p><strong>DÉCIMA SEXTA:</strong> <u>PROTECCIÓN DE DATOS PERSONALES.</u> Los datos proporcionados por el Cliente serán utilizados exclusivamente para la ejecución del proyecto, la gestión administrativa y el servicio postventa, de conformidad con la normativa chilena aplicable.</p>
 
-        <p><strong>DÉCIMA SÉPTIMA:</strong> <u>AUTORIZACIÓN PARA USO DE IMÁGENES.</u> El Cliente manifiesta: ( ) Autorizo a LINENCE a utilizar fotografías del proyecto terminado con fines publicitarios e institucionales, resguardando mi privacidad. ( ) No autorizo dicho uso.</p>
+        <p><strong>DÉCIMA SÉPTIMA:</strong> <u>AUTORIZACIÓN PARA USO DE IMÁGENES.</u> El Cliente manifiesta: ${casillaImagenes('si')} Autorizo a LINENCE a utilizar fotografías del proyecto terminado con fines publicitarios e institucionales, resguardando mi privacidad. ${casillaImagenes('no')} No autorizo dicho uso.</p>
 
         <p><strong>DÉCIMA OCTAVA:</strong> <u>LEGISLACIÓN APLICABLE Y SOLUCIÓN DE CONTROVERSIAS.</u> El presente contrato se regirá por las leyes de la República de Chile. Las partes procurarán resolver cualquier diferencia mediante negociación directa y de buena fe. Si ello no fuere posible, la controversia será sometida a los tribunales de justicia competentes, sin perjuicio de los derechos que la legislación chilena reconoce al consumidor.</p>
 
         <p><strong>DÉCIMA NOVENA:</strong> <u>ACEPTACIÓN.</u> Las partes declaran haber leído íntegramente el presente contrato, comprender su contenido y aceptar todas sus cláusulas. Se firma en dos ejemplares de igual tenor y fecha, quedando uno en poder de cada parte.</p>
 
         <p><strong>RECEPCIÓN:</strong></p>
-        <p>Cliente: ____________________&nbsp;&nbsp;&nbsp; RUT: ____________________</p>
-        <p>Nombre: ${nombreCliente}</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        <p>Cliente: ${nombreCliente}&nbsp;&nbsp;&nbsp; RUT: ${rutCliente}</p>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${fechaContrato}</p>
 
         <p><strong>LINENCE SpA:</strong></p>
         <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; RUT: 26.429.618-8</p>
         <p>Cargo: Gerente General</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${fechaContrato}</p>
       </div>
       ${pieHoja()}
     </div>
@@ -907,10 +1050,10 @@ function generarCertificadoGarantia(p) {
         ${tablaDatosProyecto(p)}
 
         <p><strong>RECEPCIÓN — Cliente:</strong></p>
-        <p>Nombre: ____________________&nbsp;&nbsp;&nbsp; Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        <p>Nombre: ${tituloCase(p.cliente)}&nbsp;&nbsp;&nbsp; Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
         <p><strong>LINENCE SpA:</strong></p>
         <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
       </div>
       ${pieHoja()}
     </div>
@@ -951,22 +1094,22 @@ function generarActaEntrega(p) {
         <p><strong>TERCERA</strong>: <u>PERSONAL RESPONSABLE.</u></p>
         <p><strong>Por LINENCE SpA:</strong><br>
         Jefe de Proyecto: María Carrero Peralta.<br>
-        Instalador Responsable: ${cot.instalador || '____________________'}.</p>
+        Instalador Responsable: ${escapeHtml(cot.instalador)}.</p>
         <p><strong>Por el Cliente:</strong><br>
         Persona que recibe el proyecto: ${tituloCase(p.cliente)}<br>
-        Relación con el Cliente (si aplica): ____________________</p>
+        Relación con el Cliente: ${escapeHtml(cot.relacionCliente)}</p>
 
         <p><strong>CUARTA:</strong> <u>VERIFICACIÓN DEL PROYECTO</u>. Se deja constancia de que el cliente realizó una inspección visual y funcional del proyecto junto al representante de LINENCE.</p>
         <p><strong>Control de Verificación</strong></p>
         <ul>${checklist(['Dimensiones conforme al proyecto.', 'Nivelación del mobiliario.', 'Correcta fijación de módulos.', 'Funcionamiento de puertas.', 'Funcionamiento de cajones.', 'Regulación de bisagras.', 'Funcionamiento de correderas.', 'Terminaciones revisadas.', 'Cantos inspeccionados.', 'Cubiertas instaladas correctamente.', 'Sellos y siliconas revisados.', 'Limpieza final realizada.', 'Área de trabajo entregada en condiciones adecuadas.'])}</ul>
 
         <p><strong>QUINTA:</strong> <u>ELEMENTOS ENTREGADOS.</u> Se deja constancia de la entrega de los siguientes elementos:</p>
-        <ul>${checklist(['Llaves.', 'Controles remotos.', 'Accesorios adicionales.', 'Repuestos (si aplica).', 'Otros: ____________________'])}</ul>
+        <ul>${checklist(['Llaves.', 'Controles remotos.', 'Accesorios adicionales.', 'Repuestos (si aplica).', ...(cot.otrosElementos ? [`Otros: ${escapeHtml(cot.otrosElementos)}`] : [])])}</ul>
 
         <p><strong>SEXTA:</strong> <u>DOCUMENTACIÓN ENTREGADA.</u> El cliente declara haber recibido los siguientes documentos:</p>
         <ul>${checklist(['Contrato de Venta e Instalación.', 'Descripción de Fabricación e Instalación de Mobiliario.', 'Certificado de Garantía Comercial.', 'Manual de Uso y Mantención.', 'Acta de Entrega y Recepción Conforme.'])}</ul>
 
-        <p><strong>SÉPTIMA:</strong> <u>OBSERVACIONES.</u> ${cot.observaciones ? cot.observaciones : '☐ Se deja constancia de que el proyecto fue recibido sin observaciones.'}</p>
+        <p><strong>SÉPTIMA:</strong> <u>OBSERVACIONES.</u> ${cot.observaciones ? escapeHtml(cot.observaciones) : '☐ Se deja constancia de que el proyecto fue recibido sin observaciones.'}</p>
 
         <p><strong>OCTAVA:</strong> <u>COMPROMISOS PENDIENTES (SI APLICA).</u> ☐ No existen trabajos pendientes al momento de la entrega.</p>
 
@@ -979,12 +1122,12 @@ function generarActaEntrega(p) {
         <p><strong>DÉCIMA SEGUNDA:</strong> <u>FIRMAS.</u> Con su firma, las partes declaran que la información contenida en la presente Acta es fiel expresión de lo ocurrido durante la entrega del proyecto.</p>
 
         <p><strong>CLIENTE</strong></p>
-        <p>Nombre: ____________________&nbsp;&nbsp;&nbsp; RUT: ____________________<br>
-        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        <p>Nombre: ${tituloCase(p.cliente)}&nbsp;&nbsp;&nbsp; RUT: ${formatearRutVisible(p.rut)}<br>
+        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
 
         <p><strong>POR LINENCE SpA</strong></p>
         <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General<br>
-        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ____________________</p>
+        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
       </div>
       ${pieHoja()}
     </div>
@@ -1028,8 +1171,8 @@ function generarComprobanteAbono(p) {
         Monto Total del Proyecto: ${formatearCLP(cot.total)}</p>
 
         <p><strong>V. MEDIO DE PAGO</strong><br>
-        Medio: ${cot.medioPago || '____________________'}<br>
-        Banco: ${cot.banco || '____________________'}<br>
+        Medio: ${escapeHtml(cot.medioPago)}<br>
+        Banco: ${escapeHtml(cot.banco)}<br>
         Fecha del Pago: ${formatearFechaLarga(cot.fechaPago)}</p>
 
         <p><strong>Los pagos fueron realizados a la siguiente cuenta de:</strong><br>
@@ -1038,7 +1181,7 @@ function generarComprobanteAbono(p) {
         <p><strong>VI. DESTINO DEL ABONO</strong><br>
         El monto recibido será imputado al proyecto indicado en este comprobante. Este documento acredita la recepción administrativa del abono y no reemplaza la boleta o factura que corresponda emitir conforme a la legislación tributaria chilena.</p>
 
-        <p><strong>VII. OBSERVACIONES</strong><br>${cot.observaciones || 'Sin observaciones.'}</p>
+        <p><strong>VII. OBSERVACIONES</strong><br>${cot.observaciones ? escapeHtml(cot.observaciones) : 'Sin observaciones.'}</p>
 
         <p><strong>VIII. DECLARACIÓN</strong><br>
         LINENCE SpA deja constancia de haber recibido el monto indicado, el cual será imputado al proyecto señalado. El saldo pendiente deberá pagarse conforme al contrato o cotización aceptada.</p>
