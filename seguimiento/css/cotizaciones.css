@@ -401,41 +401,8 @@
   }
 }
 
-/* ================= Solo esto se ve al imprimir / "Guardar como PDF" ================= */
-/* Mismo criterio que documentacion.css: nada de position:absolute (se
-   duplica el contenido al pasar de página en documentos largos).
-   Se oculta todo lo demás con display:none y el encabezado/pie
-   quedan fijos para repetirse en cada hoja impresa. */
-@media print {
-  body > *:not(.cot-pdf-modal-overlay.visible){ display:none !important; }
-
-  /* Reseteo general: anula cualquier alto máximo/scroll de contenedores
-     genéricos del sistema de modales que no controlo directamente
-     (ej. de dashboard.css/crm.css), para todo lo que esté dentro del
-     modal visible. Las posiciones fijas del encabezado/pie se
-     reafirman después, más abajo. */
-  .cot-pdf-modal-overlay.visible, .cot-pdf-modal-overlay.visible *{
-    max-height:none !important;
-    overflow:visible !important;
-  }
-
-  .cot-pdf-modal-overlay.visible{
-    position:static !important;
-    background:none !important;
-    display:block !important;
-    padding:0 !important;
-  }
-  .cot-pdf-modal-overlay.visible .cot-pdf-modal-acciones{ display:none !important; }
-  .cot-pdf-modal-overlay.visible .cot-pdf-modal{
-    background:none !important; padding:0 !important; max-width:none !important;
-  }
-  .cot-pdf-modal-overlay.visible .cot-pdf-modal-scroll{
-    background:none !important;
-    padding:0 !important;
-  }
-
-  /* Las reglas de impresión del documento en sí (.pdf-doc, encabezado y pie
-     fijos, tamaño de hoja) viven ahora en css/pdf-documentos.css, compartidas
-     con Documentación. Acá solo queda lo propio del modal de Cotizaciones. */
-
-}
+/* ================= Impresión / "Guardar como PDF" ================= */
+/* Ya no se imprime "a través" del modal (su fondo, márgenes y posición de
+   scroll se colaban en el PDF). Ahora js/documentos-cotizacion.js copia el
+   documento a una zona de impresión limpia y las reglas de impresión viven,
+   una sola vez, en css/pdf-documentos.css (compartidas con Documentación). */
