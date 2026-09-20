@@ -15,6 +15,9 @@ import {
   listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+// El diseño de los documentos COT y DC vive en un solo archivo compartido
+// con el módulo Documentación (js/documentos-cotizacion.js).
+import { htmlCotizacion, htmlDescripcion, prepararAlturasParaImprimir } from './documentos-cotizacion.js';
 
 // ---------- Estado ----------
 
@@ -188,37 +191,6 @@ function formatearFecha(timestamp) {
   const fecha = timestamp?.toDate?.();
   if (!fecha) return '—';
   return fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-/** Arma "02 al 04-10-26" a partir de dos fechas tipo input date (AAAA-MM-DD). */
-function formatearRangoFechas(inicio, fin) {
-  if (!inicio && !fin) return '—';
-  const fechaInicio = inicio ? new Date(inicio + 'T00:00:00') : null;
-  const fechaFin = fin ? new Date(fin + 'T00:00:00') : null;
-  if (fechaInicio && fechaFin) {
-    return `${String(fechaInicio.getDate()).padStart(2, '0')} al ${formatearFechaCorta(fechaFin)}`;
-  }
-  return formatearFechaCorta(fechaInicio || fechaFin);
-}
-
-/** Formato corto DD-MM-AA, igual al que usa el documento impreso. */
-function formatearFechaCorta(fecha) {
-  const d = String(fecha.getDate()).padStart(2, '0');
-  const m = String(fecha.getMonth() + 1).padStart(2, '0');
-  const a = String(fecha.getFullYear()).slice(-2);
-  return `${d}-${m}-${a}`;
-}
-
-/** Arma "Calle Número, Sector - Comuna" a partir del objeto dirección estructurado del lead. */
-function formatearDireccion(direccion) {
-  if (!direccion) return '—';
-  const partes = [];
-  if (direccion.calle || direccion.numero) {
-    partes.push([direccion.calle, direccion.numero].filter(Boolean).join(' '));
-  }
-  const zona = [direccion.sector, direccion.comuna].filter(Boolean).join(' - ');
-  if (zona) partes.push(zona);
-  return partes.join(', ') || '—';
 }
 
 function mostrarToast(mensaje, tipo = 'ok') {
@@ -780,22 +752,6 @@ modalPdfCotizacion.addEventListener('click', (e) => {
   if (e.target === modalPdfCotizacion) modalPdfCotizacion.classList.remove('visible');
 });
 
-/**
- * Mide la altura real del encabezado y el pie ya renderizados en la
- * plantilla dada, y la deja en variables CSS — así el relleno
- * reservado arriba/abajo para el encabezado/pie "fijos" del impreso
- * siempre calza exacto, sin adivinar píxeles a mano.
- * @param {HTMLElement} plantilla el .pdf-doc (plantillaPDF o plantillaDC)
- */
-function prepararAlturasParaImprimir(plantilla) {
-  if (!plantilla) return;
-  const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
-  const encabezado = plantilla.querySelector('.pdf-encabezado-fijo');
-  const pie = plantilla.querySelector('.pdf-contacto');
-  if (encabezado) plantilla.style.setProperty('--print-pad-top', (encabezado.offsetHeight + RESPIRO) + 'px');
-  if (pie) plantilla.style.setProperty('--print-pad-bottom', (pie.offsetHeight + RESPIRO) + 'px');
-}
-
 document.getElementById('btnImprimirPdf').addEventListener('click', () => {
   prepararAlturasParaImprimir(document.getElementById('plantillaPDF'));
   window.print();
@@ -813,43 +769,8 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
 });
 
 function llenarPlantillaPDF(cotizacion, lead) {
-  document.getElementById('pdfFolio').textContent = cotizacion.numero;
-  document.getElementById('pdfFecha').textContent =
-    formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
-  document.getElementById('pdfProyecto').textContent = cotizacion.proyecto || '—';
-  document.getElementById('pdfFechaEntrega').textContent = formatearRangoFechas(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin);
-  document.getElementById('pdfCliente').textContent = lead.nombre || '—';
-  document.getElementById('pdfTelefono').textContent = lead.telefono || '—';
-  document.getElementById('pdfDireccion').textContent = formatearDireccion(lead.direccion);
-  document.getElementById('pdfFormaPago').textContent = cotizacion.formaPago || '—';
-
-  document.getElementById('pdfItemsBody').innerHTML = cotizacion.items.map(item => `
-    <tr>
-      <td>${escapeHtml(item.codigo)}</td>
-      <td>${escapeHtml(item.cantidad)} m</td>
-      <td>${escapeHtml(item.descripcion)}</td>
-      <td>${formatearMoneda(item.valorUnitario)}</td>
-      <td>${formatearMoneda(item.total)}</td>
-    </tr>
-  `).join('');
-
-  const validaDesdeFecha = cotizacion.validaDesde
-    ? formatearFechaCorta(new Date(cotizacion.validaDesde + 'T00:00:00'))
-    : '—';
-  document.getElementById('pdfValidaDesde').textContent =
-    `Esta cotización de su proyecto es válida desde ${validaDesdeFecha}`;
-
-  if (cotizacion.aplicaIva) {
-    document.getElementById('pdfSubtotal').textContent = formatearMoneda(cotizacion.totalGeneral);
-    document.getElementById('pdfIva').textContent = formatearMoneda(cotizacion.ivaMonto);
-    document.getElementById('pdfTotal').textContent = formatearMoneda(cotizacion.totalConIva);
-  } else {
-    document.getElementById('pdfSubtotal').textContent = '';
-    document.getElementById('pdfIva').textContent = '';
-    document.getElementById('pdfTotal').textContent = formatearMoneda(cotizacion.totalGeneral);
-  }
-  document.getElementById('pdfAbonoLabel').textContent = `Abono ${cotizacion.porcentajeAbono || 0}%`;
-  document.getElementById('pdfAbono').textContent = formatearMoneda(cotizacion.abono);
+  // Mismo documento que genera el módulo Documentación: sale de js/documentos-cotizacion.js
+  document.getElementById('plantillaPDF').innerHTML = htmlCotizacion({ cotizacion, cliente: lead });
 }
 
 // ---------- Descargar Descripción de Cotización (documento DC) ----------
@@ -860,32 +781,12 @@ function llenarPlantillaPDF(cotizacion, lead) {
 
 const modalPdfDescripcion = document.getElementById('modalPdfDescripcion');
 
-/** "CT-WSP-00002" -> "DC-WSP-00002" */
-function folioDescripcion(numeroCotizacion) {
-  return String(numeroCotizacion || '').replace(/^[A-Z]+-/, 'DC-');
-}
-
-function filaChecklistPDF(categoria, seleccionIds = []) {
-  const opciones = catalogoDescripcionCompleto.filter(o => o.categoria === categoria);
-  if (!opciones.length) return '<div class="pdf-dc-item">Sin opciones registradas en el catálogo.</div>';
-  return opciones.map(o => `
-    <div class="pdf-dc-item ${seleccionIds.includes(o.id) ? 'incluido' : ''}">${escapeHtml(o.nombre)}</div>
-  `).join('');
-}
-
 function llenarPlantillaDC(cotizacion, lead) {
-  document.getElementById('pdfDCFolio').textContent = folioDescripcion(cotizacion.numero);
-  document.getElementById('pdfDCFecha').textContent =
-    formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
-  document.getElementById('pdfDCCliente').textContent = lead.nombre || '—';
-  document.getElementById('pdfDCRut').textContent = lead.rut || '—';
-  document.getElementById('pdfDCDireccion').textContent = formatearDireccion(lead.direccion);
-
-  const seleccion = cotizacion.descripcionCotizacion || {};
-  document.getElementById('pdfDCMateriales').innerHTML = filaChecklistPDF('materiales', seleccion.materiales);
-  document.getElementById('pdfDCHerrajes').innerHTML = filaChecklistPDF('herrajes', seleccion.herrajes);
-  document.getElementById('pdfDCCubiertas').innerHTML = filaChecklistPDF('cubiertas', seleccion.cubiertas);
-  document.getElementById('pdfDCAccesorios').innerHTML = filaChecklistPDF('accesorios', seleccion.accesorios);
+  document.getElementById('plantillaDC').innerHTML = htmlDescripcion({
+    cotizacion,
+    cliente: lead,
+    catalogo: catalogoDescripcionCompleto
+  });
 }
 
 document.getElementById('btnVerDescripcion').addEventListener('click', () => {
