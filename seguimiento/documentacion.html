@@ -73,105 +73,8 @@
       <div class="meta" id="docClienteMeta">—</div>
     </div>
 
-    <!-- ---- Cotización provisional ---- -->
-    <section class="panel-seccion doc-cotizacion-panel" id="docCotizacionPanel">
-      <button type="button" class="datos-proyecto-toggle" id="cotizacionToggle">
-        <h2>Datos de cotización (provisional)</h2>
-        <span class="flecha-datos" id="flechaCotizacion">⌄</span>
-      </button>
-
-      <form id="formCotizacion" style="display:none;">
-        <div class="form-grid">
-          <div class="campo">
-            <label for="cotNumero">N° de cotización</label>
-            <input type="text" id="cotNumero" placeholder="Ej. COT-WSP-00001">
-          </div>
-          <div class="campo">
-            <label for="cotFechaCotizacion">Fecha de cotización</label>
-            <input type="date" id="cotFechaCotizacion">
-          </div>
-          <div class="campo">
-            <label for="cotFechaValidez">Válida hasta</label>
-            <input type="date" id="cotFechaValidez">
-          </div>
-        </div>
-
-        <p class="form-section-title">Ítems cotizados</p>
-        <div class="doc-items-tabla" id="cotItemsTabla"></div>
-        <button type="button" class="doc-item-agregar" id="btnAgregarItem">+ Agregar ítem</button>
-
-        <div class="doc-totales">
-          <div class="total-item"><span class="label">Subtotal</span><span class="valor" id="cotSubtotal">$0</span></div>
-          <div class="total-item">
-            <span class="label">IVA</span>
-            <input type="number" id="cotIva" value="0" min="0" style="width:100%; padding:6px 8px; border:1px solid var(--gold-line); border-radius:4px;">
-          </div>
-          <div class="total-item destacado"><span class="label">Total</span><span class="valor" id="cotTotal">$0</span></div>
-          <div class="total-item">
-            <span class="label">% Abono</span>
-            <input type="number" id="cotAbonoPorcentaje" value="60" min="0" max="100" style="width:100%; padding:6px 8px; border:1px solid var(--gold-line); border-radius:4px;">
-          </div>
-          <div class="total-item destacado"><span class="label">Monto abono</span><span class="valor" id="cotAbonoMonto">$0</span></div>
-          <div class="total-item"><span class="label">Saldo</span><span class="valor" id="cotSaldo">$0</span></div>
-        </div>
-
-        <p class="form-section-title">Datos del abono y la instalación</p>
-        <div class="form-grid">
-          <div class="campo">
-            <label for="cotFormaPago">Forma de pago</label>
-            <input type="text" id="cotFormaPago" placeholder="Ej. Transferencia - Efectivo">
-          </div>
-          <div class="campo">
-            <label for="cotMedioPago">Medio de pago del abono</label>
-            <input type="text" id="cotMedioPago" placeholder="Ej. Transferencia">
-          </div>
-          <div class="campo">
-            <label for="cotBanco">Banco</label>
-            <input type="text" id="cotBanco" placeholder="Ej. Estado y Falabella">
-          </div>
-          <div class="campo">
-            <label for="cotFechaPago">Fecha del pago del abono</label>
-            <input type="date" id="cotFechaPago">
-          </div>
-          <div class="campo">
-            <label for="cotFechaInstalacion">Fecha real de instalación</label>
-            <input type="date" id="cotFechaInstalacion">
-          </div>
-          <div class="campo">
-            <label for="cotFechaContrato">Fecha del contrato</label>
-            <input type="date" id="cotFechaContrato">
-          </div>
-          <div class="campo">
-            <label for="cotPlazoDias">Plazo de ejecución (días hábiles)</label>
-            <input type="number" id="cotPlazoDias" min="0" placeholder="Ej. 16">
-          </div>
-          <div class="campo">
-            <label for="cotHoraInicio">Hora de inicio</label>
-            <input type="time" id="cotHoraInicio">
-          </div>
-          <div class="campo">
-            <label for="cotHoraTermino">Hora de término</label>
-            <input type="time" id="cotHoraTermino">
-          </div>
-          <div class="campo campo-full">
-            <label for="cotObservaciones">Observaciones del abono</label>
-            <input type="text" id="cotObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
-          </div>
-          <div class="campo">
-            <label for="cotInstalador">Instalador responsable</label>
-            <input type="text" id="cotInstalador" placeholder="Ej. Abraham Quintero">
-          </div>
-        </div>
-
-        <p class="form-section-title">Descripción de Cotización</p>
-        <p class="subtitulo" style="margin-bottom:14px;">El checklist de materiales, herrajes, cubiertas y accesorios ahora se marca desde el módulo <a href="cotizaciones.html">Cotizaciones</a> — este documento (DC) siempre trae lo que quedó guardado ahí.</p>
-
-        <div class="modal-error" id="cotizacionError"></div>
-        <div class="modal-acciones">
-          <button type="submit" class="btn-primario">Guardar datos de cotización</button>
-        </div>
-      </form>
-    </section>
+    <!-- ---- Estado de la cotización (viene del módulo Cotizaciones) ---- -->
+    <div id="docAvisoCotizacion" style="display:none; margin:0 0 20px; padding:14px 18px; border:1px solid var(--gold-line); border-radius:10px; background:var(--sand-soft); font-size:14px; line-height:1.5;"></div>
 
     <!-- ---- Grilla de documentos ---- -->
     <section class="panel-seccion">
@@ -199,6 +102,6 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=1"></script>
+<script type="module" src="js/documentacion.js?v=2"></script>
 </body>
 </html>
