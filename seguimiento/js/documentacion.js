@@ -12,7 +12,7 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead,
+  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
   listarCatalogoDescripcionActivo
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -312,14 +312,24 @@ function combinarCotizacion(base = {}, vigente) {
  */
 async function prepararProyectoConCotizacion(proyecto) {
   let vigente = null;
+  let lead = null;
   let errorCotizacion = false;
 
   if (proyecto.leadOrigenId) {
-    try {
-      vigente = await obtenerCotizacionVigentePorLead(proyecto.leadOrigenId);
-    } catch (err) {
-      console.error('No se pudo cargar la cotización desde el módulo Cotizaciones:', err);
+    const [resVigente, resLead] = await Promise.allSettled([
+      obtenerCotizacionVigentePorLead(proyecto.leadOrigenId),
+      obtenerLead(proyecto.leadOrigenId)
+    ]);
+    if (resVigente.status === 'fulfilled') {
+      vigente = resVigente.value;
+    } else {
+      console.error('No se pudo cargar la cotización desde el módulo Cotizaciones:', resVigente.reason);
       errorCotizacion = true;
+    }
+    if (resLead.status === 'fulfilled') {
+      lead = resLead.value;
+    } else {
+      console.error('No se pudo cargar el lead de origen:', resLead.reason);
     }
   }
 
@@ -329,10 +339,48 @@ async function prepararProyectoConCotizacion(proyecto) {
     ...proyecto,
     codigoCotizacion: vigente?.numero || proyecto.codigoCotizacion,
     cotizacionReal: vigente,
+    lead,
     errorCotizacion,
     datosEfectivos,
     // Cotización real + datos de contrato/abono/instalación ya resueltos
     cotizacion: { ...combinarCotizacion(proyecto.cotizacion, vigente), ...datosEfectivos }
+  };
+}
+
+/** "Calle Número, Sector - Comuna": idéntico al formato del módulo Cotizaciones. */
+function formatearDireccionLead(direccion) {
+  if (!direccion) return '—';
+  if (typeof direccion === 'string') return direccion;
+  const partes = [];
+  if (direccion.calle || direccion.numero) {
+    partes.push([direccion.calle, direccion.numero].filter(Boolean).join(' '));
+  }
+  const zona = [direccion.sector, direccion.comuna].filter(Boolean).join(' - ');
+  if (zona) partes.push(zona);
+  return partes.join(', ') || '—';
+}
+
+/**
+ * Datos del cliente para los documentos COT y DC. Salen del LEAD, igual
+ * que en el módulo Cotizaciones, para que ambos módulos impriman
+ * exactamente lo mismo. Si el proyecto no tiene lead vinculado, se usan
+ * los datos del proyecto.
+ */
+function datosClienteDocumento(p) {
+  const lead = p.lead;
+  if (lead) {
+    return {
+      nombre: lead.nombre || '—',
+      telefono: lead.telefono || '—',
+      rut: lead.rut || '—',
+      direccion: formatearDireccionLead(lead.direccion)
+    };
+  }
+  return {
+    nombre: tituloCase(p.cliente) || '—',
+    telefono: p.telefono || '—',
+    rut: formatearRutVisible(p.rut),
+    direccion: formatearDireccionSimple(p.direccion)
   };
 }
 
@@ -810,65 +858,88 @@ function generarPortada(p) {
 // ============================================================
 function generarCotizacion(p) {
   const cot = p.cotizacion || {};
+  const cli = datosClienteDocumento(p);
   const codigo = cot.numero || codigoDocumento('COT', p);
-  const items = cot.items || [];
-  const filas = items.map(it => `
-    <tr>
-      <td>${escapeHtml(it.codigo)}</td>
-      <td style="text-align:center;">${escapeHtml(it.cantidad)} m</td>
-      <td>${escapeHtml(it.descripcion)}</td>
-      <td style="text-align:right;">${formatearCLP(it.valorUnitario)}</td>
-      <td style="text-align:right;">${formatearCLP(it.total)}</td>
-    </tr>
+
+  const filas = (cot.items || []).map(it => `
+      <tr>
+        <td>${escapeHtml(it.codigo)}</td>
+        <td>${escapeHtml(it.cantidad)} m</td>
+        <td>${escapeHtml(it.descripcion)}</td>
+        <td>${formatearCLP(it.valorUnitario)}</td>
+        <td>${formatearCLP(it.total)}</td>
+      </tr>
   `).join('');
 
-  // Igual que el PDF del módulo Cotizaciones: Subtotal e IVA solo se
-  // muestran cuando la cotización aplica IVA.
-  const filasIva = cot.aplicaIva ? `
-          <tr><td style="padding:6px 10px; background:var(--sand-soft);">SUBTOTAL</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.subtotal)}</td></tr>
-          <tr><td style="padding:6px 10px; background:var(--sand-soft);">I.V.A</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.iva)}</td></tr>` : '';
+  // Igual que el PDF de Cotizaciones: las filas SUB TOTAL e I.V.A. siempre
+  // están, pero solo llevan monto cuando la cotización aplica IVA.
+  const subtotal = cot.aplicaIva ? formatearCLP(cot.subtotal) : '';
+  const iva = cot.aplicaIva ? formatearCLP(cot.iva) : '';
+  const fecha = cot.fechaCotizacion ? formatearFechaCorta(cot.fechaCotizacion) : '—';
+  const validaDesde = cot.validaDesde ? formatearFechaCorta(cot.validaDesde) : '—';
 
+  // Es el mismo documento que se descarga en el módulo Cotizaciones
+  // (misma estructura y mismas clases de css/pdf-documentos.css).
   return `
-    <div class="hoja-documento">
+    <div class="pdf-doc">
       ${encabezadoHoja('Cotización', codigo)}
-      <div class="hoja-cuerpo">
-        <table style="width:100%; border-collapse:collapse; margin-bottom:18px; font-size:12px;">
-          <tr>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FECHA:</strong> ${formatearFechaLarga(cot.fechaCotizacion)}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>PROYECTO:</strong> ${escapeHtml(cot.proyecto || p.tipoProyecto || '—')}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FECHA DE ENTREGA:</strong> ${formatearRangoEntrega(cot.fechaEntregaInicio, cot.fechaEntregaFin)}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;" colspan="2"><strong>CLIENTE:</strong> ${tituloCase(p.cliente)}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>TELÉFONO:</strong> ${p.telefono || '—'}</td>
-          </tr>
-          <tr>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;" colspan="2"><strong>DIRECCIÓN:</strong> ${formatearDireccionSimple(p.direccion)}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FORMA DE PAGO:</strong> ${escapeHtml(cot.formaPago || '—')}</td>
-          </tr>
-        </table>
 
-        <table style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:18px;">
-          <thead>
-            <tr style="background:var(--ink); color:#fff;">
-              <th style="padding:8px; text-align:left;">Código</th>
-              <th style="padding:8px;">Cantidad</th>
-              <th style="padding:8px; text-align:left;">Descripción</th>
-              <th style="padding:8px; text-align:right;">Valor unitario</th>
-              <th style="padding:8px; text-align:right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>${filas || '<tr><td colspan="5" style="padding:8px; text-align:center; opacity:0.6;">Sin ítems cargados</td></tr>'}</tbody>
-        </table>
+      <table class="pdf-tabla-info">
+        <tr>
+          <th>FECHA:</th>
+          <th>PROYECTO:</th>
+          <th>FECHA DE ENTREGA:</th>
+        </tr>
+        <tr>
+          <td>${fecha}</td>
+          <td>${escapeHtml(cot.proyecto || '—')}</td>
+          <td>${formatearRangoEntrega(cot.fechaEntregaInicio, cot.fechaEntregaFin)}</td>
+        </tr>
+        <tr>
+          <th>CLIENTE:</th>
+          <th colspan="2">TELÉFONO:</th>
+        </tr>
+        <tr>
+          <td>${escapeHtml(cli.nombre)}</td>
+          <td colspan="2">${escapeHtml(cli.telefono)}</td>
+        </tr>
+        <tr>
+          <th>DIRECCIÓN:</th>
+          <th colspan="2">FORMA DE PAGO:</th>
+        </tr>
+        <tr>
+          <td>${escapeHtml(cli.direccion)}</td>
+          <td colspan="2">${escapeHtml(cot.formaPago || '—')}</td>
+        </tr>
+      </table>
 
-        <p>Esta cotización de su proyecto es válida desde ${formatearFechaLarga(cot.validaDesde)}.<br>Cualquier duda o consulta comuníquese con nosotros, estaremos gustosos de atenderlo.</p>
-        <p><strong>GRACIAS POR SU PREFERENCIA…!!!</strong></p>
+      <table class="pdf-tabla-items">
+        <thead>
+          <tr>
+            <th>CODIGO</th>
+            <th>CANTIDAD</th>
+            <th>DESCRIPCIÓN</th>
+            <th>VALOR UNITARIO</th>
+            <th>TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
 
-        <table style="width:260px; margin-left:auto; border-collapse:collapse; font-size:13px;">${filasIva}
-          <tr><td style="padding:6px 10px; background:var(--ink); color:#fff;"><strong>TOTAL</strong></td><td style="padding:6px 10px; text-align:right; background:var(--ink); color:#fff;"><strong>${formatearCLP(cot.total)}</strong></td></tr>
-          <tr><td style="padding:6px 10px; background:var(--gold); color:var(--ink);">ABONO ${cot.abonoPorcentaje ?? 0}%</td><td style="padding:6px 10px; text-align:right; background:var(--gold); color:var(--ink);"><strong>${formatearCLP(cot.abonoMonto)}</strong></td></tr>
+      <div class="pdf-pie">
+        <div class="pdf-pie-notas">
+          <p>Esta cotización de su proyecto es válida desde ${validaDesde}</p>
+          <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
+          <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
+        </div>
+        <table class="pdf-tabla-totales">
+          <tr><th>SUB TOTAL</th><td>${subtotal}</td></tr>
+          <tr><th>I.V.A</th><td>${iva}</td></tr>
+          <tr><th>TOTAL</th><td>${formatearCLP(cot.total)}</td></tr>
+          <tr><th>Abono ${cot.abonoPorcentaje || 0}%</th><td>${formatearCLP(cot.abonoMonto)}</td></tr>
         </table>
       </div>
+
       ${pieHoja()}
     </div>
   `;
@@ -886,9 +957,7 @@ async function generarDescripcionCotizacion(p) {
   const vigente = p.cotizacionReal;
   // Mismo folio que en Cotizaciones: CT-WSP-00002 -> DC-WSP-00002
   const codigo = vigente?.numero ? String(vigente.numero).replace(/^[A-Z]+-/, 'DC-') : codigoDocumento('DC', p);
-  const nombreCliente = tituloCase(p.cliente) || '____________________';
-  const rutCliente = formatearRutVisible(p.rut);
-  const domicilioCliente = formatearDireccionSimple(p.direccion);
+  const cli = datosClienteDocumento(p);
 
   const seleccion = { materiales: [], herrajes: [], cubiertas: [], accesorios: [], ...(vigente?.descripcionCotizacion || {}) };
   const fecha = vigente?.creadoEn?.toDate ? vigente.creadoEn.toDate() : new Date();
@@ -903,27 +972,12 @@ async function generarDescripcionCotizacion(p) {
 
   return `
     <div class="pdf-doc">
-      <div class="pdf-header">
-        <div class="pdf-header-izq">
-          <div class="pdf-header-titulo">DESCRIPCIÓN DE COTIZACIÓN</div>
-          <span class="pdf-header-folio">${codigo}</span>
-        </div>
-        <div class="pdf-header-logo">
-          <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-          <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
-        </div>
-      </div>
-
-      <div class="pdf-empresa">
-        <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-        <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-        <div>CORREO ELECTRONICO: contacto@linence.cl</div>
-      </div>
+      ${encabezadoHoja('Descripción de cotización', codigo)}
 
       <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
       <p class="pdf-dc-intro">
-        Con fecha ${formatearFechaLarga(isoLocal(fecha))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${nombreCliente}, RUT: ${rutCliente}, con domicilio en ${domicilioCliente}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+        Con fecha ${formatearFechaCorta(isoLocal(fecha))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml(cli.nombre)}, RUT: ${escapeHtml(cli.rut)}, con domicilio en ${escapeHtml(cli.direccion)}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
       </p>
 
       <div class="pdf-dc-seccion">
@@ -947,11 +1001,7 @@ async function generarDescripcionCotizacion(p) {
         <div class="pdf-dc-lista">${filaChecklistDC('accesorios', seleccion.accesorios)}</div>
       </div>
 
-      <div class="pdf-contacto">
-        <div class="pdf-contacto-fila">🌐 Linence.cl</div>
-        <div class="pdf-contacto-fila">📘 📷 🎵 Linence.cl</div>
-        <div class="pdf-contacto-fila">📱 +569 57039988</div>
-      </div>
+      ${pieHoja()}
     </div>
   `;
 }
@@ -1290,7 +1340,7 @@ modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocument
  * cuántos píxeles mide cada uno (eso venía fallando).
  */
 function prepararAlturasParaImprimir() {
-  const hoja = document.querySelector('#hojaDocumentoImprimir .hoja-documento');
+  const hoja = document.querySelector('#hojaDocumentoImprimir .hoja-documento, #hojaDocumentoImprimir .pdf-doc');
   if (!hoja) return;
   const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
   const encabezado = hoja.querySelector('.pdf-encabezado-fijo');
