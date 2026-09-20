@@ -76,6 +76,91 @@
     <!-- ---- Estado de la cotización (viene del módulo Cotizaciones) ---- -->
     <div id="docAvisoCotizacion" style="display:none; margin:0 0 20px; padding:14px 18px; border:1px solid var(--gold-line); border-radius:10px; background:var(--sand-soft); font-size:14px; line-height:1.5;"></div>
 
+    <!-- ---- Datos de contrato, abono e instalación (lo que Cotizaciones no captura) ---- -->
+    <section class="panel-seccion" id="docDatosPanel" style="display:none;">
+      <button type="button" class="datos-proyecto-toggle" id="datosDocToggle">
+        <h2>Datos de contrato, abono e instalación</h2>
+        <span class="flecha-datos" id="flechaDatosDoc">⌄</span>
+      </button>
+
+      <form id="formDatosDoc" style="display:none;">
+        <p class="subtitulo" style="margin-bottom:14px;">Lo que ya viene de la cotización (folio, ítems, total, IVA, abono, forma de pago y fechas de entrega) no se pide aquí. Los campos con valor sugerido se toman del proyecto y de la cotización: cámbialos si no corresponden. Se guardan en el proyecto, así que no se pierden si la cotización cambia de versión.</p>
+
+        <p class="form-section-title">Contrato</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddFechaContrato">Fecha del contrato</label>
+            <input type="date" id="ddFechaContrato">
+          </div>
+          <div class="campo">
+            <label for="ddPlazoDias">Plazo de ejecución (días hábiles)</label>
+            <input type="number" id="ddPlazoDias" min="1" placeholder="Ej. 16">
+          </div>
+          <div class="campo">
+            <label for="ddAutorizaImagenes">Uso de imágenes del proyecto</label>
+            <select id="ddAutorizaImagenes">
+              <option value="">Aún sin definir</option>
+              <option value="si">El cliente autoriza</option>
+              <option value="no">El cliente no autoriza</option>
+            </select>
+          </div>
+        </div>
+
+        <p class="form-section-title">Abono recibido</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddMedioPago">Medio de pago del abono</label>
+            <input type="text" id="ddMedioPago" placeholder="Ej. Transferencia">
+          </div>
+          <div class="campo">
+            <label for="ddBanco">Banco</label>
+            <input type="text" id="ddBanco" placeholder="Ej. Banco Estado">
+          </div>
+          <div class="campo">
+            <label for="ddFechaPago">Fecha del pago del abono</label>
+            <input type="date" id="ddFechaPago">
+          </div>
+        </div>
+
+        <p class="form-section-title">Instalación y entrega</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddFechaInstalacion">Fecha de instalación</label>
+            <input type="date" id="ddFechaInstalacion">
+          </div>
+          <div class="campo">
+            <label for="ddHoraInicio">Hora de inicio</label>
+            <input type="time" id="ddHoraInicio">
+          </div>
+          <div class="campo">
+            <label for="ddHoraTermino">Hora de término</label>
+            <input type="time" id="ddHoraTermino">
+          </div>
+          <div class="campo">
+            <label for="ddInstalador">Instalador responsable</label>
+            <input type="text" id="ddInstalador" placeholder="Ej. Abraham Quintero">
+          </div>
+          <div class="campo">
+            <label for="ddRelacionCliente">Relación de quien recibe con el cliente</label>
+            <input type="text" id="ddRelacionCliente" placeholder="Ej. Titular del proyecto">
+          </div>
+          <div class="campo">
+            <label for="ddOtrosElementos">Otros elementos entregados (opcional)</label>
+            <input type="text" id="ddOtrosElementos" placeholder="Ej. Kit de mantención">
+          </div>
+          <div class="campo campo-full">
+            <label for="ddObservaciones">Observaciones (opcional)</label>
+            <input type="text" id="ddObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
+          </div>
+        </div>
+
+        <div class="modal-error" id="datosDocError"></div>
+        <div class="modal-acciones">
+          <button type="submit" class="btn-primario">Guardar datos</button>
+        </div>
+      </form>
+    </section>
+
     <!-- ---- Grilla de documentos ---- -->
     <section class="panel-seccion">
       <h2>Documentos del proyecto</h2>
@@ -102,6 +187,6 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=2"></script>
+<script type="module" src="js/documentacion.js?v=3"></script>
 </body>
 </html>
