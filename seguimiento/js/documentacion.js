@@ -4,12 +4,15 @@
 // ============================================================
 // Busca un proyecto por RUT y genera los documentos del cliente
 // listos para descargar en PDF o imprimir. Los datos de cotización
-// son "provisionales": viven dentro del mismo Proyecto (campo
-// `cotizacion`) hasta que exista el módulo de Cotizaciones.
+// (folio, ítems, totales, IVA, abono, forma de pago, fechas de
+// entrega y el checklist de la Descripción) se leen SIEMPRE en vivo
+// desde el módulo Cotizaciones (colección "cotizaciones", vinculada
+// al proyecto por leadOrigenId). Ya no existe el formulario
+// provisional de cotización dentro de Documentación.
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead,
+  buscarProyectoPorRut, obtenerCotizacionVigentePorLead,
   listarCatalogoDescripcionActivo
 } from './firestore.js';
 
@@ -182,7 +185,7 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
 
   document.getElementById('docNoEncontrado').classList.remove('visible');
   document.getElementById('docClienteResultado').classList.remove('visible');
-  document.getElementById('docCotizacionPanel').classList.remove('visible');
+  document.getElementById('docAvisoCotizacion').style.display = 'none';
 
   if (!rutLimpio) {
     mostrarToast('Escribe un RUT para buscar.', 'error');
@@ -199,9 +202,7 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
     }
     PROYECTO_ACTUAL = proyecto;
     mostrarResultadoCliente(proyecto);
-    const cotizacionParaMostrar = await obtenerCotizacionParaFormulario(proyecto);
-    poblarFormCotizacion(cotizacionParaMostrar);
-    document.getElementById('docCotizacionPanel').classList.add('visible');
+    mostrarAvisoCotizacion(await prepararProyectoConCotizacion(proyecto));
     renderizarDocsGrid();
   } catch (err) {
     console.error(err);
@@ -209,44 +210,140 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
   }
 });
 
+// ============================================================
+// Cotización real (módulo Cotizaciones) → datos para los documentos
+// ============================================================
+
+/** "7,40" → 7.4 (en Cotizaciones la cantidad se guarda como texto con coma). */
+function parsearCantidad(valor) {
+  return parseFloat(String(valor ?? '').replace(',', '.')) || 0;
+}
+
+/** Date → "YYYY-MM-DD" en hora local (evita el desfase de toISOString). */
+function isoLocal(fecha) {
+  const a = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, '0');
+  const d = String(fecha.getDate()).padStart(2, '0');
+  return `${a}-${m}-${d}`;
+}
+
+/** "2026-10-30" → "30-10-26" (mismo formato corto del PDF de Cotizaciones). */
+function formatearFechaCorta(isoFecha) {
+  if (!isoFecha) return '';
+  const [anio, mes, dia] = isoFecha.split('-');
+  return `${dia}-${mes}-${anio.slice(2)}`;
+}
+
+/** Rango de entrega igual al del PDF de Cotizaciones: "10 al 30-10-26". */
+function formatearRangoEntrega(inicio, fin) {
+  if (!inicio && !fin) return '—';
+  if (inicio && fin) return `${inicio.split('-')[2]} al ${formatearFechaCorta(fin)}`;
+  return formatearFechaCorta(inicio || fin);
+}
+
 /**
- * Trae el folio, los ítems y el % de abono desde la cotización real
- * (colección "cotizaciones", vinculada por leadOrigenId), y los combina
- * con lo que ya hubiera guardado en el Proyecto (fechas, materiales,
- * instalador, etc. — eso sigue viviendo solo acá hasta que el módulo
- * de Cotizaciones también los capture). Se ejecuta cada vez que se
- * busca el RUT, así que si algo cambió en Cotizaciones después, se
- * refleja acá sin tener que hacerlo a mano.
+ * Convierte la cotización vigente (formato del módulo Cotizaciones) al
+ * formato `cotizacion` que ya usan todos los generadores de documentos.
  *
- * El "Valor Unitario" que usan los documentos de Documentación se
- * recalcula igual que en el módulo de Cotizaciones: Total ÷ Cantidad,
- * ya que ahí el precio se pacta como total de la línea, no al revés.
+ * - Lo que existe en Cotizaciones (folio, ítems, totales, IVA, abono,
+ *   forma de pago, fechas de entrega, validez) SIEMPRE manda.
+ * - Lo que Cotizaciones todavía no captura (fecha de contrato, plazo,
+ *   horas, medio de pago, banco, fecha de pago, instalación,
+ *   observaciones, instalador) se conserva desde lo que ya estuviera
+ *   guardado en el proyecto, para no perder datos antiguos.
  */
-async function obtenerCotizacionParaFormulario(proyecto) {
-  const base = proyecto.cotizacion || {};
-  if (!proyecto.leadOrigenId) return base;
+function combinarCotizacion(base = {}, vigente) {
+  if (!vigente) return base;
 
-  try {
-    const vigente = await obtenerCotizacionVigentePorLead(proyecto.leadOrigenId);
-    if (!vigente) return base;
-
-    const items = (vigente.items || []).map(it => {
-      const cantidadNum = parseFloat(String(it.cantidad || '').replace(',', '.')) || 0;
-      return { codigo: it.codigo || '', cantidad: cantidadNum, descripcion: it.descripcion || '', valorUnitario: it.valorUnitario || 0 };
-    });
-
-    mostrarToast(`Ítems y folio cargados desde Cotizaciones (${vigente.numero}).`);
-
+  const items = (vigente.items || []).map(it => {
+    const cantidadNum = parsearCantidad(it.cantidad);
+    const valorUnitario = Number(it.valorUnitario) || 0;
     return {
-      ...base,
-      numero: vigente.numero,
-      items,
-      abonoPorcentaje: vigente.porcentajeAbono ?? base.abonoPorcentaje
+      codigo: it.codigo || '',
+      descripcion: it.descripcion || '',
+      cantidad: it.cantidad || '',
+      cantidadNum,
+      valorUnitario,
+      total: Number(it.total) || Math.round(cantidadNum * valorUnitario)
     };
-  } catch (err) {
-    console.error('No se pudo cargar la cotización real desde el módulo Cotizaciones:', err);
-    return base;
+  });
+
+  const aplicaIva = !!vigente.aplicaIva;
+  const subtotal = Number(vigente.totalGeneral) || 0;
+  const iva = aplicaIva ? (Number(vigente.ivaMonto) || 0) : 0;
+  const total = aplicaIva ? (Number(vigente.totalConIva) || subtotal + iva) : subtotal;
+  const abonoMonto = Number(vigente.abono) || 0;
+
+  return {
+    ...base,
+    numero: vigente.numero,
+    fechaCotizacion: vigente.creadoEn?.toDate ? isoLocal(vigente.creadoEn.toDate()) : (base.fechaCotizacion || ''),
+    validaDesde: vigente.validaDesde || '',
+    proyecto: vigente.proyecto || '',
+    items,
+    aplicaIva,
+    subtotal,
+    iva,
+    total,
+    abonoPorcentaje: vigente.porcentajeAbono ?? base.abonoPorcentaje,
+    abonoMonto,
+    saldoMonto: total - abonoMonto,
+    formaPago: vigente.formaPago || base.formaPago || '',
+    fechaEntregaInicio: vigente.fechaEntregaInicio || '',
+    fechaEntregaFin: vigente.fechaEntregaFin || ''
+  };
+}
+
+/**
+ * Devuelve una copia del proyecto lista para generar documentos:
+ * trae la cotización vigente FRESCA desde Firestore (así, si algo cambió
+ * en Cotizaciones después de buscar el RUT, se refleja al abrir la vista
+ * previa) y deja:
+ *   - p.cotizacionReal → el documento crudo de la colección "cotizaciones" (o null)
+ *   - p.cotizacion     → los datos ya adaptados que usan los generadores
+ *   - p.codigoCotizacion → el folio real, para que CB-/CV-/DC-... salgan con el mismo número
+ */
+async function prepararProyectoConCotizacion(proyecto) {
+  let vigente = null;
+  let errorCotizacion = false;
+
+  if (proyecto.leadOrigenId) {
+    try {
+      vigente = await obtenerCotizacionVigentePorLead(proyecto.leadOrigenId);
+    } catch (err) {
+      console.error('No se pudo cargar la cotización desde el módulo Cotizaciones:', err);
+      errorCotizacion = true;
+    }
   }
+
+  return {
+    ...proyecto,
+    codigoCotizacion: vigente?.numero || proyecto.codigoCotizacion,
+    cotizacionReal: vigente,
+    errorCotizacion,
+    cotizacion: combinarCotizacion(proyecto.cotizacion, vigente)
+  };
+}
+
+/** Franja informativa bajo la ficha del cliente (reemplaza al panel provisional). */
+function mostrarAvisoCotizacion(p) {
+  const aviso = document.getElementById('docAvisoCotizacion');
+  const leadId = PROYECTO_ACTUAL?.leadOrigenId;
+  const v = p.cotizacionReal;
+  let contenido;
+
+  if (v) {
+    contenido = `✓ Cotización <strong>${escapeHtml(v.numero)}</strong> (versión ${escapeHtml(v.version ?? 1)}) cargada desde el módulo Cotizaciones. <a href="cotizaciones.html?leadId=${encodeURIComponent(leadId)}">Ver / editar</a>`;
+  } else if (p.errorCotizacion) {
+    contenido = '⚠️ No pudimos leer la cotización de este proyecto. Recarga la página e intenta de nuevo.';
+  } else if (leadId) {
+    contenido = `Este proyecto todavía no tiene cotización. Créala en el módulo Cotizaciones y aparecerá aquí sola. <a href="cotizaciones.html?leadId=${encodeURIComponent(leadId)}">Crear cotización</a>`;
+  } else {
+    contenido = 'Este proyecto no está vinculado a un lead del CRM, así que no se puede traer su cotización automáticamente.';
+  }
+
+  aviso.innerHTML = contenido;
+  aviso.style.display = 'block';
 }
 
 function mostrarResultadoCliente(p) {
@@ -255,137 +352,6 @@ function mostrarResultadoCliente(p) {
     `${p.codigo || '—'} · ${p.tipoProyecto || 'Sin tipo'} · RUT ${formatearRutVisible(p.rut)}`;
   document.getElementById('docClienteResultado').classList.add('visible');
 }
-
-// ============================================================
-// Panel de Cotización provisional
-// ============================================================
-document.getElementById('cotizacionToggle').addEventListener('click', () => {
-  const form = document.getElementById('formCotizacion');
-  const flecha = document.getElementById('flechaCotizacion');
-  const abierto = form.style.display !== 'none';
-  form.style.display = abierto ? 'none' : 'block';
-  flecha.textContent = abierto ? '⌄' : '⌃';
-});
-
-function crearFilaItem(item = {}) {
-  const fila = document.createElement('div');
-  fila.className = 'doc-item-fila';
-  fila.innerHTML = `
-    <input type="text" class="item-codigo" placeholder="Código" value="${item.codigo || ''}">
-    <input type="number" class="item-cantidad" placeholder="Cant." min="0" value="${item.cantidad ?? ''}">
-    <input type="text" class="item-descripcion" placeholder="Descripción" value="${item.descripcion || ''}">
-    <input type="number" class="item-valor" placeholder="Valor unitario" min="0" value="${item.valorUnitario ?? ''}">
-    <button type="button" class="doc-item-quitar" title="Quitar ítem">×</button>
-  `;
-  fila.querySelector('.doc-item-quitar').addEventListener('click', () => {
-    fila.remove();
-    calcularTotalesCotizacion();
-  });
-  fila.querySelectorAll('input').forEach(inp => inp.addEventListener('input', calcularTotalesCotizacion));
-  return fila;
-}
-
-document.getElementById('btnAgregarItem').addEventListener('click', () => {
-  document.getElementById('cotItemsTabla').appendChild(crearFilaItem());
-});
-
-document.getElementById('cotIva').addEventListener('input', calcularTotalesCotizacion);
-document.getElementById('cotAbonoPorcentaje').addEventListener('input', calcularTotalesCotizacion);
-
-function leerItemsCotizacion() {
-  return Array.from(document.querySelectorAll('#cotItemsTabla .doc-item-fila')).map(fila => ({
-    codigo: fila.querySelector('.item-codigo').value.trim(),
-    cantidad: Number(fila.querySelector('.item-cantidad').value) || 0,
-    descripcion: fila.querySelector('.item-descripcion').value.trim(),
-    valorUnitario: Number(fila.querySelector('.item-valor').value) || 0
-  })).filter(it => it.codigo || it.descripcion || it.cantidad || it.valorUnitario);
-}
-
-function calcularTotalesCotizacion() {
-  const items = leerItemsCotizacion();
-  const subtotal = items.reduce((acc, it) => acc + (it.cantidad * it.valorUnitario), 0);
-  const iva = Number(document.getElementById('cotIva').value) || 0;
-  const total = subtotal + iva;
-  const abonoPorcentaje = Number(document.getElementById('cotAbonoPorcentaje').value) || 0;
-  const abonoMonto = Math.round(total * abonoPorcentaje / 100);
-  const saldo = total - abonoMonto;
-
-  document.getElementById('cotSubtotal').textContent = formatearCLP(subtotal);
-  document.getElementById('cotTotal').textContent = formatearCLP(total);
-  document.getElementById('cotAbonoMonto').textContent = formatearCLP(abonoMonto);
-  document.getElementById('cotSaldo').textContent = formatearCLP(saldo);
-
-  return { subtotal, iva, total, abonoPorcentaje, abonoMonto, saldo };
-}
-
-function poblarFormCotizacion(cot) {
-  document.getElementById('cotNumero').value = cot.numero || PROYECTO_ACTUAL?.codigoCotizacion || '';
-  document.getElementById('cotFechaCotizacion').value = cot.fechaCotizacion || '';
-  document.getElementById('cotFechaValidez').value = cot.fechaValidez || '';
-  document.getElementById('cotIva').value = cot.iva ?? 0;
-  document.getElementById('cotAbonoPorcentaje').value = cot.abonoPorcentaje ?? 60;
-  document.getElementById('cotFormaPago').value = cot.formaPago || '';
-  document.getElementById('cotMedioPago').value = cot.medioPago || '';
-  document.getElementById('cotBanco').value = cot.banco || '';
-  document.getElementById('cotFechaPago').value = cot.fechaPago || '';
-  document.getElementById('cotFechaInstalacion').value = cot.fechaInstalacion || '';
-  document.getElementById('cotFechaContrato').value = cot.fechaContrato || '';
-  document.getElementById('cotPlazoDias').value = cot.plazoDias ?? 16;
-  document.getElementById('cotHoraInicio').value = cot.horaInicio || '';
-  document.getElementById('cotHoraTermino').value = cot.horaTermino || '';
-  document.getElementById('cotObservaciones').value = cot.observaciones || '';
-  document.getElementById('cotInstalador').value = cot.instalador || 'Abraham Quintero';
-
-  const tabla = document.getElementById('cotItemsTabla');
-  tabla.innerHTML = '';
-  const items = (cot.items && cot.items.length) ? cot.items : [{}];
-  items.forEach(it => tabla.appendChild(crearFilaItem(it)));
-  calcularTotalesCotizacion();
-
-  // Panel cerrado por defecto; se abre solo si el usuario hace clic.
-  document.getElementById('formCotizacion').style.display = 'none';
-  document.getElementById('flechaCotizacion').textContent = '⌄';
-}
-
-document.getElementById('formCotizacion').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if (!PROYECTO_ACTUAL) return;
-
-  const totales = calcularTotalesCotizacion();
-  const cotizacion = {
-    numero: document.getElementById('cotNumero').value.trim(),
-    fechaCotizacion: document.getElementById('cotFechaCotizacion').value,
-    fechaValidez: document.getElementById('cotFechaValidez').value,
-    items: leerItemsCotizacion(),
-    iva: totales.iva,
-    abonoPorcentaje: totales.abonoPorcentaje,
-    formaPago: document.getElementById('cotFormaPago').value.trim(),
-    medioPago: document.getElementById('cotMedioPago').value.trim(),
-    banco: document.getElementById('cotBanco').value.trim(),
-    fechaPago: document.getElementById('cotFechaPago').value,
-    fechaInstalacion: document.getElementById('cotFechaInstalacion').value,
-    fechaContrato: document.getElementById('cotFechaContrato').value,
-    plazoDias: Number(document.getElementById('cotPlazoDias').value) || 0,
-    horaInicio: document.getElementById('cotHoraInicio').value,
-    horaTermino: document.getElementById('cotHoraTermino').value,
-    observaciones: document.getElementById('cotObservaciones').value.trim(),
-    instalador: document.getElementById('cotInstalador').value.trim() || 'Abraham Quintero',
-    // Totales ya calculados, para que los documentos no tengan que recalcular.
-    subtotal: totales.subtotal,
-    total: totales.total,
-    abonoMonto: totales.abonoMonto,
-    saldoMonto: totales.saldo
-  };
-
-  try {
-    await actualizarProyecto(PROYECTO_ACTUAL.codigo, { cotizacion });
-    PROYECTO_ACTUAL.cotizacion = cotizacion;
-    mostrarToast('Datos de cotización guardados.');
-  } catch (err) {
-    console.error(err);
-    document.getElementById('cotizacionError').textContent = 'No pudimos guardar los datos. Intenta de nuevo.';
-  }
-});
 
 // ============================================================
 // Catálogo de opciones para la Descripción de Cotización (DC)
@@ -414,8 +380,15 @@ function filaChecklistDC(categoria, seleccionIds = []) {
   `).join('');
 }
 
-/** Chequeo mínimo para saber si ya se guardó una cotización utilizable. */
-function cotizacionCompleta(p) {
+/**
+ * ¿Se puede generar este documento? COT y DC exigen la cotización real
+ * del módulo Cotizaciones. El resto (contrato, comprobante de abono)
+ * también la usa, pero acepta datos antiguos ya guardados en el
+ * proyecto (total > 0) para no bloquear proyectos previos al cambio.
+ */
+function cotizacionDisponible(p, doc) {
+  if (p.cotizacionReal) return true;
+  if (doc.requiereCotizacionReal) return false;
   return !!(p.cotizacion && p.cotizacion.total > 0);
 }
 
@@ -425,8 +398,8 @@ function cotizacionCompleta(p) {
 const DOCUMENTOS = [
   { sigla: 'PT',  nombre: 'Portada institucional', activo: true, generar: generarPortada },
   { sigla: 'CB',  nombre: 'Carta de Bienvenida', activo: true, generar: generarCartaBienvenida },
-  { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, generar: generarCotizacion },
-  { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, generar: generarDescripcionCotizacion },
+  { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
+  { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarDescripcionCotizacion },
   { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, generar: generarContratoVenta },
   { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, generar: generarManualUso },
   { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, generar: generarCertificadoGarantia },
@@ -458,13 +431,20 @@ function renderizarDocsGrid() {
           mostrarToast('Primero busca un cliente por RUT.', 'error');
           return;
         }
-        if (doc.requiereCotizacion && !cotizacionCompleta(PROYECTO_ACTUAL)) {
-          mostrarToast('Completa y guarda primero los "Datos de cotización" de este proyecto.', 'error');
+        // Se vuelve a leer la cotización vigente en cada vista previa,
+        // así siempre sale lo último que se guardó en Cotizaciones.
+        const p = await prepararProyectoConCotizacion(PROYECTO_ACTUAL);
+        if (doc.requiereCotizacion && !cotizacionDisponible(p, doc)) {
+          mostrarToast(
+            p.errorCotizacion
+              ? 'No pudimos leer la cotización de este proyecto. Intenta de nuevo.'
+              : 'Este proyecto todavía no tiene una cotización en el módulo Cotizaciones. Créala ahí y vuelve a intentar.',
+            'error'
+          );
           return;
         }
-        // generar() puede ser async (el DC trae su checklist en vivo
-        // desde el módulo Cotizaciones) o sync (el resto de documentos).
-        const html = await doc.generar(PROYECTO_ACTUAL);
+        // generar() puede ser async (el DC lee el catálogo en vivo) o sync (el resto).
+        const html = await doc.generar(p);
         abrirModalDocumento(html, `${doc.sigla}-${PROYECTO_ACTUAL.codigo}`);
       });
     }
@@ -688,16 +668,22 @@ function generarPortada(p) {
 function generarCotizacion(p) {
   const cot = p.cotizacion || {};
   const codigo = cot.numero || codigoDocumento('COT', p);
-  const items = (cot.items && cot.items.length) ? cot.items : [];
+  const items = cot.items || [];
   const filas = items.map(it => `
     <tr>
-      <td>${it.codigo || ''}</td>
-      <td style="text-align:center;">${it.cantidad || 0}</td>
-      <td>${it.descripcion || ''}</td>
+      <td>${escapeHtml(it.codigo)}</td>
+      <td style="text-align:center;">${escapeHtml(it.cantidad)} m</td>
+      <td>${escapeHtml(it.descripcion)}</td>
       <td style="text-align:right;">${formatearCLP(it.valorUnitario)}</td>
-      <td style="text-align:right;">${formatearCLP((it.cantidad || 0) * (it.valorUnitario || 0))}</td>
+      <td style="text-align:right;">${formatearCLP(it.total)}</td>
     </tr>
   `).join('');
+
+  // Igual que el PDF del módulo Cotizaciones: Subtotal e IVA solo se
+  // muestran cuando la cotización aplica IVA.
+  const filasIva = cot.aplicaIva ? `
+          <tr><td style="padding:6px 10px; background:var(--sand-soft);">SUBTOTAL</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.subtotal)}</td></tr>
+          <tr><td style="padding:6px 10px; background:var(--sand-soft);">I.V.A</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.iva)}</td></tr>` : '';
 
   return `
     <div class="hoja-documento">
@@ -706,15 +692,16 @@ function generarCotizacion(p) {
         <table style="width:100%; border-collapse:collapse; margin-bottom:18px; font-size:12px;">
           <tr>
             <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FECHA:</strong> ${formatearFechaLarga(cot.fechaCotizacion)}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>PROYECTO:</strong> ${p.tipoProyecto || '—'}</td>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>VÁLIDA HASTA:</strong> ${formatearFechaLarga(cot.fechaValidez)}</td>
+            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>PROYECTO:</strong> ${escapeHtml(cot.proyecto || p.tipoProyecto || '—')}</td>
+            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FECHA DE ENTREGA:</strong> ${formatearRangoEntrega(cot.fechaEntregaInicio, cot.fechaEntregaFin)}</td>
           </tr>
           <tr>
             <td style="border:1px solid var(--gold-line); padding:6px 10px;" colspan="2"><strong>CLIENTE:</strong> ${tituloCase(p.cliente)}</td>
             <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>TELÉFONO:</strong> ${p.telefono || '—'}</td>
           </tr>
           <tr>
-            <td style="border:1px solid var(--gold-line); padding:6px 10px;" colspan="3"><strong>DIRECCIÓN:</strong> ${formatearDireccionSimple(p.direccion)}</td>
+            <td style="border:1px solid var(--gold-line); padding:6px 10px;" colspan="2"><strong>DIRECCIÓN:</strong> ${formatearDireccionSimple(p.direccion)}</td>
+            <td style="border:1px solid var(--gold-line); padding:6px 10px;"><strong>FORMA DE PAGO:</strong> ${escapeHtml(cot.formaPago || '—')}</td>
           </tr>
         </table>
 
@@ -731,14 +718,12 @@ function generarCotizacion(p) {
           <tbody>${filas || '<tr><td colspan="5" style="padding:8px; text-align:center; opacity:0.6;">Sin ítems cargados</td></tr>'}</tbody>
         </table>
 
-        <p>Esta cotización de su proyecto es válida hasta ${formatearFechaLarga(cot.fechaValidez)}.<br>Cualquier duda o consulta comuníquese con nosotros, estaremos gustosos de atenderlo.</p>
+        <p>Esta cotización de su proyecto es válida desde ${formatearFechaLarga(cot.validaDesde)}.<br>Cualquier duda o consulta comuníquese con nosotros, estaremos gustosos de atenderlo.</p>
         <p><strong>GRACIAS POR SU PREFERENCIA…!!!</strong></p>
 
-        <table style="width:260px; margin-left:auto; border-collapse:collapse; font-size:13px;">
-          <tr><td style="padding:6px 10px; background:var(--sand-soft);">SUBTOTAL</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.subtotal)}</td></tr>
-          <tr><td style="padding:6px 10px; background:var(--sand-soft);">I.V.A</td><td style="padding:6px 10px; text-align:right;">${formatearCLP(cot.iva)}</td></tr>
+        <table style="width:260px; margin-left:auto; border-collapse:collapse; font-size:13px;">${filasIva}
           <tr><td style="padding:6px 10px; background:var(--ink); color:#fff;"><strong>TOTAL</strong></td><td style="padding:6px 10px; text-align:right; background:var(--ink); color:#fff;"><strong>${formatearCLP(cot.total)}</strong></td></tr>
-          <tr><td style="padding:6px 10px; background:var(--gold); color:var(--ink);">ABONO ${cot.abonoPorcentaje ?? 60}%</td><td style="padding:6px 10px; text-align:right; background:var(--gold); color:var(--ink);"><strong>${formatearCLP(cot.abonoMonto)}</strong></td></tr>
+          <tr><td style="padding:6px 10px; background:var(--gold); color:var(--ink);">ABONO ${cot.abonoPorcentaje ?? 0}%</td><td style="padding:6px 10px; text-align:right; background:var(--gold); color:var(--ink);"><strong>${formatearCLP(cot.abonoMonto)}</strong></td></tr>
         </table>
       </div>
       ${pieHoja()}
@@ -749,37 +734,28 @@ function generarCotizacion(p) {
 // ============================================================
 // DC — Descripción de la Cotización
 // ============================================================
-// A diferencia del resto de los documentos, este trae su checklist
-// SIEMPRE en vivo desde la cotización real del módulo Cotizaciones
-// (por leadOrigenId) — no depende de haber apretado antes "Guardar
-// datos de cotización" en este panel. Usa el mismo formato dorado/
-// negro (clases .pdf-doc / .pdf-dc-*) que la plantilla de Cotizaciones,
-// para que sea exactamente el mismo documento en los dos módulos.
+// Trae su checklist de la cotización real del módulo Cotizaciones
+// (p.cotizacionReal, leída en vivo justo antes de abrir la vista
+// previa). Usa el mismo formato dorado/negro (clases .pdf-doc /
+// .pdf-dc-*) que la plantilla de Cotizaciones, para que sea
+// exactamente el mismo documento en los dos módulos.
 async function generarDescripcionCotizacion(p) {
-  const codigo = codigoDocumento('DC', p);
+  const vigente = p.cotizacionReal;
+  // Mismo folio que en Cotizaciones: CT-WSP-00002 -> DC-WSP-00002
+  const codigo = vigente?.numero ? String(vigente.numero).replace(/^[A-Z]+-/, 'DC-') : codigoDocumento('DC', p);
   const nombreCliente = tituloCase(p.cliente) || '____________________';
   const rutCliente = formatearRutVisible(p.rut);
   const domicilioCliente = formatearDireccionSimple(p.direccion);
 
-  let seleccion = { materiales: [], herrajes: [], cubiertas: [], accesorios: [] };
-  let fecha = new Date();
+  const seleccion = { materiales: [], herrajes: [], cubiertas: [], accesorios: [], ...(vigente?.descripcionCotizacion || {}) };
+  const fecha = vigente?.creadoEn?.toDate ? vigente.creadoEn.toDate() : new Date();
 
-  if (p.leadOrigenId) {
-    try {
-      const vigente = await obtenerCotizacionVigentePorLead(p.leadOrigenId);
-      if (vigente?.descripcionCotizacion) seleccion = vigente.descripcionCotizacion;
-      if (vigente?.creadoEn?.toDate) fecha = vigente.creadoEn.toDate();
-    } catch (err) {
-      console.error('No se pudo cargar el checklist real desde el módulo Cotizaciones:', err);
-    }
-  }
-
-  if (!catalogoDescripcionActivo.length) {
-    try {
-      catalogoDescripcionActivo = await listarCatalogoDescripcionActivo();
-    } catch (err) {
-      console.error(err);
-    }
+  // Se relee el catálogo cada vez, así las opciones nuevas agregadas
+  // en Cotizaciones aparecen sin tener que recargar esta página.
+  try {
+    catalogoDescripcionActivo = await listarCatalogoDescripcionActivo();
+  } catch (err) {
+    console.error(err);
   }
 
   return `
@@ -804,7 +780,7 @@ async function generarDescripcionCotizacion(p) {
       <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
       <p class="pdf-dc-intro">
-        Con fecha ${formatearFechaLarga(fecha.toISOString().slice(0, 10))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${nombreCliente}, RUT: ${rutCliente}, con domicilio en ${domicilioCliente}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+        Con fecha ${formatearFechaLarga(isoLocal(fecha))}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${nombreCliente}, RUT: ${rutCliente}, con domicilio en ${domicilioCliente}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
       </p>
 
       <div class="pdf-dc-seccion">
