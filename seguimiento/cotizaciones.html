@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cotizaciones · LINENCE</title>
+<title>Documentación · Panel Interno · LINENCE</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="../favicon.png">
 <link rel="shortcut icon" type="image/png" href="../favicon.png">
@@ -13,18 +13,35 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=1">
-<link rel="stylesheet" href="css/cotizaciones.css?v=1">
-<link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="stylesheet" href="css/documentacion.css?v=1">
+<style media="print">
+  /* Documentos en formato dorado/negro (.pdf-doc: Cotización y Descripción
+     de Cotización). Mismas reglas que usa el módulo Cotizaciones al imprimir:
+     encabezado y pie fijos para repetirse en cada hoja, y relleno con la
+     altura real medida por JS (prepararAlturasParaImprimir). */
+  #hojaDocumentoImprimir .pdf-doc {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    padding-top: var(--print-pad-top, 220px);
+    padding-bottom: var(--print-pad-bottom, 110px);
+  }
+  #hojaDocumentoImprimir .pdf-doc > .pdf-encabezado-fijo {
+    position: fixed; top: 0; left: 0; right: 0;
+  }
+  #hojaDocumentoImprimir .pdf-doc > .pdf-contacto {
+    position: fixed; left: 0; right: 0; bottom: 0;
+  }
+</style>
 </head>
 <body>
 
 <!-- ================= GUARDIA DE SESIÓN ================= -->
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
 
+<!-- Topbar solo visible en mobile -->
 <div class="dash-topbar-mobile" id="dashTopbarMobile" style="display:none;">
   <button id="btnAbrirSidebar" class="btn-burger-dash" aria-label="Abrir menú">
     <span></span><span></span><span></span>
@@ -43,8 +60,8 @@
     <ul class="dash-nav">
       <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
       <li><a href="crm.html">👥 <span class="texto">CRM</span></a></li>
-      <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
-      <li><a href="cotizaciones.html" class="activo">📄 <span class="texto">Cotizaciones</span></a></li>
+      <li><a href="documentacion.html" class="activo">🗂️ <span class="texto">Documentación </span></a></li>
+      <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
       <li><a href="catalogo-servicios.html">🏷️ <span class="texto">Catálogo</span></a></li>
       <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
       <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
@@ -56,427 +73,139 @@
     </div>
   </aside>
 
-  <!-- ================= VISTA: LISTADO ================= -->
-  <main class="dash-main" id="vistaListaCotizaciones">
-    <header class="cat-header">
-      <div>
-        <h1 class="cat-title">Cotizaciones</h1>
-        <p class="subtitulo">Todas las cotizaciones vigentes, una por Lead.</p>
-      </div>
-    </header>
+  <main class="dash-main">
+    <h1>Documentación</h1>
+    <p class="subtitulo">Busca un cliente por RUT y genera sus documentos listos para descargar o imprimir.</p>
 
-    <div class="cat-tabla-wrapper">
-      <table class="cat-tabla">
-        <thead>
-          <tr>
-            <th>Folio</th>
-            <th>Cliente</th>
-            <th>Proyecto</th>
-            <th>Total</th>
-            <th>Abono</th>
-            <th>Actualizada</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tablaCotizacionesBody"></tbody>
-      </table>
-      <p id="listaCotizacionesVacio" class="cat-vacio" style="display:none;">Aún no hay cotizaciones creadas. Crea una desde el detalle de un Lead en CRM.</p>
-    </div>
-  </main>
+    <!-- ---- Buscador por RUT ---- -->
+    <form class="doc-buscador" id="formBuscarRut">
+      <input type="text" id="inputRutBuscar" placeholder="Buscar por RUT del cliente. Ej: 16.252.778-9" autocomplete="off">
+      <button type="submit" class="btn-primario">Buscar</button>
+    </form>
 
-  <!-- ================= VISTA: EDITOR ================= -->
-  <main class="dash-main" id="vistaEditorCotizacion" style="display:none;">
-    <a href="crm.html" class="cot-volver">← Volver al CRM</a>
-
-    <header class="cat-header">
-      <div>
-        <h1 class="cat-title" id="editorClienteNombre">—</h1>
-        <p class="subtitulo" id="editorFolioVersion">Sin cotización aún</p>
-      </div>
-    </header>
-
-    <div class="crm-detalle-dato">
-      <div class="etiqueta">Proyecto (se arma automático con las descripciones)</div>
-      <div class="valor" id="cotProyectoAuto">—</div>
+    <div class="doc-no-encontrado" id="docNoEncontrado">
+      No encontramos ningún proyecto con ese RUT. Revisa que esté bien escrito o créalo primero en Proyectos.
     </div>
 
-    <div id="cotVersionesAnteriores" class="cot-versiones-anteriores" style="display:none;">
-      <button type="button" id="btnVerVersiones" class="cot-link-versiones">Ver versiones anteriores</button>
-      <div id="listaVersionesAnteriores" style="display:none;"></div>
+    <div class="doc-cliente-resultado" id="docClienteResultado">
+      <div class="nombre" id="docClienteNombre">—</div>
+      <div class="meta" id="docClienteMeta">—</div>
     </div>
 
-    <div class="cot-datos-documento">
-      <div class="cot-campo-doc">
-        <label>Fecha de entrega estimada</label>
-        <div class="cot-rango-fechas">
-          <input type="date" id="cotFechaEntregaInicio">
-          <span>al</span>
-          <input type="date" id="cotFechaEntregaFin">
+    <!-- ---- Estado de la cotización (viene del módulo Cotizaciones) ---- -->
+    <div id="docAvisoCotizacion" style="display:none; margin:0 0 20px; padding:14px 18px; border:1px solid var(--gold-line); border-radius:10px; background:var(--sand-soft); font-size:14px; line-height:1.5;"></div>
+
+    <!-- ---- Datos de contrato, abono e instalación (lo que Cotizaciones no captura) ---- -->
+    <section class="panel-seccion" id="docDatosPanel" style="display:none;">
+      <button type="button" class="datos-proyecto-toggle" id="datosDocToggle">
+        <h2>Datos de contrato, abono e instalación</h2>
+        <span class="flecha-datos" id="flechaDatosDoc">⌄</span>
+      </button>
+
+      <form id="formDatosDoc" style="display:none;">
+        <p class="subtitulo" style="margin-bottom:14px;">Lo que ya viene de la cotización (folio, ítems, total, IVA, abono, forma de pago y fechas de entrega) no se pide aquí. Los campos con valor sugerido se toman del proyecto y de la cotización: cámbialos si no corresponden. Se guardan en el proyecto, así que no se pierden si la cotización cambia de versión.</p>
+
+        <p class="form-section-title">Contrato</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddFechaContrato">Fecha del contrato</label>
+            <input type="date" id="ddFechaContrato">
+          </div>
+          <div class="campo">
+            <label for="ddPlazoDias">Plazo de ejecución (días hábiles)</label>
+            <input type="number" id="ddPlazoDias" min="1" placeholder="Ej. 16">
+          </div>
+          <div class="campo">
+            <label for="ddAutorizaImagenes">Uso de imágenes del proyecto</label>
+            <select id="ddAutorizaImagenes">
+              <option value="">Aún sin definir</option>
+              <option value="si">El cliente autoriza</option>
+              <option value="no">El cliente no autoriza</option>
+            </select>
+          </div>
         </div>
-      </div>
-      <div class="cot-campo-doc">
-        <label for="cotFormaPago">Forma de pago</label>
-        <select id="cotFormaPago">
-          <option value="">Selecciona…</option>
-          <option value="Transferencia">Transferencia</option>
-          <option value="Depósito">Depósito</option>
-          <option value="Débito">Débito</option>
-          <option value="Crédito">Crédito</option>
-          <option value="Efectivo">Efectivo</option>
-          <option value="Cheque">Cheque</option>
-        </select>
-      </div>
-      <div class="cot-campo-doc">
-        <label for="cotValidaDesde">Válida desde</label>
-        <input type="date" id="cotValidaDesde">
-      </div>
-    </div>
 
-    <div class="crm-cotizacion-tabla-wrapper">
-      <table class="crm-cotizacion-tabla">
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Cantidad (mm)</th>
-            <th>Valor unitario</th>
-            <th>Total línea</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cotizacionItemsBody"></tbody>
-      </table>
-      <div class="cot-tabla-acciones">
-        <button type="button" class="btn-secundario" id="btnAgregarItemCotizacion">+ Agregar servicio</button>
-        <button type="button" class="cot-btn-nuevo-codigo" id="btnNuevoCodigoDesdeAqui">+ Nuevo producto o servicio</button>
-      </div>
-    </div>
+        <p class="form-section-title">Abono recibido</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddMedioPago">Medio de pago del abono</label>
+            <input type="text" id="ddMedioPago" placeholder="Ej. Transferencia">
+          </div>
+          <div class="campo">
+            <label for="ddBanco">Banco</label>
+            <input type="text" id="ddBanco" placeholder="Ej. Banco Estado">
+          </div>
+          <div class="campo">
+            <label for="ddFechaPago">Fecha del pago del abono</label>
+            <input type="date" id="ddFechaPago">
+          </div>
+        </div>
 
-    <div class="crm-cotizacion-totales">
-      <div class="crm-cotizacion-total-row">
-        <span>Total general</span>
-        <span id="cotTotalGeneral">$0</span>
-      </div>
-      <div class="crm-cotizacion-total-row crm-cotizacion-iva-toggle">
-        <label for="cotAplicaIva"><input type="checkbox" id="cotAplicaIva"> Incluir IVA (19% — para factura)</label>
-      </div>
-      <div class="crm-cotizacion-total-row" id="filaIva" style="display:none;">
-        <span>IVA (19%)</span>
-        <span id="cotIvaMonto">$0</span>
-      </div>
-      <div class="crm-cotizacion-total-row crm-cotizacion-total-con-iva" id="filaTotalConIva" style="display:none;">
-        <span>Total con IVA</span>
-        <span id="cotTotalConIva">$0</span>
-      </div>
-      <div class="crm-cotizacion-total-row">
-        <label for="cotPorcentajeAbono">% de abono</label>
-        <input type="text" id="cotPorcentajeAbono" inputmode="numeric" placeholder="Ej. 50" maxlength="3">
-      </div>
-      <div class="crm-cotizacion-total-row crm-cotizacion-abono-final">
-        <span>Abono</span>
-        <span id="cotAbono">$0</span>
-      </div>
-    </div>
+        <p class="form-section-title">Instalación y entrega</p>
+        <div class="form-grid">
+          <div class="campo">
+            <label for="ddFechaInstalacion">Fecha de instalación</label>
+            <input type="date" id="ddFechaInstalacion">
+          </div>
+          <div class="campo">
+            <label for="ddHoraInicio">Hora de inicio</label>
+            <input type="time" id="ddHoraInicio">
+          </div>
+          <div class="campo">
+            <label for="ddHoraTermino">Hora de término</label>
+            <input type="time" id="ddHoraTermino">
+          </div>
+          <div class="campo">
+            <label for="ddInstalador">Instalador responsable</label>
+            <input type="text" id="ddInstalador" placeholder="Ej. Abraham Quintero">
+          </div>
+          <div class="campo">
+            <label for="ddRelacionCliente">Relación de quien recibe con el cliente</label>
+            <input type="text" id="ddRelacionCliente" placeholder="Ej. Titular del proyecto">
+          </div>
+          <div class="campo">
+            <label for="ddOtrosElementos">Otros elementos entregados (opcional)</label>
+            <input type="text" id="ddOtrosElementos" placeholder="Ej. Kit de mantención">
+          </div>
+          <div class="campo campo-full">
+            <label for="ddObservaciones">Observaciones (opcional)</label>
+            <input type="text" id="ddObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
+          </div>
+        </div>
 
-    <div class="cot-desc-resumen">
-      <div>
-        <h2 class="cat-title" style="font-size:19px; margin:0 0 4px;">Descripción de Cotización</h2>
-        <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
-      </div>
-      <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
-    </div>
+        <div class="modal-error" id="datosDocError"></div>
+        <div class="modal-acciones">
+          <button type="submit" class="btn-primario">Guardar datos</button>
+        </div>
+      </form>
+    </section>
 
-    <div class="modal-error" id="cotizacionError"></div>
-
-    <div class="crm-cotizacion-acciones">
-      <button type="button" class="btn-secundario" id="btnDescargarPDF">👁 Ver PDF</button>
-      <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
-      <button type="button" class="btn-secundario" id="btnGuardarNuevaVersion" style="display:none;">Guardar como nueva versión</button>
-      <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
-    </div>
+    <!-- ---- Grilla de documentos ---- -->
+    <section class="panel-seccion">
+      <h2>Documentos del proyecto</h2>
+      <div class="docs-grid" id="docsGrid"></div>
+    </section>
   </main>
 </div>
 
-<!-- ================= Modal: Descripción de Cotización (checklist) ================= -->
-<!-- Vive siempre en el DOM (nunca se destruye), solo se muestra/oculta con la
-     clase .visible — así lo marcado se conserva aunque el modal esté cerrado,
-     y "Guardar cotización" lee el estado real sin depender de que esté abierto. -->
-<div id="modalDescripcionCotizacion" class="cot-desc-modal-overlay">
-  <div class="cot-desc-modal">
-    <div class="cot-desc-modal-header">
-      <div>
-        <h2 class="cat-title" style="font-size:19px; margin:0;">Descripción de Cotización</h2>
-        <p class="subtitulo" style="margin:4px 0 0;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
-      </div>
-      <button type="button" class="btn-primario" id="btnCerrarDescripcion">Listo</button>
+<!-- ================= MODAL: VISTA PREVIA DOCUMENTO ================= -->
+<div class="modal-overlay" id="modalDocumento">
+  <div class="modal-box modal-box-documento">
+    <div class="doc-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCerrarModalDoc">Cerrar</button>
+      <button type="button" class="btn-secundario" id="btnImprimirDoc">Imprimir</button>
+      <button type="button" class="btn-primario" id="btnDescargarDoc">Descargar PDF</button>
     </div>
-
-    <div class="cot-desc-modal-scroll">
-      <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Materiales</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button>
-        </div>
-        <div class="cot-desc-grid" id="cotDescMateriales"></div>
-      </div>
-
-      <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Herrajes</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button>
-        </div>
-        <div class="cot-desc-grid" id="cotDescHerrajes"></div>
-      </div>
-
-      <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Cubiertas</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button>
-        </div>
-        <div class="cot-desc-grid" id="cotDescCubiertas"></div>
-      </div>
-
-      <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Accesorios</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button>
-        </div>
-        <div class="cot-desc-grid" id="cotDescAccesorios"></div>
-      </div>
+    <div class="doc-hoja-scroll">
+      <div id="hojaDocumentoImprimir"></div>
     </div>
   </div>
 </div>
 
-<!-- ================= Modal: nuevo código de servicio ================= -->
-<div id="modalNuevoCodigo" class="cat-modal-overlay" style="display:none;">
-  <div class="cat-modal">
-    <h2>Nuevo código de servicio</h2>
-    <p class="crm-cotizacion-texto-vacio">Se agrega al catálogo general — también quedará disponible en el módulo Catálogo de Servicios.</p>
+<!-- ================= NOTIFICACIONES TOAST ================= -->
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-    <label class="cat-label">Nombre del servicio</label>
-    <input type="text" id="nuevoCodigoNombre" class="cat-input" placeholder="Ej: Rack TV">
-    <p id="nuevoCodigoError" class="cat-error">Este campo es obligatorio.</p>
-
-    <div class="cat-fila-dos-campos">
-      <div>
-        <label class="cat-label">Prefijo del código</label>
-        <input type="text" id="nuevoCodigoPrefijo" class="cat-input" maxlength="4" placeholder="Ej: RCK">
-      </div>
-      <div>
-        <label class="cat-label">Código</label>
-        <input type="text" id="nuevoCodigoInput" class="cat-input" readonly>
-      </div>
-    </div>
-
-    <label class="cat-label">Categoría</label>
-    <select id="nuevoCodigoCategoria">
-      <option value="">Selecciona…</option>
-      <option value="Mobiliario residencial">Mobiliario residencial</option>
-      <option value="Mobiliario comercial">Mobiliario comercial</option>
-      <option value="Mobiliario corporativo">Mobiliario corporativo</option>
-      <option value="Servicios complementarios">Servicios complementarios</option>
-    </select>
-
-    <label class="cat-label">Tipo</label>
-    <select id="nuevoCodigoTipo">
-      <option value="">Selecciona…</option>
-      <option value="PRODUCTO">Producto</option>
-      <option value="SERVICIO">Servicio</option>
-      <option value="MATERIAL">Material</option>
-      <option value="COMPONENTE">Componente</option>
-    </select>
-
-    <div class="cat-modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCancelarNuevoCodigo">Cancelar</button>
-      <button type="button" class="btn-dorado" id="btnGuardarNuevoCodigo">Crear y usar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= Modal: nueva opción del catálogo de Descripción ================= -->
-<div id="modalNuevaOpcionDescripcion" class="cat-modal-overlay" style="display:none;">
-  <div class="cat-modal">
-    <h2 id="nuevaOpcionTitulo">Nueva opción</h2>
-    <p class="crm-cotizacion-texto-vacio">Se agrega al catálogo general — queda disponible para todas las cotizaciones futuras.</p>
-
-    <label class="cat-label">Nombre de la opción</label>
-    <input type="text" id="nuevaOpcionNombre" class="cat-input" placeholder="Ej: Bisagra de cazoleta de 175° (cierre suave)">
-    <p id="nuevaOpcionError" class="cat-error">Este campo es obligatorio.</p>
-
-    <div class="cat-modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCancelarNuevaOpcion">Cancelar</button>
-      <button type="button" class="btn-dorado" id="btnGuardarNuevaOpcion">Agregar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL: VISTA PREVIA / DESCARGA DEL PDF ================= -->
-<!-- La plantilla vive SIEMPRE visible de verdad adentro de este modal
-     (nunca escondida con display:none ni sacada de pantalla) — así el
-     generador de PDF la captura tal cual se ve, igual que ya funciona
-     en el módulo Documentación. -->
-<div class="cot-pdf-modal-overlay" id="modalPdfCotizacion">
-  <div class="cot-pdf-modal">
-    <div class="cot-pdf-modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCerrarModalPdf">Cerrar</button>
-      <button type="button" class="btn-secundario" id="btnImprimirPdf">Imprimir</button>
-      <button type="button" class="btn-primario" id="btnDescargarPdfModal">Descargar PDF</button>
-    </div>
-    <div class="cot-pdf-modal-scroll">
-      <div id="plantillaPDF" class="pdf-doc">
-  <div class="pdf-encabezado-fijo">
-  <div class="pdf-header">
-    <div class="pdf-header-izq">
-      <div class="pdf-header-titulo">COTIZACIÓN</div>
-      <span class="pdf-header-folio" id="pdfFolio">CT-XXX-00000</span>
-    </div>
-        <div class="pdf-header-logo">
-      <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-      <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
-    </div>
-  </div>
-
-  <div class="pdf-empresa">
-    <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-    <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-    <div>CORREO ELECTRONICO: contacto@linence.cl</div>
-  </div>
-  </div>
-
-  <table class="pdf-tabla-info">
-    <tr>
-      <th>FECHA:</th>
-      <th>PROYECTO:</th>
-      <th>FECHA DE ENTREGA:</th>
-    </tr>
-    <tr>
-      <td id="pdfFecha">—</td>
-      <td id="pdfProyecto">—</td>
-      <td id="pdfFechaEntrega">—</td>
-    </tr>
-    <tr>
-      <th>CLIENTE:</th>
-      <th colspan="2">TELÉFONO:</th>
-    </tr>
-    <tr>
-      <td id="pdfCliente">—</td>
-      <td colspan="2" id="pdfTelefono">—</td>
-    </tr>
-    <tr>
-      <th>DIRECCIÓN:</th>
-      <th colspan="2">FORMA DE PAGO:</th>
-    </tr>
-    <tr>
-      <td id="pdfDireccion">—</td>
-      <td colspan="2" id="pdfFormaPago">—</td>
-    </tr>
-  </table>
-
-  <table class="pdf-tabla-items">
-    <thead>
-      <tr>
-        <th>CODIGO</th>
-        <th>CANTIDAD</th>
-        <th>DESCRIPCIÓN</th>
-        <th>VALOR UNITARIO</th>
-        <th>TOTAL</th>
-      </tr>
-    </thead>
-    <tbody id="pdfItemsBody"></tbody>
-  </table>
-
-  <div class="pdf-pie">
-    <div class="pdf-pie-notas">
-      <p id="pdfValidaDesde">Esta cotización de su proyecto es válida desde —</p>
-      <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
-      <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
-    </div>
-    <table class="pdf-tabla-totales">
-      <tr><th>SUB TOTAL</th><td id="pdfSubtotal"></td></tr>
-      <tr><th>I.V.A</th><td id="pdfIva"></td></tr>
-      <tr><th>TOTAL</th><td id="pdfTotal">—</td></tr>
-      <tr><th id="pdfAbonoLabel">Abono</th><td id="pdfAbono">—</td></tr>
-    </table>
-  </div>
-
-  <div class="pdf-contacto">
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" width="21" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" width="24" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" width="16" height="16" alt=""> +569 57039988</div>
-  </div>
-</div>
-    </div>
-  </div>
-</div>
-
-<!-- ================= MODAL: VISTA PREVIA / DESCARGA DE LA DESCRIPCIÓN DE COTIZACIÓN ================= -->
-<div class="cot-pdf-modal-overlay" id="modalPdfDescripcion">
-  <div class="cot-pdf-modal">
-    <div class="cot-pdf-modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCerrarModalDC">Cerrar</button>
-      <button type="button" class="btn-secundario" id="btnImprimirDC">Imprimir</button>
-      <button type="button" class="btn-primario" id="btnDescargarDCModal">Descargar PDF</button>
-    </div>
-    <div class="cot-pdf-modal-scroll">
-      <div id="plantillaDC" class="pdf-doc">
-  <div class="pdf-encabezado-fijo">
-  <div class="pdf-header">
-    <div class="pdf-header-izq">
-      <div class="pdf-header-titulo">DESCRIPCIÓN DE COTIZACIÓN</div>
-      <span class="pdf-header-folio" id="pdfDCFolio">DC-XXX-00000</span>
-    </div>
-    <div class="pdf-header-logo">
-      <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-      <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
-    </div>
-  </div>
-
-  <div class="pdf-empresa">
-    <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-    <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-    <div>CORREO ELECTRONICO: contacto@linence.cl</div>
-  </div>
-  </div>
-
-  <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
-
-  <p class="pdf-dc-intro">
-    Con fecha <span id="pdfDCFecha">—</span>, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: <span id="pdfDCCliente">—</span>, RUT: <span id="pdfDCRut">—</span>, con domicilio en <span id="pdfDCDireccion">—</span>, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
-  </p>
-
-  <div class="pdf-dc-seccion">
-    <p class="pdf-dc-seccion-titulo">1. MATERIALES A UTILIZAR EN LA FABRICACIÓN DE ESTRUCTURA DE MUEBLES Y PUERTAS:</p>
-    <p class="pdf-dc-nota">LINENCE SpA. se compromete a ejecutar los trabajos utilizando materiales de primera calidad, de acuerdo a los estándares mínimos de las marcas (Masisa/Arauco Vesto).</p>
-    <div class="pdf-dc-lista" id="pdfDCMateriales"></div>
-  </div>
-
-  <div class="pdf-dc-seccion">
-    <p class="pdf-dc-seccion-titulo">2. HERRAJES A UTILIZAR:</p>
-    <div class="pdf-dc-lista" id="pdfDCHerrajes"></div>
-  </div>
-
-  <div class="pdf-dc-seccion">
-    <p class="pdf-dc-seccion-titulo">3. CUBIERTAS:</p>
-    <div class="pdf-dc-lista" id="pdfDCCubiertas"></div>
-  </div>
-
-  <div class="pdf-dc-seccion" style="margin-bottom:18px;">
-    <p class="pdf-dc-seccion-titulo">4. ACCESORIOS:</p>
-    <div class="pdf-dc-lista" id="pdfDCAccesorios"></div>
-  </div>
-
-  <div class="pdf-contacto">
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" width="21" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" width="24" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" width="16" height="16" alt=""> +569 57039988</div>
-  </div>
-</div>
-    </div>
-  </div>
-</div>
-
-<div id="cotToast"></div>
-
-<script type="module" src="js/cotizaciones.js?v=1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script type="module" src="js/documentacion.js?v=4"></script>
 </body>
 </html>
