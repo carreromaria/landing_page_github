@@ -256,9 +256,26 @@
 
 @page { size: letter; margin: 0; }
 
-/* Zona de impresión que arma imprimirDocumentoPdf() en Documentación:
-   invisible en pantalla, es lo único que se imprime. */
+/* Zona de impresión que arma imprimirDocumentoPdf() (la usan Cotizaciones y
+   Documentación): invisible en pantalla, es lo único que se imprime. */
 #zonaImpresionPdf { display: none; }
+
+/* Documentos de varias hojas (Descripción de Cotización): el cuerpo va dentro
+   de una tabla cuyo thead/tfoot vacíos ("espaciadores") el navegador repite en
+   cada hoja al imprimir, reservando el lugar del encabezado y el pie fijos.
+   En pantalla no ocupan espacio. */
+.pdf-paginado {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+.pdf-paginado > thead > tr > td,
+.pdf-paginado > tbody > tr > td,
+.pdf-paginado > tfoot > tr > td {
+  padding: 0;
+  border: 0;
+}
+.pdf-espaciador { display: none; }
 
 @media print {
   .pdf-doc {
@@ -274,6 +291,15 @@
   .pdf-doc > .pdf-contacto {
     position: fixed !important; left: 0; right: 0; bottom: 0;
   }
+
+  /* Espaciadores que se repiten en cada hoja (alto medido por JS) */
+  .pdf-espaciador-arriba { display: block; height: var(--print-esp-top, 0px); }
+  .pdf-espaciador-abajo  { display: block; height: var(--print-esp-bottom, 0px); }
+
+  /* Que una opción del checklist no se corte por la mitad entre dos hojas,
+     ni un título de sección quede solo al final de una hoja */
+  .pdf-dc-item { break-inside: avoid; page-break-inside: avoid; }
+  .pdf-dc-seccion-titulo, .pdf-dc-nota { break-after: avoid; page-break-after: avoid; }
 
   /* Documentación: se imprime solo la zona limpia, sin el modal ni la página detrás */
   body.imprimiendo-pdf-doc > *:not(#zonaImpresionPdf) {
