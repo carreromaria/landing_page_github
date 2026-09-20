@@ -434,24 +434,8 @@
     padding:0 !important;
   }
 
-  .pdf-doc{
-    box-shadow:none !important;
-    margin:0 !important;
-    width:100% !important; /* se adapta al papel real del navegador
-      (A4 o Carta) en vez de un ancho fijo, para que nunca quede
-      contenido cortado si el sistema no deja elegir el tamaño */
-    /* Alto real de encabezado y pie, medido con JS justo antes de
-       imprimir (prepararAlturasParaImprimir) — el valor de respaldo
-       es solo por si esa medición no llegó a correr. */
-    padding-top: var(--print-pad-top, 220px);
-    padding-bottom: var(--print-pad-bottom, 110px);
-  }
-  .pdf-doc > .pdf-encabezado-fijo{
-    position:fixed; top:0; left:0; right:0;
-  }
-  .pdf-doc > .pdf-contacto{
-    position:fixed; left:0; right:0; bottom:0;
-  }
+  /* Las reglas de impresión del documento en sí (.pdf-doc, encabezado y pie
+     fijos, tamaño de hoja) viven ahora en css/pdf-documentos.css, compartidas
+     con Documentación. Acá solo queda lo propio del modal de Cotizaciones. */
 
-  @page { size: letter; margin: 0; }
 }
