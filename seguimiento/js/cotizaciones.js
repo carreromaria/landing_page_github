@@ -17,7 +17,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos COT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, prepararAlturasParaImprimir } from './documentos-cotizacion.js';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=2';
 
 // ---------- Estado ----------
 
@@ -753,8 +753,7 @@ modalPdfCotizacion.addEventListener('click', (e) => {
 });
 
 document.getElementById('btnImprimirPdf').addEventListener('click', () => {
-  prepararAlturasParaImprimir(document.getElementById('plantillaPDF'));
-  window.print();
+  imprimirDocumentoPdf(document.getElementById('plantillaPDF'));
 });
 
 document.getElementById('btnDescargarPdfModal').addEventListener('click', () => {
@@ -764,8 +763,7 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador.
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
-  prepararAlturasParaImprimir(document.getElementById('plantillaPDF'));
-  window.print();
+  imprimirDocumentoPdf(document.getElementById('plantillaPDF'));
 });
 
 function llenarPlantillaPDF(cotizacion, lead) {
@@ -807,12 +805,10 @@ modalPdfDescripcion.addEventListener('click', (e) => {
 });
 
 document.getElementById('btnImprimirDC').addEventListener('click', () => {
-  prepararAlturasParaImprimir(document.getElementById('plantillaDC'));
-  window.print();
+  imprimirDocumentoPdf(document.getElementById('plantillaDC'));
 });
 
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
-  prepararAlturasParaImprimir(document.getElementById('plantillaDC'));
-  window.print();
+  imprimirDocumentoPdf(document.getElementById('plantillaDC'));
 });
