@@ -1,0 +1,15 @@
+/* ============================================================
+   LINENCE — Poppins alojada en el propio sitio
+   ============================================================
+   Antes se cargaba desde Google Fonts: si el computador estaba
+   sin internet, o el navegador aún no la había descargado al
+   momento de imprimir, el documento salía con otra letra.
+   Con los archivos en /fonts/poppins/ siempre está disponible.
+   font-display:block evita que se imprima con una letra
+   provisoria mientras carga.
+*/
+@font-face{font-family:'Poppins';font-style:normal;font-weight:300;font-display:block;src:url('../fonts/poppins/poppins-latin-300-normal.woff2') format('woff2');}
+@font-face{font-family:'Poppins';font-style:normal;font-weight:400;font-display:block;src:url('../fonts/poppins/poppins-latin-400-normal.woff2') format('woff2');}
+@font-face{font-family:'Poppins';font-style:normal;font-weight:500;font-display:block;src:url('../fonts/poppins/poppins-latin-500-normal.woff2') format('woff2');}
+@font-face{font-family:'Poppins';font-style:normal;font-weight:600;font-display:block;src:url('../fonts/poppins/poppins-latin-600-normal.woff2') format('woff2');}
+@font-face{font-family:'Poppins';font-style:normal;font-weight:700;font-display:block;src:url('../fonts/poppins/poppins-latin-700-normal.woff2') format('woff2');}
