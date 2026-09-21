@@ -196,23 +196,21 @@
   position:relative;
 }
 
-/* .hoja-header / .hoja-datos-empresa / .hoja-footer ya no se usan: el
-   encabezado y pie reales (diagonal negro/dorado + contacto) viven en
-   pdf-documentos.css (.pdf-header / .pdf-empresa / .pdf-contacto),
-   compartidos con el módulo Cotizaciones — encabezadoHoja()/pieHoja()
-   en documentacion.js ahora arman ese mismo markup. */
+/* El encabezado y el pie de la hoja (franja negra/dorada, logo, datos de contacto,
+   marca de agua) viven en pdf-documentos.css (.ln-encabezado / .ln-pie /
+   .ln-marca-agua), compartidos con el módulo Cotizaciones. encabezadoHoja() y
+   pieHoja() en documentacion.js arman ese mismo markup. Las hojas con ese formato
+   llevan la clase .doc-formal; portada y tarjetas llevan .doc-sin-formato. */
 
 .hoja-cuerpo{
-  padding:34px 40px;
+  /* El margen lateral (--m) es el mismo del encabezado, del pie y de las tablas:
+     así todo el documento queda alineado. El margen de arriba y abajo de cada
+     hoja lo da @page (ver pdf-documentos.css). La marca de agua ya no va por CSS:
+     es la imagen .ln-marca-agua que agrega el encabezado. */
+  padding:0 var(--m, 0.5in) 0.1in;
   font-size:13px;
   line-height:1.6;
   flex:1;
-  /* Marca de agua RETIRADA por ahora: causaba un espacio en blanco
-     enorme antes del encabezado en la exportación real a PDF (el
-     generador no está respetando background-size con esta imagen
-     grande). Mejor sin ella que con el documento roto — se puede
-     retomar más adelante con una imagen ya pre-escalada al tamaño
-     final en píxeles, en vez de escalarla por CSS. */
 }
 .hoja-cuerpo h2{
   font-size:16px; text-align:center; margin:0 0 4px;
@@ -222,7 +220,7 @@
   text-align:center; opacity:0.7; margin:0 0 26px; font-size:13px;
 }
 .hoja-cuerpo p{margin:0 0 14px; text-align:justify;}
-.hoja-cuerpo ul{margin:0 0 14px; padding-left:20px;}
+.hoja-cuerpo ul{margin:0 0 14px; padding-left:20px; text-align:justify;}
 .hoja-cuerpo li{margin-bottom:4px;}
 .hoja-cuerpo strong{color:var(--ink);}
 
@@ -232,59 +230,7 @@
   .doc-hoja-scroll{padding:10px;}
 }
 
-/* ---------- Solo esto se ve al imprimir ---------- */
-/* Antes usaba position:absolute sobre todo el documento para aislarlo:
-   en documentos de más de una página el navegador lo duplicaba al
-   pasar de hoja (texto superpuesto). Ahora se oculta todo lo demás
-   con display:none (no rompe la paginación normal) y el encabezado /
-   pie de página quedan "fijos" para que se repitan en cada hoja
-   impresa, como en el Word real — el cuerpo lleva relleno arriba y
-   abajo para no toparlos. */
-@media print{
-  body > *:not(#modalDocumento){ display:none !important; }
-
-  /* Reseteo general: cualquier alto máximo/scroll que traiga algún
-     contenedor genérico del sistema de modales (uno que no controlo
-     directamente, ej. de dashboard.css) queda anulado para todo lo
-     que esté dentro del modal, sin excepción. Las posiciones fijas
-     del encabezado/pie se reafirman después, más abajo. */
-  #modalDocumento, #modalDocumento *{
-    max-height:none !important;
-    overflow:visible !important;
-  }
-
-  #modalDocumento{
-    position:static !important;
-    background:none !important;
-    display:block !important;
-  }
-  #modalDocumento .doc-modal-acciones{ display:none !important; }
-  #modalDocumento .doc-hoja-scroll{
-    background:none !important;
-    padding:0 !important;
-  }
-
-  .hoja-documento{
-    box-shadow:none !important;
-    margin:0 !important;
-    min-height:0 !important;
-    width:100% !important; /* se adapta al papel real que use el navegador
-      (A4 o Carta) en vez de forzar un ancho fijo — así nunca queda
-      contenido cortado a la derecha si el sistema no ofrece elegir
-      el tamaño de hoja */
-    /* El alto real de encabezado y pie se mide con JS justo antes de
-       imprimir (prepararAlturasParaImprimir) y queda en estas
-       variables — el valor fijo de respaldo es solo por si esa
-       medición no llegó a correr. */
-    padding-top: var(--print-pad-top, 220px);
-    padding-bottom: var(--print-pad-bottom, 110px);
-  }
-  .hoja-documento > .pdf-encabezado-fijo{
-    position:fixed; top:0; left:0; right:0;
-  }
-  .hoja-documento > .pdf-contacto{
-    position:fixed; left:0; right:0; bottom:0;
-  }
-
-  @page{ size:letter; margin:0; }
-}
+/* ---------- Impresión ----------
+   Todos los documentos se imprimen desde la zona de impresión limpia que arma
+   imprimirDocumentoPdf() (js/documentos-cotizacion.js); las reglas de impresión
+   viven en pdf-documentos.css, una sola vez para todos los documentos. */
