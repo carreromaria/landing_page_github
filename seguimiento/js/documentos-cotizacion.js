@@ -9,6 +9,10 @@
 // algún día se cambia el diseño, se cambia solo acá (y en
 // css/pdf-documentos.css, que trae los estilos y las reglas de impresión).
 //
+// FORMATO (igual a las plantillas Word): encabezado solo en la primera hoja,
+// pie solo en la última (pegado al borde inferior), marca de agua en todas
+// las hojas, y todo alineado al mismo margen lateral. Ver css/pdf-documentos.css.
+//
 // Las funciones htmlCotizacion / htmlDescripcion devuelven el HTML
 // INTERNO de un contenedor con clase "pdf-doc"; quien las use pone
 // ese contenedor (<div class="pdf-doc">…</div>).
@@ -69,37 +73,82 @@ export function folioDescripcion(numeroCotizacion) {
 
 // ---------- Encabezado y pie (los usan todos los documentos oficiales) ----------
 
-/** Encabezado negro/dorado + datos de la empresa, envueltos en un solo bloque "fijo" para imprimir. */
-export function htmlEncabezado(titulo, folio) {
-  return `
-  <div class="pdf-encabezado-fijo">
-  <div class="pdf-header">
-    <div class="pdf-header-izq">
-      <div class="pdf-header-titulo">${escapeHtml(String(titulo).toUpperCase())}</div>
-      <span class="pdf-header-folio">${escapeHtml(folio)}</span>
-    </div>
-    <div class="pdf-header-logo">
-      <span class="pdf-logo-lin">LIN</span><span class="pdf-logo-ence">ENCE</span>
-      <div class="pdf-logo-tagline">LÍNEA &amp; ESENCIA</div>
-    </div>
-  </div>
+/* Anchos de Poppins Regular (milésimas de em) para los caracteres 32..255.
+   Sirven para calcular, sin depender de que la fuente ya esté cargada, si el
+   título + código caben en el espacio junto al logo; si no caben, el tamaño
+   baja de 16 pt hasta que calcen (los títulos largos, ej. "Acta de Entrega y
+   Recepción Conforme"). */
+const ANCHOS_POPPINS = [267,298,292,840,622,759,739,159,454,454,486,683,198,551,210,476,628,320,575,589,629,628,635,546,631,630,213,264,555,723,539,524,1013,674,613,772,707,513,504,778,692,246,530,599,432,861,703,786,579,788,608,587,541,675,676,976,621,584,541,423,658,423,629,733,257,676,676,607,676,620,329,676,640,246,248,515,246,1030,640,640,676,676,373,522,364,640,561,820,479,563,455,462,291,462,519,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,500,267,298,665,620,537,595,291,575,314,792,450,461,650,0,509,387,410,686,330,332,247,645,596,212,272,196,436,461,640,675,709,519,674,674,674,674,674,674,900,772,513,513,513,513,246,246,246,246,725,703,786,786,786,786,786,643,786,675,675,675,675,584,579,681,676,676,676,676,676,676,1097,607,620,620,620,620,246,246,246,246,638,640,640,640,640,640,640,657,640,640,640,640,640,563,676,563];
 
-  <div class="pdf-empresa">
-    <div><strong>LINENCE SpA.</strong> &nbsp; RUT: 78.446.739-2</div>
-    <div>DIRECCIÓN: Av. Salvador Allende #500</div>
-    <div>CORREO ELECTRONICO: contacto@linence.cl</div>
-  </div>
+function anchoEnPulgadas(texto, pt) {
+  let unidades = 0;
+  for (const ch of String(texto)) {
+    const c = ch.charCodeAt(0);
+    unidades += (c >= 32 && c <= 255) ? ANCHOS_POPPINS[c - 32] : 700;
+  }
+  return unidades / 1000 * pt / 72;
+}
+
+/** Tamaño (pt) del título: 16 pt, o menos si título + código no caben junto al logo. */
+function tamanoTituloEncabezado(titulo, folio) {
+  const DISPONIBLE = 5.3; // pulgadas entre el margen izquierdo y el logo (con holgura para A4)
+  const SEPARACION = 0.23;
+  for (let pt = 16; pt > 10; pt -= 0.5) {
+    if (anchoEnPulgadas(titulo, pt) + SEPARACION + anchoEnPulgadas(folio, pt) <= DISPONIBLE) return pt;
+  }
+  return 10;
+}
+
+/**
+ * Encabezado de la primera hoja: franja negra/dorada, título + código,
+ * datos de la empresa y logo. También incluye la marca de agua (que al
+ * imprimir se repite en todas las hojas).
+ */
+export function htmlEncabezado(titulo, folio) {
+  const t = String(titulo ?? '').toUpperCase();
+  const f = String(folio ?? '');
+  const pt = tamanoTituloEncabezado(t, f);
+  return `
+  <img class="ln-marca-agua" src="assets/img/marca-agua-linence.png" width="720" height="960" alt="">
+  <div class="ln-encabezado">
+    <svg class="ln-encabezado-fondo" viewBox="209550 0 7772400 1185641" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="114300" y="444500" width="7760598" height="741141" fill="#D6A52C"/>
+      <polygon points="8216486,1179830 5825420,1179830 4498016,441280 0,441280 0,0 8216486,0" fill="#141213"/>
+    </svg>
+    <div class="ln-titulo-fila" style="font-size:${pt}pt">
+      <span class="ln-titulo">${escapeHtml(t)}</span><span class="ln-codigo">${escapeHtml(f)}</span>
+    </div>
+    <div class="ln-datos-empresa">
+      <div class="ln-fila-rut"><span>LINENCE SpA.</span><span>RUT: 78.446.739-2</span></div>
+      <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+      <div>CORREO ELECTRÓNICO: contacto@linence.cl</div>
+    </div>
+    <img class="ln-logo" src="assets/img/logo-encabezado.png" width="162" height="95" alt="LINENCE">
   </div>
 `;
 }
 
-/** Pie dorado con los datos de contacto. Íconos con width/height como atributos HTML (ver pdf-documentos.css). */
-export function htmlPie() {
+/**
+ * Pie de la última hoja: franja dorada/negra con los datos de contacto, y el
+ * MISMO título y código del encabezado. El bloque .ln-espacio-pie lo usa JS
+ * (prepararAlturasParaImprimir) para dejar el pie pegado al borde inferior.
+ */
+export function htmlPie(titulo = '', folio = '') {
   return `
-  <div class="pdf-contacto">
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-web.png" width="21" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/iconos-redes.png" width="24" height="16" alt=""> Linence.cl</div>
-    <div class="pdf-contacto-fila"><img src="assets/img/icono-whatsapp.png" width="16" height="16" alt=""> +569 57039988</div>
+  <div class="ln-espacio-pie"></div>
+  <div class="ln-pie">
+    <svg class="ln-pie-fondo" viewBox="221932 0 7772400 1644650" preserveAspectRatio="none" aria-hidden="true">
+      <rect x="393700" y="355600" width="7760335" height="707390" fill="#141213"/>
+      <polygon points="0,0 2391005,0 3718400,1000900 8216265,1000900 8216265,1644650 0,1644650" fill="#D6A52C"/>
+    </svg>
+    <img class="ln-pie-web" src="assets/img/pie-web.png" alt="">
+    <img class="ln-pie-redes" src="assets/img/pie-redes.png" alt="">
+    <img class="ln-pie-whatsapp" src="assets/img/pie-whatsapp.png" alt="">
+    <span class="ln-pie-texto ln-pie-t1">Linence.cl</span>
+    <span class="ln-pie-texto ln-pie-t2">Linence.cl</span>
+    <span class="ln-pie-texto ln-pie-t3">+56 9 5703 9988</span>
+    <span class="ln-pie-codigo">${escapeHtml(folio)}</span>
+    <span class="ln-pie-titulo">${escapeHtml(String(titulo ?? '').toUpperCase())}</span>
   </div>
 `;
 }
@@ -182,7 +231,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <tr><th>Abono ${cotizacion.porcentajeAbono || 0}%</th><td>${formatearMoneda(cotizacion.abono)}</td></tr>
     </table>
   </div>
-${htmlPie()}`;
+${htmlPie('Cotización', cotizacion.numero)}`;
 }
 
 // ---------- DC — Descripción de Cotización ----------
@@ -203,16 +252,12 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
   const seleccion = cotizacion.descripcionCotizacion || {};
 
-  // El cuerpo va dentro de una tabla con thead/tfoot vacíos ("espaciadores"): al
-  // imprimir, el navegador repite esos dos bloques en CADA hoja, dejando libre
-  // el lugar del encabezado y el pie fijos. Sin esto, el relleno solo existía en
-  // la primera y última hoja y el texto de las demás quedaba debajo del encabezado.
-  // En pantalla los espaciadores no se ven (ver css/pdf-documentos.css).
-  return `${htmlEncabezado('Descripción de cotización', folioDescripcion(cotizacion.numero))}
+  // Encabezado solo en la primera hoja y pie solo en la última: el margen superior
+  // e inferior de cada hoja lo da @page (ver css/pdf-documentos.css).
+  const titulo = 'Descripción de cotización';
+  const folio = folioDescripcion(cotizacion.numero);
 
-<table class="pdf-paginado">
-<thead><tr><td><div class="pdf-espaciador pdf-espaciador-arriba"></div></td></tr></thead>
-<tbody><tr><td>
+  return `${htmlEncabezado(titulo, folio)}
 
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
@@ -241,54 +286,114 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
     <div class="pdf-dc-lista">${filaChecklist(catalogo, 'accesorios', seleccion.accesorios)}</div>
   </div>
 
-</td></tr></tbody>
-<tfoot><tr><td><div class="pdf-espaciador pdf-espaciador-abajo"></div></td></tr></tfoot>
-</table>
-
-${htmlPie()}`;
+${htmlPie(titulo, folio)}`;
 }
 
 // ---------- Impresión / "Guardar como PDF" ----------
 
+const PX_POR_PULGADA = 96;
+const ANCHO_HOJA_PX = 8.5 * PX_POR_PULGADA;        // Carta
+const ALTO_HOJA_PX = 11 * PX_POR_PULGADA;
+const MARGEN_VERTICAL_PX = 0.5 * PX_POR_PULGADA;   // margen de texto arriba y abajo de cada hoja
+const ALTO_UTIL_PX = ALTO_HOJA_PX - 2 * MARGEN_VERTICAL_PX;
+const ESPACIO_MINIMO_PIE_PX = 0;                   // separación mínima entre el texto y el pie
+const NO_ES_CUERPO = ['ln-marca-agua', 'ln-encabezado', 'ln-espacio-pie', 'ln-pie'];
+
 /**
- * Mide la altura real del encabezado y el pie ya renderizados en la
- * plantilla dada y la deja en variables CSS, para que el relleno
- * reservado arriba/abajo (encabezado y pie "fijos" al imprimir) calce
- * exacto sin adivinar píxeles.
- * @param {HTMLElement} plantilla el contenedor .pdf-doc visible en pantalla
+ * Deja el pie pegado al borde inferior de la ÚLTIMA hoja.
+ *
+ * El navegador no permite "alinear al fondo de la última hoja" solo con CSS,
+ * así que se calcula: se arma, fuera de pantalla, una copia del cuerpo del
+ * documento dentro de un contenedor con columnas del alto exacto del área de
+ * texto de una hoja (el mismo motor de fragmentación que usa la impresión). La
+ * posición donde termina el último texto dice cuánto espacio libre queda en la
+ * última hoja, y ese espacio (menos el alto del pie) queda en la variable CSS
+ * --ln-espacio-pie. Si el pie no cabe en esa hoja, se calcula para que caiga al
+ * fondo de una hoja nueva.
+ *
+ * Debe llamarse con el documento VISIBLE en pantalla (así se puede medir), justo
+ * antes de imprimir. Documentos sin encabezado/pie (portada, tarjetas) no se tocan.
+ * @param {HTMLElement} plantilla el contenedor del documento (.pdf-doc o .hoja-documento)
  */
 export function prepararAlturasParaImprimir(plantilla) {
   if (!plantilla) return;
-  const RESPIRO = 26; // aire extra para que el texto no quede pegado al encabezado/pie
-  const encabezado = plantilla.querySelector('.pdf-encabezado-fijo');
-  const pie = plantilla.querySelector('.pdf-contacto');
-  const arriba = encabezado ? (encabezado.offsetHeight + RESPIRO) + 'px' : null;
-  const abajo = pie ? (pie.offsetHeight + RESPIRO) + 'px' : null;
+  const encabezado = plantilla.querySelector('.ln-encabezado');
+  const pie = plantilla.querySelector('.ln-pie');
+  if (!encabezado || !pie) return;
 
-  // Documentos de varias hojas (con .pdf-paginado): el espacio se reserva en los
-  // espaciadores que el navegador repite en cada hoja, y el relleno del documento va en 0.
-  // Documentos de una hoja (Cotización): el relleno del documento alcanza.
-  const paginado = !!plantilla.querySelector('.pdf-paginado');
-  if (arriba) {
-    plantilla.style.setProperty('--print-esp-top', paginado ? arriba : '0px');
-    plantilla.style.setProperty('--print-pad-top', paginado ? '0px' : arriba);
+  const altoPie = pie.offsetHeight;
+  const cuerpo = [...plantilla.children].filter(n => !NO_ES_CUERPO.some(c => n.classList.contains(c)));
+
+  const sim = document.createElement('div');
+  sim.className = 'ln-sim';
+  sim.style.width = ANCHO_HOJA_PX + 'px';
+  sim.style.height = ALTO_UTIL_PX + 'px';
+  sim.style.columnWidth = ANCHO_HOJA_PX + 'px';
+
+  const envoltorio = document.createElement('div');
+  envoltorio.className = plantilla.className; // hereda los mismos estilos del documento
+  envoltorio.style.width = ANCHO_HOJA_PX + 'px';
+
+  // En la primera hoja el texto empieza bajo el encabezado (la altura del
+  // espaciador superior ya está incluida en el margen de la columna).
+  const reserva = document.createElement('div');
+  reserva.style.height = encabezado.offsetHeight + 'px';
+  envoltorio.appendChild(reserva);
+  cuerpo.forEach(n => envoltorio.appendChild(n.cloneNode(true)));
+  const marca = document.createElement('div'); // marca el final del contenido
+  marca.style.height = '0';
+  envoltorio.appendChild(marca);
+
+  sim.appendChild(envoltorio);
+  document.body.appendChild(sim);
+
+  let espacio = 0;
+  try {
+    const rSim = sim.getBoundingClientRect();
+    const rMarca = marca.getBoundingClientRect();
+    const yFinal = Math.min(Math.max(rMarca.top - rSim.top, 0), ALTO_UTIL_PX); // dentro de la última hoja
+    espacio = (ALTO_UTIL_PX - yFinal) - altoPie;
+    if (espacio < ESPACIO_MINIMO_PIE_PX) {
+      // el pie no cabe debajo del texto: va al fondo de una hoja nueva
+      espacio += ALTO_HOJA_PX;
+    }
+  } finally {
+    sim.remove();
   }
-  if (abajo) {
-    plantilla.style.setProperty('--print-esp-bottom', paginado ? abajo : '0px');
-    plantilla.style.setProperty('--print-pad-bottom', paginado ? '0px' : abajo);
-  }
+  // 1 px de tolerancia para que un redondeo nunca empuje el pie a una hoja de más
+  plantilla.style.setProperty('--ln-espacio-pie', Math.max(0, Math.floor(espacio) - 1) + 'px');
 }
 
 /**
- * Imprime un documento .pdf-doc que está dentro de un modal propio de
- * la página (Documentación). En vez de imprimir "a través" del modal
- * (cuyo fondo, márgenes y bordes se colaban en el PDF), copia el
- * documento a una zona de impresión limpia, directamente en <body>,
- * y solo se imprime eso. Las reglas de css/pdf-documentos.css hacen el resto.
- * @param {HTMLElement} origen el .pdf-doc visible en pantalla
+ * Prepara la COPIA de impresión: envuelve el cuerpo en la tabla cuyos
+ * espaciadores (thead/tfoot) el navegador repite en cada hoja.
  */
-export function imprimirDocumentoPdf(origen) {
+function estructurarCopiaParaImprimir(copia) {
+  const encabezado = copia.querySelector(':scope > .ln-encabezado');
+  if (!encabezado || !copia.querySelector(':scope > .ln-pie')) return;
+  const cuerpo = [...copia.children].filter(n => !NO_ES_CUERPO.some(c => n.classList.contains(c)));
+  const tabla = document.createElement('table');
+  tabla.className = 'ln-paginado';
+  tabla.innerHTML = '<thead><tr><td><div class="ln-espaciador"></div></td></tr></thead>'
+    + '<tbody><tr><td class="ln-cuerpo"></td></tr></tbody>'
+    + '<tfoot><tr><td><div class="ln-espaciador"></div></td></tr></tfoot>';
+  const celda = tabla.querySelector('.ln-cuerpo');
+  cuerpo.forEach(n => celda.appendChild(n));
+  encabezado.after(tabla);
+}
+
+/**
+ * Imprime un documento que está dentro de un modal propio de la página
+ * (Documentación). En vez de imprimir "a través" del modal (cuyo fondo,
+ * márgenes y bordes se colaban en el PDF), copia el documento a una zona de
+ * impresión limpia, directamente en <body>, y solo se imprime eso. Las reglas
+ * de css/pdf-documentos.css hacen el resto.
+ * @param {HTMLElement} origen el documento visible en pantalla
+ */
+export async function imprimirDocumentoPdf(origen) {
   if (!origen) return;
+  // Poppins tiene que estar cargada antes de medir (y de imprimir)
+  try { await document.fonts.ready; } catch (e) { /* sin soporte: se sigue igual */ }
   prepararAlturasParaImprimir(origen); // se mide con el original, que sí está visible
 
   let zona = document.getElementById('zonaImpresionPdf');
@@ -299,6 +404,7 @@ export function imprimirDocumentoPdf(origen) {
   }
   const copia = origen.cloneNode(true); // conserva las variables de altura medidas
   copia.removeAttribute('id');
+  estructurarCopiaParaImprimir(copia);
   zona.innerHTML = '';
   zona.appendChild(copia);
   document.body.classList.add('imprimiendo-pdf-doc');
