@@ -21,7 +21,7 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=2';
+} from './documentos-cotizacion.js?v=3';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -603,16 +603,18 @@ renderizarDocsGrid();
 
 // ============================================================
 // Encabezado y pie de página reutilizables (misma línea gráfica
-// en todos los documentos — igual al Word real de LINENCE: header
-// diagonal negro/dorado, marca de agua del logo completo detrás
-// del cuerpo, y pie dorado/negro con los íconos reales de contacto).
+// en todos los documentos — igual a las plantillas Word de LINENCE:
+// encabezado negro/dorado SOLO en la primera hoja, pie dorado/negro
+// con los íconos de contacto SOLO en la última hoja, y marca de agua
+// en todas las hojas). El pie repite el mismo título y código del
+// encabezado.
 // ============================================================
 function encabezadoHoja(titulo, codigo) {
   return htmlEncabezado(titulo, codigo);
 }
 
-function pieHoja() {
-  return htmlPie();
+function pieHoja(titulo, codigo) {
+  return htmlPie(titulo, codigo);
 }
 
 // ============================================================
@@ -623,7 +625,7 @@ function generarCartaBienvenida(p) {
   const codigo = codigoDocumento('CB', p);
 
   return `
-    <div class="hoja-documento">
+    <div class="hoja-documento doc-formal">
       ${encabezadoHoja('Carta de Bienvenida', codigo)}
       <div class="hoja-cuerpo">
         <h2>Carta de Bienvenida</h2>
@@ -656,7 +658,7 @@ function generarCartaBienvenida(p) {
 
         <p>Reciba un cordial saludo.</p>
       </div>
-      ${pieHoja()}
+      ${pieHoja('Carta de Bienvenida', codigo)}
     </div>
   `;
 }
@@ -680,7 +682,7 @@ function generarContratoVenta(p) {
   const casillaImagenes = (opcion) => cot.autorizaImagenes === opcion ? '(X)' : '( )';
 
   return `
-    <div class="hoja-documento">
+    <div class="hoja-documento doc-formal">
       ${encabezadoHoja('Contrato de Venta e Instalación', codigo)}
       <div class="hoja-cuerpo">
         <h2>Contrato de Venta e Instalación</h2>
@@ -765,7 +767,7 @@ function generarContratoVenta(p) {
         <p>Cargo: Gerente General</p>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${fechaContrato}</p>
       </div>
-      ${pieHoja()}
+      ${pieHoja('Contrato de Venta e Instalación', codigo)}
     </div>
   `;
 }
@@ -776,7 +778,7 @@ function generarContratoVenta(p) {
 function generarPortada(p) {
   const nombreCliente = tituloCase(p.cliente) || '____________________';
   return `
-    <div class="hoja-documento" style="background:var(--ink); color:#fff; align-items:center; justify-content:center; text-align:center; padding:60px 40px;">
+    <div class="hoja-documento doc-sin-formato doc-portada" style="background:var(--ink); color:#fff; align-items:center; justify-content:center; text-align:center; padding:60px 40px;">
       <img src="assets/img/logo-wordmark-claro.png" alt="Linence" style="height:70px; margin-bottom:26px;">
       <div style="font-size:13px; letter-spacing:0.15em; opacity:0.7; margin-bottom:60px;">FÁBRICA DE MUEBLES MODERNOS</div>
       <div style="font-size:26px; font-weight:600; letter-spacing:0.04em; color:var(--gold); margin-bottom:8px;">DOCUMENTACIÓN</div>
@@ -830,7 +832,7 @@ function generarManualUso(p) {
   const cot = p.cotizacion || {};
   const codigo = codigoDocumento('MU', p);
   return `
-    <div class="hoja-documento">
+    <div class="hoja-documento doc-formal">
       ${encabezadoHoja('Manual de Uso y Mantención', codigo)}
       <div class="hoja-cuerpo">
         <h2>Manual de Uso y Mantención del Mobiliario</h2>
@@ -870,7 +872,7 @@ function generarManualUso(p) {
 
         ${tablaDatosProyecto(p)}
       </div>
-      ${pieHoja()}
+      ${pieHoja('Manual de Uso y Mantención', codigo)}
     </div>
   `;
 }
@@ -882,7 +884,7 @@ function generarCertificadoGarantia(p) {
   const cot = p.cotizacion || {};
   const codigo = codigoDocumento('CG', p);
   return `
-    <div class="hoja-documento">
+    <div class="hoja-documento doc-formal">
       ${encabezadoHoja('Certificado de Garantía Comercial', codigo)}
       <div class="hoja-cuerpo">
         <h2>Certificado de Garantía Comercial</h2>
@@ -922,7 +924,7 @@ function generarCertificadoGarantia(p) {
         <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General</p>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
       </div>
-      ${pieHoja()}
+      ${pieHoja('Certificado de Garantía Comercial', codigo)}
     </div>
   `;
 }
@@ -938,7 +940,7 @@ function generarActaEntrega(p) {
   const checklist = (items) => items.map(i => `<li>☐ ${i}</li>`).join('');
 
   return `
-    <div class="hoja-documento">
+    <div class="hoja-documento doc-formal">
       ${encabezadoHoja('Acta de Entrega y Recepción Conforme', codigo)}
       <div class="hoja-cuerpo">
         <h2>Acta de Entrega y Recepción Conforme</h2>
@@ -996,7 +998,7 @@ function generarActaEntrega(p) {
         <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General<br>
         Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
       </div>
-      ${pieHoja()}
+      ${pieHoja('Acta de Entrega y Recepción Conforme', codigo)}
     </div>
   `;
 }
@@ -1010,8 +1012,8 @@ function generarComprobanteAbono(p) {
   const numeroCotizacion = cot.numero || codigoDocumento('COT', p);
 
   return `
-    <div class="hoja-documento">
-      ${encabezadoHoja('Recepción de Abono', codigo)}
+    <div class="hoja-documento doc-formal">
+      ${encabezadoHoja('Recepción Abono', codigo)}
       <div class="hoja-cuerpo">
         <h2>Comprobante de Recepción de Abono</h2>
         <p class="hoja-subtitulo">${p.tipoProyecto || 'Fabricación a medida'}</p>
@@ -1056,7 +1058,7 @@ function generarComprobanteAbono(p) {
         <p><strong>IX. FIRMA</strong><br>
         Linence SpA<br>Representante: María Lourdes Carrero Peralta<br>Cargo: Gerente General<br>Firma: María Carrero</p>
       </div>
-      ${pieHoja()}
+      ${pieHoja('Recepción Abono', codigo)}
     </div>
   `;
 }
@@ -1066,7 +1068,7 @@ function generarComprobanteAbono(p) {
 // ============================================================
 function generarTarjetaPostventa() {
   return `
-    <div class="hoja-documento" style="min-height:auto; align-items:center; justify-content:center; padding:60px 30px; gap:30px; flex-direction:row; flex-wrap:wrap;">
+    <div class="hoja-documento doc-sin-formato" style="min-height:auto; align-items:center; justify-content:center; padding:60px 30px; gap:30px; flex-direction:row; flex-wrap:wrap;">
       <div style="border:2px solid var(--gold); border-radius:6px; padding:30px 26px; width:280px; text-align:center;">
         <img src="assets/img/logo-wordmark-oscuro.png" onerror="this.src='assets/img/logo-wordmark-claro.png'; this.style.background='var(--ink)'; this.style.padding='6px'" alt="Linence" style="height:36px; margin-bottom:16px;">
         <div style="font-size:16px; font-weight:700; color:var(--ink);">SERVICIO POSTVENTA</div>
@@ -1089,7 +1091,7 @@ function generarTarjetaEvaluacionGoogle(p) {
   const qr = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(linkResena)}`;
 
   return `
-    <div class="hoja-documento" style="min-height:auto; align-items:center; justify-content:center; padding:50px 30px; gap:24px; flex-direction:row; flex-wrap:wrap;">
+    <div class="hoja-documento doc-sin-formato" style="min-height:auto; align-items:center; justify-content:center; padding:50px 30px; gap:24px; flex-direction:row; flex-wrap:wrap;">
       <div style="border:2px solid var(--gold); border-radius:6px; padding:26px; width:300px;">
         <div style="font-weight:700; font-size:14px; color:var(--ink); margin-bottom:10px;">TU OPINIÓN ES PARTE DE NUESTRA ESENCIA</div>
         <p style="font-size:12px;">Gracias por confiar en <strong>LINENCE.</strong> Queremos conocer tu experiencia y seguir entregando una atención de excelencia.</p>
@@ -1150,34 +1152,30 @@ document.getElementById('btnCerrarModalDoc').addEventListener('click', cerrarMod
 modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocumento) cerrarModalDocumento(); });
 
 /**
- * Imprime el documento abierto. Los documentos oficiales dorado/negro
- * (COT y DC, clase .pdf-doc) usan la zona de impresión limpia
- * compartida con Cotizaciones; el resto (hoja-documento) sigue con su
- * flujo de siempre, midiendo antes el alto real de encabezado y pie.
- */
-/**
  * Antes de abrir el diálogo de impresión se asegura de que Poppins (todos
  * los pesos que usan los documentos) esté realmente cargada. Así el
  * documento impreso o guardado como PDF sale siempre con la letra corporativa.
  */
 async function asegurarPoppins() {
   try {
-    await Promise.all(["300", "400", "500", "600", "700"].map(w => document.fonts.load(`${w} 13px Poppins`)));
+    await Promise.all(['300', '400', '500', '600', '700'].map(w => document.fonts.load(`${w} 13px Poppins`)));
     await document.fonts.ready;
   } catch (err) {
-    console.warn("No se pudo confirmar la carga de Poppins antes de imprimir.", err);
+    console.warn('No se pudo confirmar la carga de Poppins antes de imprimir.', err);
   }
 }
 
+/**
+ * Imprime el documento abierto. Todos los documentos (con encabezado y pie o
+ * sin ellos) usan la misma zona de impresión limpia, compartida con
+ * Cotizaciones (imprimirDocumentoPdf, en js/documentos-cotizacion.js): ahí se
+ * deja el encabezado en la primera hoja, el pie al final de la última y la
+ * marca de agua en todas.
+ */
 async function imprimirDocumentoActual() {
   await asegurarPoppins();
-  const pdfDoc = document.querySelector('#hojaDocumentoImprimir .pdf-doc');
-  if (pdfDoc) {
-    imprimirDocumentoPdf(pdfDoc);
-    return;
-  }
-  prepararAlturasParaImprimir(document.querySelector('#hojaDocumentoImprimir .hoja-documento'));
-  window.print();
+  const documento = document.querySelector('#hojaDocumentoImprimir > *');
+  await imprimirDocumentoPdf(documento);
 }
 
 document.getElementById('btnImprimirDoc').addEventListener('click', imprimirDocumentoActual);
