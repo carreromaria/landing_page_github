@@ -1155,7 +1155,22 @@ modalDocumento.addEventListener('click', (e) => { if (e.target === modalDocument
  * compartida con Cotizaciones; el resto (hoja-documento) sigue con su
  * flujo de siempre, midiendo antes el alto real de encabezado y pie.
  */
-function imprimirDocumentoActual() {
+/**
+ * Antes de abrir el diálogo de impresión se asegura de que Poppins (todos
+ * los pesos que usan los documentos) esté realmente cargada. Así el
+ * documento impreso o guardado como PDF sale siempre con la letra corporativa.
+ */
+async function asegurarPoppins() {
+  try {
+    await Promise.all(["300", "400", "500", "600", "700"].map(w => document.fonts.load(`${w} 13px Poppins`)));
+    await document.fonts.ready;
+  } catch (err) {
+    console.warn("No se pudo confirmar la carga de Poppins antes de imprimir.", err);
+  }
+}
+
+async function imprimirDocumentoActual() {
+  await asegurarPoppins();
   const pdfDoc = document.querySelector('#hojaDocumentoImprimir .pdf-doc');
   if (pdfDoc) {
     imprimirDocumentoPdf(pdfDoc);
