@@ -1,83 +1,192 @@
 /* ============================================================
    LINENCE — Documentos oficiales (formato dorado/negro)
    ============================================================
-   Estilos compartidos entre el módulo Cotizaciones (documento
-   "COT") y el módulo Documentación (documento "DC — Descripción
-   de Cotización"), para que ambos se vean e impriman exactamente
-   igual. Antes vivían solo dentro de cotizaciones.css; se movieron
-   acá para no duplicarlos cuando Documentación empezó a usar el
-   mismo formato para la Descripción de Cotización.
+   Estilos compartidos entre el módulo Cotizaciones (COT), el módulo
+   Documentación (DC y el resto de los documentos con encabezado y pie)
+   para que todos se vean e impriman exactamente igual.
 
-   Se renderiza siempre genuinamente visible dentro de un modal
-   (nunca oculto con display:none ni sacado de pantalla); html2pdf.js
-   convierte a PDF tal como se ve acá.
+   REGLAS DEL FORMATO (iguales a las plantillas Word):
+     · El ENCABEZADO va solo en la primera hoja.
+     · El PIE va solo en la última hoja, pegado al borde inferior.
+     · La MARCA DE AGUA va en todas las hojas.
+     · Todo (encabezado, texto, tablas y pie) se alinea al mismo margen
+       lateral: --m (0,5 in = 1,27 cm, el de las plantillas Word).
+     · El texto corrido va justificado.
+
+   Cómo se logra al imprimir (probado en Chrome/Edge):
+     · @page va sin margen: así el encabezado y el pie llegan hasta el borde
+       del papel (el navegador no pinta fuera del margen de @page).
+     · Para que el TEXTO tenga 0,5 in de margen arriba y abajo en cada hoja,
+       al imprimir el cuerpo se envuelve en una tabla cuyos thead/tfoot
+       (espaciadores vacíos) el navegador repite en cada hoja.
+     · La marca de agua es position:fixed: el navegador la repite en cada
+       hoja.
+     · Para que el pie quede al final de la última hoja, JS
+       (prepararAlturasParaImprimir, en js/documentos-cotizacion.js) mide
+       cuánto espacio queda y lo deja en --ln-espacio-pie.
 */
 
-.pdf-doc {
-  width: 816px; /* ancho carta (Letter, 8.5in) aprox a 96dpi — el Word real de LINENCE usa Carta, no A4 */
+/* ---------- Página de impresión ---------- */
+@page { size: letter; margin: 0; }
+
+/* ============================================================
+   Base del documento
+   ============================================================ */
+.pdf-doc,
+.hoja-documento.doc-formal {
+  --m: 0.5in;                      /* margen lateral común a todo el documento */
+  position: relative;
+  isolation: isolate;              /* la marca de agua queda detrás del texto, delante del fondo blanco */
   background-color: #fff;
-  /* Marca de agua RETIRADA por ahora: el generador de PDF no está
-     respetando background-size con esta imagen grande, dejaba un
-     espacio en blanco enorme antes del contenido. Mejor sin ella que
-     con el documento roto. */
   font-family: 'Poppins', sans-serif;
   color: #141213;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.pdf-doc {
+  width: 816px; /* ancho carta (8.5in a 96dpi) */
   font-size: 13px;
   margin: 0 auto;
 }
 
-.pdf-header {
-  background: #141213;
-  background-image: linear-gradient(120deg, #141213 0%, #141213 55%, #d6a52c 55%, #d6a52c 100%);
-  color: #fff;
-  padding: 22px 28px;
+/* ============================================================
+   Marca de agua
+   ============================================================ */
+.ln-marca-agua {
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 50%;
+  width: 7.5in;
+  height: 10in;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ============================================================
+   Encabezado (primera hoja)
+   ============================================================ */
+.ln-encabezado {
+  position: relative;
+  width: 100%;
+  height: 1.2966in;
+  margin-bottom: 0.25in;
+  color: #141213;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1;
+}
+.ln-encabezado-fondo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.ln-titulo-fila {
+  position: absolute;
+  left: var(--m);
+  top: 0.11in;
+  height: 0.44in;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.23in;
+  white-space: nowrap;
+  font-size: 16pt;               /* JS lo reduce solo si el título es muy largo */
+}
+.ln-titulo { color: #fff; }
+.ln-codigo { color: #d6a52c; }
+
+.ln-datos-empresa {
+  position: absolute;
+  left: var(--m);
+  top: 0.455in;
+  height: 0.75in;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 10pt;
+  line-height: 1.35;
+  white-space: nowrap;
+  color: #141213;
+}
+.ln-datos-empresa .ln-fila-rut { display: flex; }
+.ln-datos-empresa .ln-fila-rut span:first-child { width: 1.8in; }
+
+.ln-logo {
+  position: absolute;
+  right: var(--m);
+  top: 0.15in;
+  width: 1.6875in;
+  height: auto;
+  display: block;
 }
 
-.pdf-header-titulo {
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: .02em;
-}
+/* ============================================================
+   Pie (última hoja)
+   ============================================================ */
+.ln-espacio-pie { height: 0.25in; }
 
-.pdf-header-folio {
-  font-size: 15px;
-  color: #d6a52c;
-  font-weight: 600;
-  margin-left: 14px;
+.ln-pie {
+  position: relative;
+  width: 100%;
+  height: 1.7986in;              /* 1,7486 in del diseño + 0,05 in que se extienden bajo el borde */
+  color: #141213;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1;
 }
+.ln-pie-fondo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ln-pie img { position: absolute; display: block; }
+.ln-pie-web      { left: calc(var(--m) - 0.0605in);  top: 0.0139in; width: 0.755in; }
+.ln-pie-redes    { left: calc(var(--m) - 0.0466in);  top: 0.4719in; width: 0.987in; }
+.ln-pie-whatsapp { left: calc(var(--m) - 0.0466in);  top: 1.0972in; width: 0.4805in; }
 
-.pdf-header-logo {
-  text-align: right;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  line-height: 1.2;
+.ln-pie-texto {
+  position: absolute;
+  height: 0.385in;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.1in;
+  box-sizing: border-box;
+  font-size: 12pt;
+  white-space: nowrap;
 }
-.pdf-logo-lin { color: #fff; }
-.pdf-logo-ence { color: #d6a52c; }
-.pdf-logo-tagline {
-  font-size: 8px;
-  font-weight: 400;
-  letter-spacing: .25em;
-  color: #d3bb8c;
-  margin-top: 2px;
-}
+.ln-pie-t1 { left: calc(var(--m) + 0.3423in); top: 0.0833in; width: 1.469in; }
+.ln-pie-t2 { left: calc(var(--m) + 0.6478in); top: 0.5972in; width: 1.469in; }
+.ln-pie-t3 { left: calc(var(--m) + 0.2312in); top: 1.1667in; width: 1.653in; }
 
-.pdf-empresa {
-  padding: 10px 28px;
-  font-size: 11.5px;
-  line-height: 1.6;
+.ln-pie-codigo,
+.ln-pie-titulo {
+  position: absolute;
+  right: var(--m);
+  height: 0.35in;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+  font-size: 12pt;
 }
+.ln-pie-codigo { top: 0.6636in; color: #fff; }   /* sobre la franja negra */
+.ln-pie-titulo { top: 1.2636in; color: #141213; }
 
+/* ============================================================
+   COT — Cotización (cuerpo)
+   ============================================================ */
 .pdf-tabla-info {
-  width: calc(100% - 56px);
-  margin: 0 28px 18px;
+  width: calc(100% - 2 * var(--m));
+  margin: 0 var(--m) 18px;
   border-collapse: collapse;
 }
-
 .pdf-tabla-info th {
   background: #141213;
   color: #fff;
@@ -87,7 +196,6 @@
   padding: 6px 10px;
   border: 1px solid #141213;
 }
-
 .pdf-tabla-info td {
   border: 1px solid #d3bb8c;
   padding: 8px 10px;
@@ -95,11 +203,10 @@
 }
 
 .pdf-tabla-items {
-  width: calc(100% - 56px);
-  margin: 0 28px 0;
+  width: calc(100% - 2 * var(--m));
+  margin: 0 var(--m);
   border-collapse: collapse;
 }
-
 .pdf-tabla-items thead th {
   background: #d6a52c;
   color: #141213;
@@ -109,7 +216,6 @@
   border: 1px solid #c49522;
   text-align: left;
 }
-
 .pdf-tabla-items tbody td {
   border: 1px solid #ece4d3;
   padding: 10px;
@@ -119,9 +225,8 @@
 
 .pdf-pie {
   display: flex;
-  margin: 0 28px 18px;
+  margin: 0 var(--m) 18px;
 }
-
 .pdf-pie-notas {
   flex: 1;
   background: #141213;
@@ -130,7 +235,6 @@
   font-size: 11px;
   line-height: 1.6;
 }
-
 .pdf-pie-notas p { margin: 0 0 8px; }
 .pdf-pie-gracias { color: #d6a52c; font-weight: 600; }
 
@@ -138,7 +242,6 @@
   border-collapse: collapse;
   min-width: 200px;
 }
-
 .pdf-tabla-totales th {
   background: #d6a52c;
   color: #141213;
@@ -148,7 +251,6 @@
   border: 1px solid #c49522;
   text-align: left;
 }
-
 .pdf-tabla-totales td {
   border: 1px solid #ece4d3;
   padding: 8px 12px;
@@ -157,72 +259,40 @@
   min-width: 90px;
 }
 
-.pdf-contacto {
-  background: #d6a52c;
-  color: #141213;
-  padding: 10px 28px;
-  font-size: 11.5px;
-  font-weight: 600;
-}
-
-.pdf-contacto-fila {
-  padding: 3px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-/* Los íconos se dimensionan con width/height como ATRIBUTOS HTML en el
-   <img> (no por CSS): es la forma más básica y universalmente
-   respetada de fijar el tamaño de una imagen — a diferencia de
-   background-size o CSS width/height sueltos, que este generador de
-   PDF no siempre respeta con imágenes grandes. */
-.pdf-contacto-fila img { display: block; }
-
 /* ============================================================
    DC — Descripción de Cotización (checklist por categoría)
-   ============================================================
-   Mismo encabezado/pie que arriba. El cuerpo lista TODAS las
-   opciones activas del catálogo por categoría; las que están
-   marcadas en la cotización se resaltan con una franja dorada,
-   igual que en la plantilla original en Word/PDF de LINENCE.
-*/
-
+   ============================================================ */
 .pdf-dc-heading {
   text-align: center;
   font-weight: 700;
   font-size: 13.5px;
-  margin: 18px 28px 4px;
+  margin: 0 var(--m) 4px;
 }
-
 .pdf-dc-intro {
-  padding: 8px 28px 4px;
+  margin: 0;
+  padding: 8px var(--m) 4px;
   font-size: 11.5px;
   line-height: 1.6;
+  text-align: justify;
 }
-
-.pdf-dc-seccion {
-  margin: 0 28px 4px;
-}
-
+.pdf-dc-seccion { margin: 0 var(--m) 4px; }
 .pdf-dc-seccion-titulo {
   font-size: 12.5px;
   font-weight: 700;
   margin: 16px 0 4px;
 }
-
 .pdf-dc-nota {
   font-size: 11.5px;
   margin: 0 0 8px;
   line-height: 1.5;
+  text-align: justify;
 }
-
 .pdf-dc-lista {
   display: flex;
   flex-direction: column;
   border: 1px solid #ece4d3;
   border-top: none;
 }
-
 .pdf-dc-item {
   font-size: 12px;
   padding: 6px 12px;
@@ -240,70 +310,113 @@
   background: #d6a52c;
   font-weight: 600;
 }
-.pdf-dc-item.incluido::before {
-  color: #141213;
-}
+.pdf-dc-item.incluido::before { color: #141213; }
 
 /* ============================================================
-   IMPRESIÓN / "Guardar como PDF" (compartido)
-   ============================================================
-   Estas reglas viven acá, una sola vez, para que Cotizaciones y
-   Documentación impriman EXACTAMENTE igual. El encabezado y el pie
-   quedan fijos (se repiten en cada hoja) y el cuerpo reserva arriba y
-   abajo el alto real medido por JS (prepararAlturasParaImprimir, en
-   js/documentos-cotizacion.js).
-*/
+   IMPRESIÓN / "Guardar como PDF"
+   ============================================================ */
 
-@page { size: letter; margin: 0; }
-
-/* Zona de impresión que arma imprimirDocumentoPdf() (la usan Cotizaciones y
-   Documentación): invisible en pantalla, es lo único que se imprime. */
+/* Zona de impresión que arma imprimirDocumentoPdf(): invisible en pantalla,
+   es lo único que se imprime. */
 #zonaImpresionPdf { display: none; }
 
-/* Documentos de varias hojas (Descripción de Cotización): el cuerpo va dentro
-   de una tabla cuyo thead/tfoot vacíos ("espaciadores") el navegador repite en
-   cada hoja al imprimir, reservando el lugar del encabezado y el pie fijos.
-   En pantalla no ocupan espacio. */
-.pdf-paginado {
+/* Cortes de hoja (también valen en pantalla: JS los usa para calcular dónde
+   termina el documento). Una opción del checklist, una fila de tabla o el bloque
+   de totales no se cortan por la mitad entre dos hojas, ni un título de sección
+   queda solo al final de una hoja. */
+.pdf-dc-item, .pdf-tabla-items tr, .pdf-tabla-info tr, .pdf-pie {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+.pdf-dc-seccion-titulo, .pdf-dc-nota, .hoja-cuerpo h2 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* Al imprimir, el cuerpo del documento va dentro de esta tabla (la arma JS en la
+   copia de impresión): sus thead/tfoot vacíos se repiten en cada hoja y dejan
+   0,5 in de margen arriba y abajo del texto en todas las hojas. */
+.ln-paginado {
   width: 100%;
   border-collapse: collapse;
   border-spacing: 0;
 }
-.pdf-paginado > thead > tr > td,
-.pdf-paginado > tbody > tr > td,
-.pdf-paginado > tfoot > tr > td {
-  padding: 0;
-  border: 0;
+.ln-paginado > thead > tr > td,
+.ln-paginado > tbody > tr > td,
+.ln-paginado > tfoot > tr > td { padding: 0; border: 0; }
+.ln-espaciador { height: 0.5in; }
+
+/* Simulación (fuera de pantalla) que usa JS para saber cuántas hojas ocupa el
+   documento y cuánto espacio libre queda en la última. */
+.ln-sim {
+  position: absolute;
+  left: -20000px;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+  column-gap: 0;
+  column-fill: auto;
 }
-.pdf-espaciador { display: none; }
+.ln-sim > .pdf-doc,
+.ln-sim > .hoja-documento { box-shadow: none; margin: 0; min-height: 0; display: block; }
 
 @media print {
-  .pdf-doc {
+  .pdf-doc,
+  .hoja-documento.doc-formal {
+    width: 100% !important;      /* se adapta al papel real (Carta o A4) */
+    min-height: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: none !important; /* si no, taparía la marca de agua */
+    isolation: auto !important;
+    display: block !important;
+  }
+
+  /* El espacio bajo el encabezado lo da el espaciador de la tabla */
+  .ln-encabezado { margin-bottom: 0; }
+
+  /* Marca de agua: fixed = se repite en todas las hojas, centrada en el área útil */
+  .ln-marca-agua { position: fixed; }
+
+  /* Pie: al final de la última hoja. El espacio previo lo calcula JS;
+     el valor de respaldo es solo por si esa medición no corrió. */
+  .ln-espacio-pie { height: var(--ln-espacio-pie, 0.25in); }
+  .ln-pie {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* El encabezado de columnas de la tabla de ítems no se repite en cada hoja:
+     así el cálculo de dónde queda el pie coincide exacto con lo que se imprime. */
+  .pdf-tabla-items thead { display: table-row-group; }
+
+  /* Documentos sin encabezado/pie (portada, tarjetas) */
+  .doc-sin-formato {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     box-shadow: none !important;
     margin: 0 !important;
-    width: 100% !important; /* se adapta al papel real del navegador (Carta o A4) */
-    padding-top: var(--print-pad-top, 220px) !important;
-    padding-bottom: var(--print-pad-bottom, 110px) !important;
+    width: 100% !important;
   }
-  .pdf-doc > .pdf-encabezado-fijo {
-    position: fixed !important; top: 0; left: 0; right: 0;
-  }
-  .pdf-doc > .pdf-contacto {
-    position: fixed !important; left: 0; right: 0; bottom: 0;
-  }
+  .doc-sin-formato.doc-portada { min-height: calc(100vh - 1px) !important; box-sizing: border-box; }
 
-  /* Espaciadores que se repiten en cada hoja (alto medido por JS) */
-  .pdf-espaciador-arriba { display: block; height: var(--print-esp-top, 0px); }
-  .pdf-espaciador-abajo  { display: block; height: var(--print-esp-bottom, 0px); }
-
-  /* Que una opción del checklist no se corte por la mitad entre dos hojas,
-     ni un título de sección quede solo al final de una hoja */
-  .pdf-dc-item { break-inside: avoid; page-break-inside: avoid; }
-  .pdf-dc-seccion-titulo, .pdf-dc-nota { break-after: avoid; page-break-after: avoid; }
-
-  /* Documentación: se imprime solo la zona limpia, sin el modal ni la página detrás */
+  /* Se imprime solo la zona limpia, sin el modal ni la página detrás */
   body.imprimiendo-pdf-doc > *:not(#zonaImpresionPdf) {
     display: none !important;
+  }
+  html:has(body.imprimiendo-pdf-doc) {
+    background: #fff !important;   /* el fondo blanco va en <html> (canvas), no en <body>, para no tapar la marca de agua */
+    height: auto !important;
+    overflow: visible !important;
+  }
+  body.imprimiendo-pdf-doc {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: none !important;
   }
   body.imprimiendo-pdf-doc #zonaImpresionPdf {
     display: block !important;
