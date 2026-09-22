@@ -21,7 +21,7 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=3';
+} from './documentos-cotizacion.js?v=4';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -758,14 +758,22 @@ function generarContratoVenta(p) {
 
         <p><strong>DÉCIMA NOVENA:</strong> <u>ACEPTACIÓN.</u> Las partes declaran haber leído íntegramente el presente contrato, comprender su contenido y aceptar todas sus cláusulas. Se firma en dos ejemplares de igual tenor y fecha, quedando uno en poder de cada parte.</p>
 
-        <p><strong>RECEPCIÓN:</strong></p>
-        <p>Cliente: ${nombreCliente}&nbsp;&nbsp;&nbsp; RUT: ${rutCliente}</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${fechaContrato}</p>
+        <div class="ln-salto-hoja">
+          <p><strong>RECEPCIÓN:</strong></p>
+          <p>Cliente: ${nombreCliente}</p>
+          <p>RUT: ${rutCliente}</p>
+          <p>Fecha: ${fechaContrato}</p>
+          <div class="espacio-firma"></div>
+          <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
 
-        <p><strong>LINENCE SpA:</strong></p>
-        <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; RUT: 26.429.618-8</p>
-        <p>Cargo: Gerente General</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${fechaContrato}</p>
+          <p><strong>LINENCE SpA:</strong></p>
+          <p>Representante: María Carrero Peralta</p>
+          <p>RUT: 26.429.618-8</p>
+          <p>Fecha: ${fechaContrato}</p>
+          <p>Cargo: Gerente General</p>
+          <div class="espacio-firma"></div>
+          <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
+        </div>
       </div>
       ${pieHoja('Contrato de Venta e Instalación', codigo)}
     </div>
@@ -870,7 +878,9 @@ function generarManualUso(p) {
 
         <p><strong>DÉCIMA QUINTA: DECLARACIÓN DEL CLIENTE.</strong> El cliente declara haber recibido el presente Manual de Uso y Mantención y manifiesta comprender la importancia de seguir las recomendaciones aquí contenidas para preservar las condiciones óptimas del mobiliario instalado.</p>
 
-        ${tablaDatosProyecto(p)}
+        <div class="ln-salto-hoja">
+          ${tablaDatosProyecto(p)}
+        </div>
       </div>
       ${pieHoja('Manual de Uso y Mantención', codigo)}
     </div>
@@ -919,10 +929,17 @@ function generarCertificadoGarantia(p) {
         ${tablaDatosProyecto(p)}
 
         <p><strong>RECEPCIÓN — Cliente:</strong></p>
-        <p>Nombre: ${tituloCase(p.cliente)}&nbsp;&nbsp;&nbsp; Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Nombre: ${tituloCase(p.cliente)}</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <div class="espacio-firma"></div>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
+
         <p><strong>LINENCE SpA:</strong></p>
-        <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General</p>
-        <p>Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Representante: María Carrero Peralta</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Cargo: Gerente General</p>
+        <div class="espacio-firma"></div>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
       </div>
       ${pieHoja('Certificado de Garantía Comercial', codigo)}
     </div>
@@ -991,12 +1008,18 @@ function generarActaEntrega(p) {
         <p><strong>DÉCIMA SEGUNDA:</strong> <u>FIRMAS.</u> Con su firma, las partes declaran que la información contenida en la presente Acta es fiel expresión de lo ocurrido durante la entrega del proyecto.</p>
 
         <p><strong>CLIENTE</strong></p>
-        <p>Nombre: ${tituloCase(p.cliente)}&nbsp;&nbsp;&nbsp; RUT: ${formatearRutVisible(p.rut)}<br>
-        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Nombre: ${tituloCase(p.cliente)}</p>
+        <p>RUT: ${formatearRutVisible(p.rut)}</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <div class="espacio-firma"></div>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
 
         <p><strong>POR LINENCE SpA</strong></p>
-        <p>Representante: María Carrero Peralta&nbsp;&nbsp;&nbsp; Cargo: Gerente General<br>
-        Firma: ____________________&nbsp;&nbsp;&nbsp; Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Representante: María Carrero Peralta</p>
+        <p>Cargo: Gerente General</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <div class="espacio-firma"></div>
+        <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
       </div>
       ${pieHoja('Acta de Entrega y Recepción Conforme', codigo)}
     </div>
