@@ -336,7 +336,11 @@ export function prepararAlturasParaImprimir(plantilla) {
   // Si existe (ej. Cotización), el cuadro de notas + totales se ancla al
   // fondo junto con el pie: cuenta como parte de lo reservado abajo.
   const bloqueFijo = plantilla.querySelector(':scope > .pdf-pie');
-  const altoPie = pie.offsetHeight + (bloqueFijo ? bloqueFijo.offsetHeight : 0);
+  // offsetHeight no incluye el margen inferior del cuadro (la separación
+  // respecto al pie institucional), así que se suma aparte para que el
+  // cálculo de --ln-espacio-pie siga siendo exacto.
+  const margenBloqueFijo = bloqueFijo ? parseFloat(getComputedStyle(bloqueFijo).marginBottom) || 0 : 0;
+  const altoPie = pie.offsetHeight + (bloqueFijo ? bloqueFijo.offsetHeight + margenBloqueFijo : 0);
   const cuerpo = [...plantilla.children].filter(n => !NO_ES_CUERPO.some(c => n.classList.contains(c)));
 
   const sim = document.createElement('div');
