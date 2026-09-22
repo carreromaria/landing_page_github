@@ -132,10 +132,17 @@ export function htmlEncabezado(titulo, folio) {
  * Pie de la última hoja: franja dorada/negra con los datos de contacto, y el
  * MISMO título y código del encabezado. El bloque .ln-espacio-pie lo usa JS
  * (prepararAlturasParaImprimir) para dejar el pie pegado al borde inferior.
+ * @param {string} contenidoFijo HTML opcional que queda anclado justo ENCIMA
+ *   del pie institucional (ej. el cuadro de notas y totales de la Cotización):
+ *   se pega al fondo de la última hoja junto con el pie, no queda "suelto"
+ *   más arriba. Debe tener class="pdf-pie" (o la que corresponda) para que
+ *   prepararAlturasParaImprimir lo excluya del cuerpo normal y sume su alto
+ *   al del pie al calcular el espacio.
  */
-export function htmlPie(titulo = '', folio = '') {
+export function htmlPie(titulo = '', folio = '', contenidoFijo = '') {
   return `
   <div class="ln-espacio-pie"></div>
+  ${contenidoFijo}
   <div class="ln-pie">
     <svg class="ln-pie-fondo" viewBox="221932 0 7772400 1644650" preserveAspectRatio="none" aria-hidden="true">
       <rect x="393700" y="355600" width="7760335" height="707390" fill="#141213"/>
@@ -174,17 +181,34 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
   const iva = cotizacion.aplicaIva ? formatearMoneda(cotizacion.ivaMonto) : '';
   const total = cotizacion.aplicaIva ? cotizacion.totalConIva : cotizacion.totalGeneral;
 
+  // El cuadro de notas + totales queda anclado al fondo de la última hoja,
+  // pegado justo encima del pie institucional (ver htmlPie).
+  const cuadroPie = `
+  <div class="pdf-pie">
+    <div class="pdf-pie-notas">
+      <p>Esta cotización de su proyecto es válida desde ${validaDesde}</p>
+      <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
+      <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
+    </div>
+    <table class="pdf-tabla-totales">
+      <tr><th>SUB TOTAL</th><td>${subtotal}</td></tr>
+      <tr><th>I.V.A</th><td>${iva}</td></tr>
+      <tr><th>TOTAL</th><td>${formatearMoneda(total)}</td></tr>
+      <tr><th>Abono ${cotizacion.porcentajeAbono || 0}%</th><td>${formatearMoneda(cotizacion.abono)}</td></tr>
+    </table>
+  </div>`;
+
   return `${htmlEncabezado('Cotización', cotizacion.numero)}
 
   <table class="pdf-tabla-info">
     <tr>
-      <th>FECHA:</th>
       <th>PROYECTO:</th>
+      <th>FECHA:</th>
       <th>FECHA DE ENTREGA:</th>
     </tr>
     <tr>
-      <td>${fecha}</td>
       <td>${escapeHtml(cotizacion.proyecto || '—')}</td>
+      <td>${fecha}</td>
       <td>${formatearRangoFechas(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin)}</td>
     </tr>
     <tr>
@@ -217,21 +241,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     </thead>
     <tbody>${filas}</tbody>
   </table>
-
-  <div class="pdf-pie">
-    <div class="pdf-pie-notas">
-      <p>Esta cotización de su proyecto es válida desde ${validaDesde}</p>
-      <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
-      <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
-    </div>
-    <table class="pdf-tabla-totales">
-      <tr><th>SUB TOTAL</th><td>${subtotal}</td></tr>
-      <tr><th>I.V.A</th><td>${iva}</td></tr>
-      <tr><th>TOTAL</th><td>${formatearMoneda(total)}</td></tr>
-      <tr><th>Abono ${cotizacion.porcentajeAbono || 0}%</th><td>${formatearMoneda(cotizacion.abono)}</td></tr>
-    </table>
-  </div>
-${htmlPie('Cotización', cotizacion.numero)}`;
+${htmlPie('Cotización', cotizacion.numero, cuadroPie)}`;
 }
 
 // ---------- DC — Descripción de Cotización ----------
@@ -297,7 +307,9 @@ const ALTO_HOJA_PX = 11 * PX_POR_PULGADA;
 const MARGEN_VERTICAL_PX = 0.5 * PX_POR_PULGADA;   // margen de texto arriba y abajo de cada hoja
 const ALTO_UTIL_PX = ALTO_HOJA_PX - 2 * MARGEN_VERTICAL_PX;
 const ESPACIO_MINIMO_PIE_PX = 0;                   // separación mínima entre el texto y el pie
-const NO_ES_CUERPO = ['ln-marca-agua', 'ln-encabezado', 'ln-espacio-pie', 'ln-pie'];
+// pdf-pie: el cuadro de notas + totales de la Cotización, que también se ancla
+// al fondo de la última hoja (ver htmlPie/htmlCotizacion), igual que el pie.
+const NO_ES_CUERPO = ['ln-marca-agua', 'ln-encabezado', 'ln-espacio-pie', 'ln-pie', 'pdf-pie'];
 
 /**
  * Deja el pie pegado al borde inferior de la ÚLTIMA hoja.
@@ -321,7 +333,10 @@ export function prepararAlturasParaImprimir(plantilla) {
   const pie = plantilla.querySelector('.ln-pie');
   if (!encabezado || !pie) return;
 
-  const altoPie = pie.offsetHeight;
+  // Si existe (ej. Cotización), el cuadro de notas + totales se ancla al
+  // fondo junto con el pie: cuenta como parte de lo reservado abajo.
+  const bloqueFijo = plantilla.querySelector(':scope > .pdf-pie');
+  const altoPie = pie.offsetHeight + (bloqueFijo ? bloqueFijo.offsetHeight : 0);
   const cuerpo = [...plantilla.children].filter(n => !NO_ES_CUERPO.some(c => n.classList.contains(c)));
 
   const sim = document.createElement('div');
@@ -339,7 +354,19 @@ export function prepararAlturasParaImprimir(plantilla) {
   const reserva = document.createElement('div');
   reserva.style.height = encabezado.offsetHeight + 'px';
   envoltorio.appendChild(reserva);
-  cuerpo.forEach(n => envoltorio.appendChild(n.cloneNode(true)));
+  // .ln-salto-hoja fuerza un salto de HOJA al imprimir (break-before: page),
+  // pero eso no significa nada dentro de esta simulación por COLUMNAS. Para
+  // que la medición vea el mismo salto, en la copia clonada se fuerza el
+  // salto de columna (equivalente, aquí, a una hoja nueva).
+  const forzarSaltoDeColumna = (nodo) => {
+    if (nodo.classList?.contains('ln-salto-hoja')) nodo.style.breakBefore = 'column';
+    nodo.querySelectorAll?.('.ln-salto-hoja').forEach(el => { el.style.breakBefore = 'column'; });
+  };
+  cuerpo.forEach(n => {
+    const clon = n.cloneNode(true);
+    forzarSaltoDeColumna(clon);
+    envoltorio.appendChild(clon);
+  });
   const marca = document.createElement('div'); // marca el final del contenido
   marca.style.height = '0';
   envoltorio.appendChild(marca);
