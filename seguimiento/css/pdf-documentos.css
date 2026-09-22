@@ -225,7 +225,7 @@
 
 .pdf-pie {
   display: flex;
-  margin: 0 var(--m) 18px;
+  margin: 0 var(--m);
 }
 .pdf-pie-notas {
   flex: 1;
@@ -328,6 +328,21 @@
   break-inside: avoid;
   page-break-inside: avoid;
 }
+
+/* Fuerza a que el bloque empiece en una hoja nueva (ej. la sección de firmas
+   de CV, o "DATOS DEL PROYECTO" en MU). El JS de documentos-cotizacion.js
+   (prepararAlturasParaImprimir) reproduce el mismo salto al medir dónde
+   queda el pie, así el cálculo coincide con lo que se imprime. */
+.ln-salto-hoja {
+  break-before: page;
+  page-break-before: always;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Espacio en blanco reservado para firmar a mano, entre la fecha y la línea
+   de "Firma: ____". */
+.espacio-firma { height: 0.4in; }
 .pdf-dc-seccion-titulo, .pdf-dc-nota, .hoja-cuerpo h2 {
   break-after: avoid;
   page-break-after: avoid;
