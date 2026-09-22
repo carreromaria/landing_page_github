@@ -225,7 +225,7 @@
 
 .pdf-pie {
   display: flex;
-  margin: 0 var(--m);
+  margin: 0 var(--m) 16px;
 }
 .pdf-pie-notas {
   flex: 1;
