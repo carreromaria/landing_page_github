@@ -646,6 +646,10 @@ const nuevoCodigoCategoria = document.getElementById('nuevoCodigoCategoria');
 const nuevoCodigoTipo = document.getElementById('nuevoCodigoTipo');
 const nuevoCodigoError = document.getElementById('nuevoCodigoError');
 
+// Mismo estilo de dropdown de marca que el resto del panel (ver #cotFormaPago).
+mejorarSelect('#nuevoCodigoCategoria');
+mejorarSelect('#nuevoCodigoTipo');
+
 /** Sugiere un prefijo de 3 letras a partir del nombre, ej. "Rack TV" -> "RAC" */
 function sugerirPrefijo(nombre) {
   const limpio = String(nombre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
