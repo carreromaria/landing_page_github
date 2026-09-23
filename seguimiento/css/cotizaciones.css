@@ -316,6 +316,17 @@
   margin: 0;
 }
 
+/* Checkbox con estilo de marca (mismo criterio que .catalogo-grid
+   input[type="checkbox"] en Documentación): tilde dorado en vez del
+   azul por defecto del navegador. */
+.cot-desc-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 /* ============================================================
    RESPONSIVE — Teléfono y tablet (≤900px)
    Mismo patrón que el CRM: el encabezado del listado queda
@@ -399,6 +410,16 @@
   .crm-cotizacion-acciones button {
     width: 100%;
   }
+}
+
+/* ================= Acciones finales del editor (Ver PDF / Ver Descripción / Guardar) ================= */
+/* .crm-cotizacion-acciones se define en crm.css (compartida con el CRM) con
+   justify-content:space-between, que deja "Ver PDF"/"Ver Descripción" pegados
+   a la izquierda muy separados de "Guardar...". María pidió agruparlos: se
+   sobrescribe acá (esta hoja carga después) para que los 4 botones queden
+   juntos, como un solo grupo a la derecha. */.crm-cotizacion-acciones {
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* ================= Impresión / "Guardar como PDF" ================= */
