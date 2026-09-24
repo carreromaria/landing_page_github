@@ -89,6 +89,45 @@ function crearDropdown(config) {
   raiz.appendChild(lista);
   contenedor.appendChild(raiz);
 
+  // La lista se abre "flotando" sobre TODO el documento (portal a
+  // document.body) en vez de quedar encerrada dentro de raiz. Si no se
+  // hiciera esto, un ancestro con scroll propio (ej. la tabla de ítems de
+  // Cotizaciones, con overflow-x:auto para desplazarse de lado en
+  // teléfono/tablet) le recorta la lista: por CSS, un contenedor con
+  // overflow-x distinto de "visible" fuerza a overflow-y a "auto" aunque
+  // nunca se haya pedido, así que cualquier hijo position:absolute que se
+  // salga por abajo queda invisible. Al vivir en <body> con position:fixed
+  // y coordenadas calculadas desde el trigger, la lista deja de depender
+  // de ese recorte, esté donde esté el dropdown en la página.
+  let listaEnBody = false;
+
+  function posicionarLista() {
+    const r = trigger.getBoundingClientRect();
+    const anchoCompleto = ancho === 'full';
+    lista.style.position = 'fixed';
+    lista.style.margin = '0';
+    if (anchoCompleto) {
+      lista.style.left = r.left + 'px';
+      lista.style.right = 'auto';
+      lista.style.width = r.width + 'px';
+      lista.style.minWidth = '';
+    } else {
+      lista.style.left = 'auto';
+      lista.style.right = (window.innerWidth - r.right) + 'px';
+      lista.style.width = '';
+      lista.style.minWidth = Math.max(r.width, 190) + 'px';
+    }
+    // Si no cabe hacia abajo pero sí hacia arriba, se abre hacia arriba.
+    const alturaLista = lista.offsetHeight || 260;
+    const espacioAbajo = window.innerHeight - r.bottom;
+    const espacioArriba = r.top;
+    if (espacioAbajo < alturaLista + 12 && espacioArriba > espacioAbajo) {
+      lista.style.top = Math.max(8, r.top - alturaLista - 6) + 'px';
+    } else {
+      lista.style.top = (r.bottom + 6) + 'px';
+    }
+  }
+
   function textoDe(valor) {
     const op = opciones.find(o => String(o.valor) === String(valor));
     return op ? op.texto : '';
@@ -122,14 +161,25 @@ function crearDropdown(config) {
   async function abrir() {
     if (raiz.classList.contains('ln-dropdown--deshabilitado')) return;
     abierto = true;
-    lista.hidden = false;
     raiz.classList.add('abierto');
     trigger.setAttribute('aria-expanded', 'true');
     indiceResaltado = opciones.findIndex(o => String(o.valor) === String(valorActual));
 
+    if (!listaEnBody) {
+      document.body.appendChild(lista);
+      lista.classList.add('ln-dropdown-lista--flotante');
+      listaEnBody = true;
+    }
+    lista.hidden = false;
+    pintarLista();
+    posicionarLista();
+    window.addEventListener('scroll', posicionarLista, true);
+    window.addEventListener('resize', posicionarLista);
+
     if (opcionesAsync) {
       cargandoAsync = true;
       pintarLista();
+      posicionarLista();
       try {
         opciones = (await opcionesAsync()) || [];
       } catch (err) {
@@ -137,8 +187,9 @@ function crearDropdown(config) {
         opciones = [];
       }
       cargandoAsync = false;
+      pintarLista();
+      posicionarLista();
     }
-    pintarLista();
     resaltar(indiceResaltado);
   }
 
@@ -148,6 +199,8 @@ function crearDropdown(config) {
     raiz.classList.remove('abierto');
     trigger.setAttribute('aria-expanded', 'false');
     indiceResaltado = -1;
+    window.removeEventListener('scroll', posicionarLista, true);
+    window.removeEventListener('resize', posicionarLista);
   }
 
   function resaltar(indice) {
@@ -213,7 +266,7 @@ function crearDropdown(config) {
   });
 
   document.addEventListener('click', (e) => {
-    if (!raiz.contains(e.target)) cerrar();
+    if (!raiz.contains(e.target) && !lista.contains(e.target)) cerrar();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && abierto) {
@@ -236,7 +289,12 @@ function crearDropdown(config) {
     marcarError(bool) { raiz.classList.toggle('ln-dropdown--error', !!bool); },
     abrir,
     cerrar,
-    destruir() { raiz.remove(); },
+    destruir() {
+      window.removeEventListener('scroll', posicionarLista, true);
+      window.removeEventListener('resize', posicionarLista);
+      raiz.remove();
+      lista.remove();
+    },
     elemento: raiz,
   };
 }
