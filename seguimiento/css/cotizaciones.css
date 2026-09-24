@@ -363,6 +363,19 @@
     flex-direction: column;
   }
 
+  /* "Forma de pago" es un <select> mejorado por mejorarSelect() con
+     ancho:'auto' (pensado para la fila en una sola línea de escritorio):
+     su dropdown de marca (.ln-dropdown) no hereda el width:100% que ya
+     tienen los demás campos, así que en una columna angosta se ve
+     achicado. Se fuerza a ancho completo solo acá, en teléfono/tablet. */
+  .cot-campo-doc .ln-dropdown {
+    width: 100%;
+  }
+  .cot-campo-doc .ln-dropdown-trigger {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   /* ---------- Resumen de Descripción de Cotización, apilado ---------- */
   .cot-desc-resumen {
     flex-direction: column;
