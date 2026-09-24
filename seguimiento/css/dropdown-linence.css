@@ -114,6 +114,17 @@
   display:none;
 }
 
+/* Cuando abrir() la traslada a document.body (ver dropdown-linence.js),
+   deja de depender del position:relative de .ln-dropdown y de cualquier
+   ancestro con scroll propio que la recorte; top/left/right/width los
+   calcula JS en cada apertura. El z-index queda por encima de cualquier
+   modal del panel (el más alto usado hoy, #modalNuevaOpcionDescripcion,
+   es 10000). */
+.ln-dropdown-lista--flotante{
+  position:fixed;
+  z-index:99999;
+}
+
 .ln-dropdown-lista li{
   padding:9px 12px;
   border-radius:8px;
