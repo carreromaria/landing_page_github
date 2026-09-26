@@ -36,6 +36,31 @@
 // ============================================================
 
 let contadorId = 0;
+let estilosBuscadorInyectados = false;
+
+function asegurarEstilosBuscador() {
+  if (estilosBuscadorInyectados) return;
+  estilosBuscadorInyectados = true;
+  const style = document.createElement('style');
+  style.id = 'ln-dropdown-estilos-buscador';
+  style.textContent = `
+    .ln-dropdown-buscador-item{
+      position: sticky; top: 0; z-index: 1;
+      padding: 6px 8px 8px; margin: 0 0 2px;
+      background: inherit;
+      border-bottom: 1px solid rgba(0,0,0,.08);
+      list-style: none;
+    }
+    .ln-dropdown-buscador{
+      width: 100%; box-sizing: border-box;
+      padding: 7px 10px; font: inherit; font-size: 13px;
+      border: 1px solid rgba(0,0,0,.18); border-radius: 6px;
+      outline: none; background: #fff; color: inherit;
+    }
+    .ln-dropdown-buscador:focus{ border-color: var(--gold, #D6A52C); }
+  `;
+  document.head.appendChild(style);
+}
 
 function crearDropdown(config) {
   const {
@@ -46,6 +71,8 @@ function crearDropdown(config) {
     valorInicial = '',
     ancho = 'auto', // 'auto' | 'full'
     deshabilitado = false,
+    buscar = false, // true = agrega una cajita de búsqueda que filtra la lista en vivo
+    placeholderBuscar = 'Buscar…',
     onCambio = () => {},
   } = config;
 
@@ -84,6 +111,25 @@ function crearDropdown(config) {
   lista.id = `${idBase}Lista`;
   lista.hidden = true;
   trigger.setAttribute('aria-controls', lista.id);
+
+  // Cajita de búsqueda: vive como primer <li> de la lista (así se porta a
+  // body y se posiciona junto con el resto, sin lógica aparte), pero
+  // pintarLista() nunca la toca al repintar las opciones — si no, se
+  // perdería el foco y lo que el usuario va escribiendo.
+  let inputBuscar = null;
+  let terminoBusqueda = '';
+  if (buscar) {
+    asegurarEstilosBuscador();
+    const liBuscar = document.createElement('li');
+    liBuscar.className = 'ln-dropdown-buscador-item';
+    inputBuscar = document.createElement('input');
+    inputBuscar.type = 'text';
+    inputBuscar.className = 'ln-dropdown-buscador';
+    inputBuscar.placeholder = placeholderBuscar;
+    inputBuscar.autocomplete = 'off';
+    liBuscar.appendChild(inputBuscar);
+    lista.appendChild(liBuscar);
+  }
 
   raiz.appendChild(trigger);
   raiz.appendChild(lista);
@@ -128,6 +174,18 @@ function crearDropdown(config) {
     }
   }
 
+  function normalizar(str) {
+    return String(str ?? '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // sin tildes, para que "cotizacion" encuentre "Cotización"
+  }
+
+  function opcionesVisibles() {
+    if (!buscar || !terminoBusqueda) return opciones;
+    const termino = normalizar(terminoBusqueda);
+    return opciones.filter(o => normalizar(o.texto).includes(termino));
+  }
+
   function textoDe(valor) {
     const op = opciones.find(o => String(o.valor) === String(valor));
     return op ? op.texto : '';
@@ -140,22 +198,30 @@ function crearDropdown(config) {
   }
 
   function pintarLista() {
+    // Nunca toca el <li> del buscador (si existe): solo sus <li> de opciones/estado.
+    lista.querySelectorAll('li:not(.ln-dropdown-buscador-item)').forEach(li => li.remove());
+
     if (cargandoAsync) {
-      lista.innerHTML = `<li class="ln-dropdown-estado">Cargando…</li>`;
+      lista.insertAdjacentHTML('beforeend', `<li class="ln-dropdown-estado">Cargando…</li>`);
       return;
     }
     if (!opciones.length) {
-      lista.innerHTML = `<li class="ln-dropdown-estado">Sin opciones disponibles</li>`;
+      lista.insertAdjacentHTML('beforeend', `<li class="ln-dropdown-estado">Sin opciones disponibles</li>`);
       return;
     }
-    lista.innerHTML = opciones.map((op) => `
+    const visibles = opcionesVisibles();
+    if (!visibles.length) {
+      lista.insertAdjacentHTML('beforeend', `<li class="ln-dropdown-estado">Sin resultados para tu búsqueda</li>`);
+      return;
+    }
+    lista.insertAdjacentHTML('beforeend', visibles.map((op) => `
       <li role="option"
           data-valor="${String(op.valor).replace(/"/g, '&quot;')}"
           aria-selected="${String(op.valor) === String(valorActual)}"
           class="${String(op.valor) === String(valorActual) ? 'seleccionado' : ''}${op.deshabilitado ? ' deshabilitada' : ''}">
         ${op.texto}
       </li>
-    `).join('');
+    `).join(''));
   }
 
   async function abrir() {
@@ -171,6 +237,10 @@ function crearDropdown(config) {
       listaEnBody = true;
     }
     lista.hidden = false;
+    if (inputBuscar) {
+      inputBuscar.value = '';
+      terminoBusqueda = '';
+    }
     pintarLista();
     posicionarLista();
     window.addEventListener('scroll', posicionarLista, true);
@@ -191,6 +261,7 @@ function crearDropdown(config) {
       posicionarLista();
     }
     resaltar(indiceResaltado);
+    if (inputBuscar) setTimeout(() => inputBuscar.focus(), 0);
   }
 
   function cerrar() {
@@ -264,6 +335,37 @@ function crearDropdown(config) {
     seleccionar(li.dataset.valor);
     cerrar();
   });
+
+  if (inputBuscar) {
+    inputBuscar.addEventListener('input', () => {
+      terminoBusqueda = inputBuscar.value;
+      pintarLista();
+      resaltar(0);
+      posicionarLista();
+    });
+    inputBuscar.addEventListener('keydown', (e) => {
+      const items = lista.querySelectorAll('li[data-valor]');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        resaltar(Math.min(indiceResaltado + 1, items.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        resaltar(Math.max(indiceResaltado - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const li = items[indiceResaltado];
+        if (li && !li.classList.contains('deshabilitada')) {
+          seleccionar(li.dataset.valor);
+          cerrar();
+          trigger.focus();
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cerrar();
+        trigger.focus();
+      }
+    });
+  }
 
   document.addEventListener('click', (e) => {
     if (!raiz.contains(e.target) && !lista.contains(e.target)) cerrar();
@@ -343,6 +445,8 @@ function mejorarSelect(selectOrSelector, config = {}) {
     valorInicial: select.value,
     ancho: config.ancho || 'full',
     deshabilitado: select.disabled,
+    buscar: config.buscar || false,
+    placeholderBuscar: config.placeholderBuscar || 'Buscar…',
     onCambio: (valor) => {
       escribiendoDesdeDropdown = true;
       select.value = valor;
