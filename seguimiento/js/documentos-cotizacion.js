@@ -53,6 +53,60 @@ function formatearRangoFechas(inicio, fin) {
   return formatearFechaCorta(fechaInicio || fechaFin);
 }
 
+const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+function capitalizar(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/** Arma "12 de Octubre del 2026" a partir de un objeto Date. */
+function formatearFechaLarga(fecha) {
+  return `${fecha.getDate()} de ${capitalizar(MESES_LARGOS[fecha.getMonth()])} del ${fecha.getFullYear()}`;
+}
+
+/** Arma "12 al 14 de Octubre del 2026" a partir de dos fechas tipo input date (AAAA-MM-DD). */
+function formatearRangoFechasLargo(inicio, fin) {
+  if (!inicio && !fin) return '—';
+  const fechaInicio = inicio ? new Date(inicio + 'T00:00:00') : null;
+  const fechaFin = fin ? new Date(fin + 'T00:00:00') : null;
+  if (fechaInicio && fechaFin) {
+    const mismoMesYAnio = fechaInicio.getMonth() === fechaFin.getMonth() && fechaInicio.getFullYear() === fechaFin.getFullYear();
+    if (mismoMesYAnio) {
+      return `${fechaInicio.getDate()} al ${fechaFin.getDate()} de ${capitalizar(MESES_LARGOS[fechaFin.getMonth()])} del ${fechaFin.getFullYear()}`;
+    }
+    return `${fechaInicio.getDate()} de ${capitalizar(MESES_LARGOS[fechaInicio.getMonth()])} al ${fechaFin.getDate()} de ${capitalizar(MESES_LARGOS[fechaFin.getMonth()])} del ${fechaFin.getFullYear()}`;
+  }
+  return formatearFechaLarga(fechaInicio || fechaFin);
+}
+
+/** Cuenta los días hábiles (lunes a viernes, sin descontar feriados) entre dos fechas tipo input date, ambas incluidas. */
+function diasHabilesEntre(inicio, fin) {
+  if (!inicio || !fin) return null;
+  const cursor = new Date(inicio + 'T00:00:00');
+  const fechaFin = new Date(fin + 'T00:00:00');
+  if (cursor > fechaFin) return null;
+  let contador = 0;
+  while (cursor <= fechaFin) {
+    const dia = cursor.getDay(); // 0 = domingo, 6 = sábado
+    if (dia !== 0 && dia !== 6) contador++;
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return contador;
+}
+
+/** Texto "3 días hábiles" / "1 día hábil" a partir del conteo. */
+function textoDiasHabiles(cantidad) {
+  if (cantidad === null || cantidad === undefined) return '—';
+  return `${cantidad} día${cantidad === 1 ? '' : 's'} hábil${cantidad === 1 ? '' : 'es'}`;
+}
+
+/** Suma N días de calendario (no hábiles) a una fecha tipo input date; devuelve un Date. */
+function sumarDiasCalendario(fechaStr, dias) {
+  const f = new Date(fechaStr + 'T00:00:00');
+  f.setDate(f.getDate() + dias);
+  return f;
+}
+
 /** Arma "Calle Número, Sector - Comuna" a partir del objeto dirección estructurado del lead. */
 function formatearDireccion(direccion) {
   if (!direccion) return '—';
@@ -164,35 +218,50 @@ export function htmlPie(titulo = '', folio = '', contenidoFijo = '') {
 
 export function htmlCotizacion({ cotizacion, cliente = {} }) {
   const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
-  const validaDesde = cotizacion.validaDesde
-    ? formatearFechaCorta(new Date(cotizacion.validaDesde + 'T00:00:00'))
+
+  // "Válida por 7 días, hasta [fecha]" se calcula desde "Válida desde".
+  const validaHasta = cotizacion.validaDesde
+    ? formatearFechaLarga(sumarDiasCalendario(cotizacion.validaDesde, 7))
     : '—';
+
+  const rangoEntregaLargo = formatearRangoFechasLargo(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin);
+  const diasHabiles = textoDiasHabiles(diasHabilesEntre(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin));
 
   const filas = (cotizacion.items || []).map(item => `<tr>
       <td>${escapeHtml(item.codigo)}</td>
-      <td>${escapeHtml(item.cantidad)} m</td>
+      <td>${escapeHtml(item.cantidad)}</td>
       <td>${escapeHtml(item.descripcion)}</td>
       <td>${formatearMoneda(item.valorUnitario)}</td>
       <td>${formatearMoneda(item.total)}</td>
     </tr>`).join('');
 
-  // Las filas SUB TOTAL e I.V.A. siempre están, pero solo llevan monto si la cotización aplica IVA.
-  const subtotal = cotizacion.aplicaIva ? formatearMoneda(cotizacion.totalGeneral) : '';
+  // MONTO, DESCUENTO y NETO no dependen de si la cotización aplica IVA (siempre se muestran).
+  const monto = cotizacion.totalGeneral || 0;
+  const descuento = cotizacion.descuento || 0;
+  const neto = cotizacion.neto ?? Math.max(0, monto - descuento);
+  // I.V.A. sigue mostrándose en blanco cuando la cotización no aplica IVA.
   const iva = cotizacion.aplicaIva ? formatearMoneda(cotizacion.ivaMonto) : '';
-  const total = cotizacion.aplicaIva ? cotizacion.totalConIva : cotizacion.totalGeneral;
+  const total = cotizacion.aplicaIva ? cotizacion.totalConIva : neto;
+
+  const vendedor = cliente.vendedor || '—';
+  const condiciones = `Abono ${cotizacion.porcentajeAbono || 0}%, saldo contra entrega`;
 
   // El cuadro de notas + totales queda anclado al fondo de la última hoja,
   // pegado justo encima del pie institucional (ver htmlPie).
   const cuadroPie = `
   <div class="pdf-pie">
     <div class="pdf-pie-notas">
-      <p>Esta cotización de su proyecto es válida desde ${validaDesde}</p>
+      <p>Esta cotización de su proyecto es válida por 7 días, hasta ${validaHasta}</p>
+      <p>Vendedor: ${escapeHtml(vendedor)}</p>
+      <p>Condiciones: ${escapeHtml(condiciones)}</p>
       <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
       <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
     </div>
     <table class="pdf-tabla-totales">
-      <tr><th>SUB TOTAL</th><td>${subtotal}</td></tr>
-      <tr><th>I.V.A</th><td>${iva}</td></tr>
+      <tr><th>MONTO</th><td>${formatearMoneda(monto)}</td></tr>
+      <tr><th>DESCUENTO</th><td>${formatearMoneda(descuento)}</td></tr>
+      <tr><th>NETO</th><td>${formatearMoneda(neto)}</td></tr>
+      <tr><th>I.V.A. 19%</th><td>${iva}</td></tr>
       <tr><th>TOTAL</th><td>${formatearMoneda(total)}</td></tr>
       <tr><th>Abono ${cotizacion.porcentajeAbono || 0}%</th><td>${formatearMoneda(cotizacion.abono)}</td></tr>
     </table>
@@ -202,14 +271,20 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   <table class="pdf-tabla-info">
     <tr>
-      <th>PROYECTO:</th>
-      <th>FECHA:</th>
-      <th>FECHA DE ENTREGA:</th>
+      <th colspan="2">PROYECTO:</th>
+      <th>FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
-      <td>${escapeHtml(cotizacion.proyecto || '—')}</td>
+      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}</td>
       <td>${fecha}</td>
-      <td>${formatearRangoFechas(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin)}</td>
+    </tr>
+    <tr>
+      <th>DÍAS HÁBILES:</th>
+      <th colspan="2">FECHA DE ENTREGA:</th>
+    </tr>
+    <tr>
+      <td>${diasHabiles}</td>
+      <td colspan="2">${rangoEntregaLargo}</td>
     </tr>
     <tr>
       <th>CLIENTE:</th>
