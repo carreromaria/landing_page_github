@@ -17,7 +17,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos COT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=4';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=5';
 
 // ---------- Estado ----------
 
@@ -48,11 +48,12 @@ const editorFolioVersion = document.getElementById('editorFolioVersion');
 const cotizacionItemsBody = document.getElementById('cotizacionItemsBody');
 const cotProyectoAuto = document.getElementById('cotProyectoAuto');
 const cotTotalGeneral = document.getElementById('cotTotalGeneral');
+const cotDescuento = document.getElementById('cotDescuento');
+const cotNeto = document.getElementById('cotNeto');
 const cotAplicaIva = document.getElementById('cotAplicaIva');
 const filaIva = document.getElementById('filaIva');
 const cotIvaMonto = document.getElementById('cotIvaMonto');
-const filaTotalConIva = document.getElementById('filaTotalConIva');
-const cotTotalConIva = document.getElementById('cotTotalConIva');
+const cotTotalFinal = document.getElementById('cotTotalFinal');
 const cotPorcentajeAbono = document.getElementById('cotPorcentajeAbono');
 const cotAbono = document.getElementById('cotAbono');
 const cotizacionError = document.getElementById('cotizacionError');
@@ -284,6 +285,7 @@ async function cargarCotizacionVigente() {
     btnGuardarNuevaVersion.style.display = '';
     btnGuardarCotizacion.textContent = 'Guardar cambios';
     renderFilas(vigenteActual.items);
+    cotDescuento.value = vigenteActual.descuento ? formatearMilesInput(String(vigenteActual.descuento)) : '';
     cotPorcentajeAbono.value = vigenteActual.porcentajeAbono ?? '';
     cotAplicaIva.checked = !!vigenteActual.aplicaIva;
     cotFechaEntregaInicio.value = vigenteActual.fechaEntregaInicio || '';
@@ -297,6 +299,7 @@ async function cargarCotizacionVigente() {
     btnGuardarNuevaVersion.style.display = 'none';
     btnGuardarCotizacion.textContent = 'Guardar cotización';
     renderFilas([]);
+    cotDescuento.value = '';
     cotPorcentajeAbono.value = '';
     cotAplicaIva.checked = false;
     cotFechaEntregaInicio.value = '';
@@ -527,6 +530,9 @@ document.getElementById('btnGuardarNuevaOpcion').addEventListener('click', async
   }
 });
 
+activarFormatoMiles(cotDescuento);
+cotDescuento.addEventListener('input', recalcularCotizacion);
+
 cotAplicaIva.addEventListener('change', recalcularCotizacion);
 
 cotPorcentajeAbono.addEventListener('input', () => {
@@ -557,27 +563,27 @@ function recalcularCotizacion() {
   const proyecto = items.map(i => i.descripcion).filter(Boolean).join(', ');
   cotProyectoAuto.textContent = proyecto || '—';
 
-  const totalGeneral = items.reduce((suma, i) => suma + (i.total || 0), 0);
-  cotTotalGeneral.textContent = formatearMoneda(totalGeneral);
+  const monto = items.reduce((suma, i) => suma + (i.total || 0), 0);
+  cotTotalGeneral.textContent = formatearMoneda(monto);
 
+  const descuento = parsearMonto(cotDescuento.value);
+  const neto = Math.max(0, monto - descuento);
+  cotNeto.textContent = formatearMoneda(neto);
+
+  // El I.V.A. y el Total se calculan sobre el Neto (Monto ya descontado), no sobre el Monto.
   const aplicaIva = cotAplicaIva.checked;
-  const ivaMonto = aplicaIva ? Math.round(totalGeneral * 0.19) : 0;
-  const totalConIva = totalGeneral + ivaMonto;
+  const ivaMonto = aplicaIva ? Math.round(neto * 0.19) : 0;
+  const total = neto + ivaMonto;
 
   filaIva.style.display = aplicaIva ? '' : 'none';
-  filaTotalConIva.style.display = aplicaIva ? '' : 'none';
   cotIvaMonto.textContent = formatearMoneda(ivaMonto);
-  cotTotalConIva.textContent = formatearMoneda(totalConIva);
-
-  // El Abono se calcula sobre el total con IVA cuando aplica; si no,
-  // sobre el total general (neto), igual que siempre.
-  const baseAbono = aplicaIva ? totalConIva : totalGeneral;
+  cotTotalFinal.textContent = formatearMoneda(total);
 
   const porcentaje = parseInt(cotPorcentajeAbono.value, 10) || 0;
-  const abono = Math.round(baseAbono * (porcentaje / 100));
+  const abono = Math.round(total * (porcentaje / 100));
   cotAbono.textContent = formatearMoneda(abono);
 
-  return { proyecto, items, totalGeneral, aplicaIva, ivaMonto, totalConIva, porcentaje, abono };
+  return { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono };
 }
 
 function validarCotizacion(items) {
@@ -592,7 +598,7 @@ function validarCotizacion(items) {
 }
 
 async function guardar({ comoNuevaVersion }) {
-  const { proyecto, items, totalGeneral, aplicaIva, ivaMonto, totalConIva, porcentaje, abono } = recalcularCotizacion();
+  const { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono } = recalcularCotizacion();
 
   cotizacionError.textContent = '';
   cotizacionError.classList.remove('visible');
@@ -605,8 +611,12 @@ async function guardar({ comoNuevaVersion }) {
   }
 
   const datos = {
-    proyecto, items, totalGeneral,
-    aplicaIva, ivaMonto, totalConIva,
+    // totalGeneral y totalConIva mantienen su nombre de campo en Firestore
+    // (se usan en otros módulos), aunque ahora "Monto" y "Total" se llaman
+    // distinto en la interfaz.
+    proyecto, items, totalGeneral: monto,
+    descuento, neto,
+    aplicaIva, ivaMonto, totalConIva: total,
     porcentajeAbono: porcentaje, abono,
     clienteNombre: leadActual.nombre || '',
     fechaEntregaInicio: cotFechaEntregaInicio.value,
