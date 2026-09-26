@@ -12,18 +12,20 @@ import {
   listarServiciosActivos, obtenerLead, obtenerCotizacionVigentePorLead,
   listarCotizacionesPorLead, crearCotizacion, actualizarCotizacion,
   escucharCotizacionesVigentes, crearServicioCatalogo,
-  listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion
+  listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion,
+  listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos COT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=5';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=6';
 
 // ---------- Estado ----------
 
 let STAFF_ACTUAL = null;
 let serviciosCatalogo = [];
 let catalogoDescripcionCompleto = []; // catálogo de Materiales/Herrajes/Cubiertas/Accesorios (DC)
+let usuariosStaffCotizacion = []; // para resolver leadActual.vendedorAsignado (uid) a un nombre
 let cotizacionRowCounter = 0;
 let leadActual = null;
 let vigenteActual = null;   // null si el lead todavía no tiene cotización
@@ -261,6 +263,13 @@ async function inicializarEditor() {
   } catch (err) {
     console.error(err);
     mostrarToast('No se pudo cargar el catálogo de la Descripción de Cotización.', 'error');
+  }
+
+  try {
+    usuariosStaffCotizacion = await listarUsuariosStaff();
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo cargar la lista de vendedores.', 'error');
   }
 
   leadActual = await obtenerLead(leadId);
@@ -780,9 +789,21 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   imprimirDocumentoPdf(document.getElementById('plantillaPDF'));
 });
 
+/** Resuelve leadActual.vendedorAsignado (uid) a un nombre, igual que nombreVendedor() en crm.js. */
+function nombreVendedorPorUid(uid) {
+  if (!uid) return '—';
+  const u = usuariosStaffCotizacion.find(u => u.uid === uid);
+  return u ? (u.nombre || uid) : '—';
+}
+
+/** El lead guarda vendedorAsignado como uid; la plantilla necesita el nombre ya resuelto. */
+function clienteParaPlantilla(lead) {
+  return { ...lead, vendedorNombre: nombreVendedorPorUid(lead?.vendedorAsignado) };
+}
+
 function llenarPlantillaPDF(cotizacion, lead) {
   // Mismo documento que genera el módulo Documentación: sale de js/documentos-cotizacion.js
-  document.getElementById('plantillaPDF').innerHTML = htmlCotizacion({ cotizacion, cliente: lead });
+  document.getElementById('plantillaPDF').innerHTML = htmlCotizacion({ cotizacion, cliente: clienteParaPlantilla(lead) });
 }
 
 // ---------- Descargar Descripción de Cotización (documento DC) ----------
@@ -796,7 +817,7 @@ const modalPdfDescripcion = document.getElementById('modalPdfDescripcion');
 function llenarPlantillaDC(cotizacion, lead) {
   document.getElementById('plantillaDC').innerHTML = htmlDescripcion({
     cotizacion,
-    cliente: lead,
+    cliente: clienteParaPlantilla(lead),
     catalogo: catalogoDescripcionCompleto
   });
 }
