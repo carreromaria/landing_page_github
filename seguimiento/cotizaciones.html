@@ -153,19 +153,27 @@
 
     <div class="crm-cotizacion-totales">
       <div class="crm-cotizacion-total-row">
-        <span>Total general</span>
+        <span>Monto</span>
         <span id="cotTotalGeneral">$0</span>
+      </div>
+      <div class="crm-cotizacion-total-row">
+        <label for="cotDescuento">Descuento</label>
+        <input type="text" id="cotDescuento" inputmode="numeric" placeholder="$0">
+      </div>
+      <div class="crm-cotizacion-total-row">
+        <span>Neto</span>
+        <span id="cotNeto">$0</span>
       </div>
       <div class="crm-cotizacion-total-row crm-cotizacion-iva-toggle">
         <label for="cotAplicaIva"><input type="checkbox" id="cotAplicaIva"> Incluir IVA (19% — para factura)</label>
       </div>
       <div class="crm-cotizacion-total-row" id="filaIva" style="display:none;">
-        <span>IVA (19%)</span>
+        <span>I.V.A. 19%</span>
         <span id="cotIvaMonto">$0</span>
       </div>
-      <div class="crm-cotizacion-total-row crm-cotizacion-total-con-iva" id="filaTotalConIva" style="display:none;">
-        <span>Total con IVA</span>
-        <span id="cotTotalConIva">$0</span>
+      <div class="crm-cotizacion-total-row crm-cotizacion-total-con-iva">
+        <span>Total</span>
+        <span id="cotTotalFinal">$0</span>
       </div>
       <div class="crm-cotizacion-total-row">
         <label for="cotPorcentajeAbono">% de abono</label>
@@ -343,6 +351,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=3"></script>
+<script type="module" src="js/cotizaciones.js?v=4"></script>
 </body>
 </html>
