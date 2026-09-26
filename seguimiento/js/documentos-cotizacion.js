@@ -243,7 +243,10 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
   const iva = cotizacion.aplicaIva ? formatearMoneda(cotizacion.ivaMonto) : '';
   const total = cotizacion.aplicaIva ? cotizacion.totalConIva : neto;
 
-  const vendedor = cliente.vendedor || '—';
+  // cliente.vendedorAsignado en el lead es un uid (select de staff en el CRM);
+  // quien llama a htmlCotizacion debe resolverlo antes a un nombre y pasarlo
+  // como cliente.vendedorNombre (ver clienteParaPlantilla en cotizaciones.js).
+  const vendedor = cliente.vendedorNombre || '—';
   const condiciones = `Abono ${cotizacion.porcentajeAbono || 0}%, saldo contra entrega`;
 
   // El cuadro de notas + totales queda anclado al fondo de la última hoja,
@@ -279,12 +282,12 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <td>${fecha}</td>
     </tr>
     <tr>
-      <th>DÍAS HÁBILES:</th>
       <th colspan="2">FECHA DE ENTREGA:</th>
+      <th>DÍAS HÁBILES:</th>
     </tr>
     <tr>
-      <td>${diasHabiles}</td>
       <td colspan="2">${rangoEntregaLargo}</td>
+      <td>${diasHabiles}</td>
     </tr>
     <tr>
       <th>CLIENTE:</th>
