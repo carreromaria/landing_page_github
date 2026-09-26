@@ -348,7 +348,8 @@ btnVerVersiones.addEventListener('click', () => {
 // ---------- Filas de la tabla ----------
 
 function opcionesCodigoServicio(codigoSeleccionado) {
-  const opciones = serviciosCatalogo.map(s =>
+  const catalogoOrdenado = serviciosCatalogo.slice().sort((a, b) => a.codigo.localeCompare(b.codigo));
+  const opciones = catalogoOrdenado.map(s =>
     `<option value="${s.codigo}" ${s.codigo === codigoSeleccionado ? 'selected' : ''}>${escapeHtml(s.codigo)} — ${escapeHtml(s.nombre)}</option>`
   ).join('');
   return `<option value="">Selecciona…</option>${opciones}`;
@@ -376,7 +377,7 @@ function agregarFilaCotizacion(item = {}) {
   `;
   cotizacionItemsBody.appendChild(tr);
 
-  mejorarSelect(`#cotCod_${rowId}`);
+  mejorarSelect(`#cotCod_${rowId}`, { buscar: true, placeholderBuscar: 'Buscar por código o nombre…' });
 
   const selCodigo = document.getElementById(`cotCod_${rowId}`);
   const inpDesc = document.getElementById(`cotDesc_${rowId}`);
