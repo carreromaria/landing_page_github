@@ -13,7 +13,7 @@
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
-  listarCatalogoDescripcionActivo
+  listarCatalogoDescripcionActivo, listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 // Diseño de los documentos oficiales (COT, DC, encabezado y pie) e impresión:
@@ -21,11 +21,12 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=4';
+} from './documentos-cotizacion.js?v=7';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
 let catalogoDescripcionActivo = []; // catálogo de Materiales/Herrajes/Cubiertas/Accesorios, para el documento DC
+let usuariosStaffCache = null; // para resolver lead.vendedorAsignado (uid) a un nombre, ver nombreVendedorPorUid()
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({
@@ -307,6 +308,8 @@ async function prepararProyectoConCotizacion(proyecto) {
   let lead = null;
   let errorCotizacion = false;
 
+  await obtenerUsuariosStaffCacheados();
+
   if (proyecto.leadOrigenId) {
     const [resVigente, resLead] = await Promise.allSettled([
       obtenerCotizacionVigentePorLead(proyecto.leadOrigenId),
@@ -339,6 +342,25 @@ async function prepararProyectoConCotizacion(proyecto) {
   };
 }
 
+/** Carga (una sola vez, con caché) la lista de staff para resolver el vendedor asignado del lead. */
+async function obtenerUsuariosStaffCacheados() {
+  if (usuariosStaffCache) return usuariosStaffCache;
+  try {
+    usuariosStaffCache = await listarUsuariosStaff();
+  } catch (err) {
+    console.error('No se pudo cargar la lista de vendedores:', err);
+    usuariosStaffCache = [];
+  }
+  return usuariosStaffCache;
+}
+
+/** Resuelve lead.vendedorAsignado (uid) a un nombre, igual que nombreVendedor() en crm.js. */
+function nombreVendedorPorUid(uid) {
+  if (!uid) return '—';
+  const u = (usuariosStaffCache || []).find(s => s.uid === uid);
+  return u ? (u.nombre || uid) : '—';
+}
+
 /**
  * Datos del cliente para los documentos COT y DC. Salen del LEAD, igual
  * que en el módulo Cotizaciones, para que ambos módulos impriman
@@ -346,7 +368,7 @@ async function prepararProyectoConCotizacion(proyecto) {
  * los datos del proyecto.
  */
 function datosClienteDocumento(p) {
-  if (p.lead) return p.lead;
+  if (p.lead) return { ...p.lead, vendedorNombre: nombreVendedorPorUid(p.lead.vendedorAsignado) };
   return {
     nombre: tituloCase(p.cliente),
     telefono: p.telefono,
@@ -688,7 +710,7 @@ function generarContratoVenta(p) {
         <h2>Contrato de Venta e Instalación</h2>
         <p class="hoja-subtitulo">Fabricación e Instalación de ${tipoMobiliario}</p>
 
-        <p><strong>PRIMERA</strong>: <u>COMPARECENCIA</u>. Con fecha ${fechaContrato}, en la ciudad de Rancagua-Chile, comparecen, por una parte, LINENCE SpA, RUN N° 78.446.739-2, con domicilio en Av. Salvador Allende 500, representada por su Gerente General, Maria Carrero Peralta, en adelante "LINENCE". Por otra parte, el cliente, ${nombreCliente}, RUN N° ${rutCliente}, domicilio en ${domicilioCliente}, en adelante "EL CLIENTE".</p>
+        <p><strong>PRIMERA</strong>: <u>COMPARECENCIA</u>. Con fecha ${fechaContrato}, en la ciudad de Rancagua-Chile, comparecen, por una parte, LINENCE SpA, RUN N° 78.446.739-2, con domicilio en Av. Salvador Allende, Los Almendros 22, representada por su Gerente General, Maria Carrero Peralta, en adelante "LINENCE". Por otra parte, el cliente, ${nombreCliente}, RUN N° ${rutCliente}, domicilio en ${domicilioCliente}, en adelante "EL CLIENTE".</p>
 
         <p>Ambas partes acuerdan celebrar el presente Contrato de Venta e Instalación de Mobiliario a Medida, el cual se regirá por las siguientes cláusulas.</p>
 
