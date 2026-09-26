@@ -174,7 +174,7 @@ export function htmlEncabezado(titulo, folio) {
     </div>
     <div class="ln-datos-empresa">
       <div class="ln-fila-rut"><span>LINENCE SpA.</span><span>RUT: 78.446.739-2</span></div>
-      <div>DIRECCIÓN: Av. Salvador Allende #500</div>
+      <div>DIRECCIÓN: Av. Salvador Allende, Los Almendros 22</div>
       <div>CORREO ELECTRÓNICO: contacto@linence.cl</div>
     </div>
     <img class="ln-logo" src="assets/img/logo-encabezado.png" width="162" height="95" alt="LINENCE">
@@ -350,7 +350,7 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
   <p class="pdf-dc-intro">
-    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende #500, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml(cliente.nombre || '—')}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.616-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml(cliente.nombre || '—')}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
   </p>
 
   <div class="pdf-dc-seccion">
