@@ -368,6 +368,10 @@ function agregarFilaCotizacion(item = {}) {
   tr.dataset.rowId = rowId;
 
   tr.innerHTML = `
+    <td class="cot-item-orden" style="text-align:center; white-space:nowrap;">
+      <button type="button" class="cot-item-mover" data-dir="up" data-row-id="${rowId}" aria-label="Mover ítem arriba" style="display:block; width:26px; height:20px; line-height:18px; padding:0; margin:0 auto; border:1px solid #ddd; border-radius:4px 4px 0 0; background:#fff; cursor:pointer; font-size:11px;">▲</button>
+      <button type="button" class="cot-item-mover" data-dir="down" data-row-id="${rowId}" aria-label="Mover ítem abajo" style="display:block; width:26px; height:20px; line-height:18px; padding:0; margin:0 auto; border:1px solid #ddd; border-top:none; border-radius:0 0 4px 4px; background:#fff; cursor:pointer; font-size:11px;">▼</button>
+    </td>
     <td><select id="cotCod_${rowId}" class="cot-item-codigo">${opcionesCodigoServicio(item.codigo)}</select></td>
     <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
     <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
@@ -399,6 +403,18 @@ function agregarFilaCotizacion(item = {}) {
   inpVU.addEventListener('input', () => { actualizarTotalFila(rowId); recalcularCotizacion(); });
 
   actualizarTotalFila(rowId);
+  actualizarBotonesOrden();
+}
+
+/** Deshabilita ▲ en la primera fila y ▼ en la última, para que se note visualmente el límite. */
+function actualizarBotonesOrden() {
+  const filas = [...cotizacionItemsBody.querySelectorAll('tr')];
+  filas.forEach((tr, i) => {
+    const btnArriba = tr.querySelector('.cot-item-mover[data-dir="up"]');
+    const btnAbajo = tr.querySelector('.cot-item-mover[data-dir="down"]');
+    if (btnArriba) btnArriba.disabled = (i === 0);
+    if (btnAbajo) btnAbajo.disabled = (i === filas.length - 1);
+  });
 }
 
 /** Total línea = Cantidad × Valor Unitario (se calcula solo, no se edita). */
@@ -420,15 +436,32 @@ document.getElementById('btnAgregarItemCotizacion').addEventListener('click', ()
 });
 
 cotizacionItemsBody.addEventListener('click', (e) => {
-  const btn = e.target.closest('.cot-item-eliminar');
-  if (!btn) return;
-  if (cotizacionItemsBody.querySelectorAll('tr').length === 1) {
-    renderFilas([]);
+  const btnEliminar = e.target.closest('.cot-item-eliminar');
+  if (btnEliminar) {
+    if (cotizacionItemsBody.querySelectorAll('tr').length === 1) {
+      renderFilas([]);
+      recalcularCotizacion();
+      return;
+    }
+    btnEliminar.closest('tr').remove();
+    actualizarBotonesOrden();
     recalcularCotizacion();
     return;
   }
-  btn.closest('tr').remove();
-  recalcularCotizacion();
+
+  const btnMover = e.target.closest('.cot-item-mover');
+  if (btnMover) {
+    const tr = btnMover.closest('tr');
+    if (btnMover.dataset.dir === 'up') {
+      const anterior = tr.previousElementSibling;
+      if (anterior) tr.parentNode.insertBefore(tr, anterior);
+    } else {
+      const siguiente = tr.nextElementSibling;
+      if (siguiente) tr.parentNode.insertBefore(siguiente, tr);
+    }
+    actualizarBotonesOrden();
+    recalcularCotizacion();
+  }
 });
 
 // ---------- Checklist: Descripción de Cotización ----------
