@@ -343,6 +343,12 @@
 /* Espacio en blanco reservado para firmar a mano, entre la fecha y la línea
    de "Firma: ____". */
 .espacio-firma { height: 0.4in; }
+
+/* Certificado de Garantía (CG): a este documento le faltaban ~15px para que
+   el pie institucional cupiera en la última hoja (medido con el diagnóstico
+   de prepararAlturasParaImprimir). Se achica un poco el espacio de firma
+   SOLO en este documento — CV y ER siguen usando .espacio-firma normal. */
+.espacio-firma-cg { height: 0.25in; }
 .pdf-dc-seccion-titulo, .pdf-dc-nota, .hoja-cuerpo h2 {
   break-after: avoid;
   page-break-after: avoid;
