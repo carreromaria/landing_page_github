@@ -951,15 +951,13 @@ function generarCertificadoGarantia(p) {
         ${tablaDatosProyecto(p)}
 
         <p><strong>RECEPCIÓN — Cliente:</strong></p>
-        <p>Nombre: ${tituloCase(p.cliente)}</p>
-        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Nombre: ${tituloCase(p.cliente)}<br>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
         <div class="espacio-firma"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
 
         <p><strong>LINENCE SpA:</strong></p>
         <p>Representante: María Carrero Peralta</p>
-        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
-        <p>Cargo: Gerente General</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}<br>Cargo: Gerente General</p>
         <div class="espacio-firma"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
       </div>
