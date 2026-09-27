@@ -952,13 +952,13 @@ function generarCertificadoGarantia(p) {
 
         <p><strong>RECEPCIÓN — Cliente:</strong></p>
         <p>Nombre: ${tituloCase(p.cliente)}<br>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
-        <div class="espacio-firma"></div>
+        <div class="espacio-firma espacio-firma-cg"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
 
         <p><strong>LINENCE SpA:</strong></p>
         <p>Representante: María Carrero Peralta</p>
         <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}<br>Cargo: Gerente General</p>
-        <div class="espacio-firma"></div>
+        <div class="espacio-firma espacio-firma-cg"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
       </div>
       ${pieHoja('Certificado de Garantía Comercial', codigo)}
