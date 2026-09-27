@@ -466,6 +466,15 @@ export function prepararAlturasParaImprimir(plantilla) {
       // el pie no cabe debajo del texto: va al fondo de una hoja nueva
       espacio += ALTO_HOJA_PX;
     }
+    // TEMPORAL — diagnóstico del cálculo de --ln-espacio-pie. Quitar este bloque
+    // una vez resuelto el caso del pie que se va solo a una hoja.
+    console.log('[diagnóstico pie]', {
+      ALTO_UTIL_PX, ALTO_HOJA_PX,
+      altoEncabezado: encabezado.offsetHeight,
+      altoPie,
+      yFinal,
+      espacioFinalPx: Math.max(0, Math.floor(espacio) - 1)
+    });
   } finally {
     sim.remove();
   }
