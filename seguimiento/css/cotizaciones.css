@@ -110,6 +110,7 @@
   border: 1px solid #ece4d3;
   border-radius: 10px;
   padding: 14px 16px;
+  margin-top: 18px; /* separación de la tarjeta "Proyecto" de arriba, exista o no el link "Ver versiones anteriores" entre medio (con margin-collapsing no se duplica cuando sí existe) */
   margin-bottom: 18px;
 }
 
@@ -362,6 +363,21 @@
   .cot-datos-documento {
     flex-direction: column;
     flex-wrap: nowrap; /* si no, "Válida desde" podía saltar a una segunda columna en vez de apilarse */
+  }
+
+  /* Refuerzo: en algunos iPhone el <input type="date"> nativo no respeta
+     width:100% y se desborda del contenedor aunque .cot-campo-doc ya
+     estire a ancho completo (stretch del flex column). Se fuerza acá,
+     con !important, tanto en el contenedor como en el input/select. */
+  .cot-datos-documento .cot-campo-doc {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .cot-campo-doc input,
+  .cot-campo-doc select {
+    max-width: 100% !important;
   }
 
   /* "Forma de pago" es un <select> mejorado por mejorarSelect() con
