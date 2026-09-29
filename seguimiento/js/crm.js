@@ -77,7 +77,8 @@ function activarFormatoMiles(inputEl) {
 }
 
 ['lTelefono', 'eTelefono'].forEach(id => activarFormatoTelefono(document.getElementById(id)));
-['lPresupuesto', 'ePresupuesto'].forEach(id => activarFormatoMiles(document.getElementById(id)));
+// (antes acá también se activaba formato de miles para 'lPresupuesto'/'ePresupuesto';
+// ese campo se quitó del formulario, ver nota en 'Presupuesto estimado' de la tarjeta)
 
 // ---------- RUT (mismo algoritmo que dashboard.js, para que valide igual) ----------
 
@@ -691,8 +692,6 @@ formNuevoLead.addEventListener('submit', async (e) => {
     direccion: leerDireccionDelFormulario('l'),
     canalOrigen: document.getElementById('lCanal').value,
     tipoProyecto: document.getElementById('lTipoProyecto').value.trim(),
-    presupuestoEstimado: document.getElementById('lPresupuesto').value
-      ? Number(document.getElementById('lPresupuesto').value.replace(/\D/g, '')) : null,
     vendedorAsignado: document.getElementById('lVendedor').value || null,
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
     creadoPorNombre: STAFF_ACTUAL?.nombre || ''
@@ -749,8 +748,6 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   escribirDireccionEnFormulario('e', lead.direccion);
   document.getElementById('eCanal').value = lead.canalOrigen || '';
   document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
-  document.getElementById('ePresupuesto').value = lead.presupuestoEstimado
-    ? formatearMilesInput(String(lead.presupuestoEstimado)) : '';
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
   document.getElementById('modalEditarError').textContent = '';
   document.getElementById('modalEditarError').classList.remove('visible');
@@ -776,8 +773,6 @@ formEditarLead.addEventListener('submit', async (e) => {
     direccion: leerDireccionDelFormulario('e'),
     canalOrigen: document.getElementById('eCanal').value,
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
-    presupuestoEstimado: document.getElementById('ePresupuesto').value
-      ? Number(document.getElementById('ePresupuesto').value.replace(/\D/g, '')) : null,
     vendedorAsignado: document.getElementById('eVendedor').value || null
   };
 
