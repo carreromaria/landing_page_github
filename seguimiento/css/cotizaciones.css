@@ -361,6 +361,7 @@
   /* ---------- Fila de fechas / forma de pago del editor ---------- */
   .cot-datos-documento {
     flex-direction: column;
+    flex-wrap: nowrap; /* si no, "Válida desde" podía saltar a una segunda columna en vez de apilarse */
   }
 
   /* "Forma de pago" es un <select> mejorado por mejorarSelect() con
@@ -413,6 +414,19 @@
   #btnAgregarItemCotizacion:hover,
   #btnAgregarItemCotizacion:active {
     opacity: 0.9;
+  }
+
+  /* ---------- Cuadro de montos (Monto/Descuento/Neto/Total/Abono) ----------
+     .crm-cotizacion-totales vive en crm.css (compartida), pensada para un
+     layout de dos columnas en escritorio (tabla + montos al costado), con
+     un ancho fijo que en teléfono la dejaba angosta y pegada al botón de
+     arriba. Se sobrescribe solo acá para que ocupe todo el ancho y quede
+     separada del botón "+ Nuevo producto o servicio". */
+  .crm-cotizacion-totales {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 18px;
   }
 
   /* ---------- Acciones finales (Ver PDF / Guardar), a ancho completo ---------- */
