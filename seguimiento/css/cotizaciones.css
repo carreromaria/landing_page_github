@@ -423,10 +423,10 @@
      arriba. Se sobrescribe solo acá para que ocupe todo el ancho y quede
      separada del botón "+ Nuevo producto o servicio". */
   .crm-cotizacion-totales {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    margin-top: 18px;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 18px !important;
   }
 
   /* ---------- Acciones finales (Ver PDF / Guardar), a ancho completo ---------- */
