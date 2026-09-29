@@ -186,18 +186,20 @@
       </div>
     </div>
 
-    <div class="cot-desc-resumen">
-      <div>
-        <h2 class="cat-title" style="font-size:19px; margin:0 0 4px;">Descripción de Cotización</h2>
-        <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
+    <div class="cot-desc-resumen" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
+      <div style="background:#141213; padding:10px 16px;">
+        <h2 class="cat-title" style="font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:#D6A52C; font-weight:700;">Descripción de Cotización</h2>
       </div>
-      <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:14px 16px; background:#fff;">
+        <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
+        <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
+      </div>
     </div>
 
     <div class="modal-error" id="cotizacionError"></div>
 
     <div class="crm-cotizacion-acciones">
-      <button type="button" class="btn-secundario" id="btnDescargarPDF">👁 Ver Cotización</button>
+      <button type="button" class="btn-secundario" id="btnDescargarPDF">👁 Ver PDF</button>
       <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
       <button type="button" class="btn-secundario" id="btnGuardarNuevaVersion" style="display:none;">Guardar como nueva versión</button>
       <button type="button" class="btn-primario" id="btnGuardarCotizacion">Guardar cotización</button>
