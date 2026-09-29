@@ -467,7 +467,7 @@ function abrirDetalleLead(id) {
   document.getElementById('detalleNombre').textContent = lead.nombre;
   document.getElementById('detalleMetaProyecto').textContent =
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
-  document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(lead.presupuestoEstimado);
+  document.getElementById('detallePresupuesto').textContent = '—'; // se llena con el Total de la cotización, ver cargarResumenCotizacion()
   document.getElementById('detalleRut').textContent = formatearRutParaMostrar(lead.rut);
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
@@ -566,6 +566,7 @@ async function cargarResumenCotizacion(lead) {
   cotizacionResumenVacio.style.display = 'none';
   cotizacionResumenExistente.style.display = 'none';
   document.getElementById('detalleAbono').textContent = '—';
+  document.getElementById('detallePresupuesto').textContent = '—';
 
   const enlace = `cotizaciones.html?leadId=${lead.id}`;
   btnIrACotizacionNueva.href = enlace;
@@ -583,6 +584,9 @@ async function cargarResumenCotizacion(lead) {
       `${vigente.numero} (v${vigente.version})`;
     document.getElementById('detalleAbono').textContent =
       `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
+    // "Presupuesto estimado" en la tarjeta ahora muestra el Total de la
+    // cotización vigente (antes era un monto que se tipeaba a mano en el lead).
+    document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(vigente.totalConIva);
     cotizacionResumenExistente.style.display = '';
   } catch (err) {
     console.error('Error cargando cotización del lead:', err);
