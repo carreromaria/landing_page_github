@@ -570,13 +570,13 @@ function cotizacionDisponible(p, doc) {
 const DOCUMENTOS = [
   { sigla: 'PT',  nombre: 'Portada institucional', activo: true, generar: generarPortada },
   { sigla: 'CB',  nombre: 'Carta de Bienvenida', activo: true, generar: generarCartaBienvenida },
-  { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
+  { sigla: 'CT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
   { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarDescripcionCotizacion },
   { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, campos: ['fechaContrato', 'plazoDias'], generar: generarContratoVenta },
   { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, campos: ['fechaInstalacion'], generar: generarManualUso },
   { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, campos: ['fechaInstalacion'], generar: generarCertificadoGarantia },
   { sigla: 'ER',  nombre: 'Acta de Entrega y Recepción Conforme', activo: true, campos: ['fechaInstalacion', 'horaInicio', 'horaTermino', 'instalador', 'relacionCliente'], generar: generarActaEntrega },
-  { sigla: 'CR',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
+  { sigla: 'CA',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
   { sigla: 'TP',  nombre: 'Tarjeta de Servicio Postventa', activo: true, generar: generarTarjetaPostventa },
   { sigla: 'EG',  nombre: 'Tarjeta de Evaluación en Google', activo: true, generar: generarTarjetaEvaluacionGoogle }
 ];
