@@ -49,6 +49,16 @@ observarSesionStaff((staff) => {
   document.getElementById('dashLayout').style.display = 'flex';
   document.getElementById('dashTopbarMobile').style.display = '';
   reiniciarTimersInactividad();
+
+  // Acceso directo desde otras pantallas (ej. la ficha del lead en el CRM):
+  // documentacion.html?rut=6.212.718-K precarga el RUT en el buscador y
+  // dispara la búsqueda sola. Va acá (después de confirmar la sesión) y no
+  // antes, porque buscarProyectoPorRut necesita al staff ya autenticado.
+  const rutUrl = new URLSearchParams(window.location.search).get('rut');
+  if (rutUrl) {
+    document.getElementById('inputRutBuscar').value = rutUrl;
+    buscarYMostrarProyectoPorRut(limpiarRut(rutUrl));
+  }
 });
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
@@ -189,10 +199,7 @@ function codigoDocumento(prefijo, proyecto) {
 // ============================================================
 // Búsqueda de proyecto por RUT
 // ============================================================
-document.getElementById('formBuscarRut').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const rutLimpio = limpiarRut(document.getElementById('inputRutBuscar').value);
-
+async function buscarYMostrarProyectoPorRut(rutLimpio) {
   document.getElementById('docNoEncontrado').classList.remove('visible');
   document.getElementById('docClienteResultado').classList.remove('visible');
   document.getElementById('docAvisoCotizacion').style.display = 'none';
@@ -222,6 +229,12 @@ document.getElementById('formBuscarRut').addEventListener('submit', async (e) =>
     console.error(err);
     mostrarToast('No pudimos buscar el proyecto. Intenta de nuevo.', 'error');
   }
+}
+
+document.getElementById('formBuscarRut').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const rutLimpio = limpiarRut(document.getElementById('inputRutBuscar').value);
+  await buscarYMostrarProyectoPorRut(rutLimpio);
 });
 
 // ============================================================
@@ -951,14 +964,16 @@ function generarCertificadoGarantia(p) {
         ${tablaDatosProyecto(p)}
 
         <p><strong>RECEPCIÓN — Cliente:</strong></p>
-        <p>Nombre: ${tituloCase(p.cliente)}<br>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
-        <div class="espacio-firma espacio-firma-cg"></div>
+        <p>Nombre: ${tituloCase(p.cliente)}</p>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <div class="espacio-firma"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
 
         <p><strong>LINENCE SpA:</strong></p>
         <p>Representante: María Carrero Peralta</p>
-        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}<br>Cargo: Gerente General</p>
-        <div class="espacio-firma espacio-firma-cg"></div>
+        <p>Fecha: ${formatearFechaLarga(cot.fechaInstalacion)}</p>
+        <p>Cargo: Gerente General</p>
+        <div class="espacio-firma"></div>
         <p>Firma: ____________________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Huella:</p>
       </div>
       ${pieHoja('Certificado de Garantía Comercial', codigo)}
