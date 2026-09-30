@@ -484,6 +484,16 @@ function abrirDetalleLead(id) {
     proyectoVinculadoEl.style.display = 'none';
   }
 
+  // Acceso directo al módulo Documentación, ya con este cliente cargado
+  // (busca por RUT ahí, así que sin RUT en el lead no hay a dónde ir).
+  const linkDocumentacionEl = document.getElementById('detalleLinkDocumentacion');
+  if (lead.rut) {
+    linkDocumentacionEl.style.display = '';
+    linkDocumentacionEl.innerHTML = `<a href="documentacion.html?rut=${encodeURIComponent(lead.rut)}">Ver documentos en Documentación ↗</a>`;
+  } else {
+    linkDocumentacionEl.style.display = 'none';
+  }
+
   const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
   const esCierre = lead.etapa === 'Ganado' || lead.etapa === 'Perdido';
   selectEtapaWrap.style.display = esCierre ? 'none' : '';
