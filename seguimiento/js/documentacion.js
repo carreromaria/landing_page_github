@@ -599,7 +599,7 @@ function renderizarDocsGrid() {
       <h3>${doc.nombre}</h3>
       <div class="doc-card-botones" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <button type="button" class="btn-secundario btn-vista-previa" ${doc.activo ? '' : 'disabled'}>Vista previa</button>
-        <span class="doc-numero-orden" title="Orden de impresión: ${numero} de ${DOCUMENTOS.length}" style="display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#141213; color:#D6A52C; font-family:'Poppins', sans-serif; font-size:12px; font-weight:700;">${numero}</span>
+        <span class="doc-numero-orden" title="Orden de impresión: ${numero} de ${DOCUMENTOS.length}" style="display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#D3BB8C; color:#141213; font-family:'Poppins', sans-serif; font-size:12px; font-weight:700;">${numero}</span>
       </div>
     `;
     if (doc.activo) {
