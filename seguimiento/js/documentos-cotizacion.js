@@ -278,7 +278,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <th>FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
-      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}</td>
+      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}${cotizacion.descripcionOpcion ? `<br><strong>${escapeHtml(cotizacion.descripcionOpcion)}</strong>` : ''}</td>
       <td>${fecha}</td>
     </tr>
     <tr>
