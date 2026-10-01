@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css?v=6">
+<link rel="stylesheet" href="css/crm.css?v=7">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 </head>
 <body>
@@ -225,11 +225,9 @@
       <a href="#" id="btnIrACotizacionNueva" class="btn-primario">+ Crear cotización</a>
     </div>
 
-    <div class="crm-cotizacion-card" id="cotizacionResumenExistente" style="display:none;">
-      <div class="crm-cotizacion-card-header">
-        <span class="crm-cotizacion-folio" id="cotResNumero">—</span>
-        <a href="#" id="btnIrACotizacionExistente" class="btn-secundario">Ver / editar</a>
-      </div>
+    <div id="cotizacionResumenExistente" style="display:none;">
+      <div id="cotizacionListaOpciones"></div>
+      <a href="#" id="btnNuevaOpcionCotizacion" class="crm-cotizacion-nueva-opcion">+ Nueva opción</a>
     </div>
 
     <div class="crm-bitacora-titulo crm-bitacora-titulo-espaciado">Bitácora</div>
@@ -506,6 +504,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20260830n"></script>
+<script type="module" src="js/crm.js?v=20261001a"></script>
 </body>
 </html>
