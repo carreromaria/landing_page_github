@@ -366,6 +366,12 @@ async function cargarCotizacionVigente() {
     btnGuardarCotizacion.textContent = 'Guardar cotización';
   }
 
+  // La Descripción de Cotización es de ESTA opción: se rotula con su letra
+  // para que siempre quede claro a cuál pertenece lo que se está marcando.
+  const rotuloOpcion = (opcionesLead.length > 1 || opcionActual !== 'A') ? ` · Opción ${opcionActual}` : '';
+  document.getElementById('cotDescTituloCard').textContent = `Descripción de Cotización${rotuloOpcion}`;
+  document.getElementById('cotDescTituloModal').textContent = `Descripción de Cotización${rotuloOpcion}`;
+
   actualizarBotonAprobada();
   renderBarraOpciones();
   recalcularCotizacion();
