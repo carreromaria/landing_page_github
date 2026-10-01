@@ -568,10 +568,12 @@ export async function cambiarEstadoOpcionCatalogoDescripcion(id, activo) {
  * @param {string} uid
  * @returns {Promise<string>} id de la cotización creada
  */
-export async function crearCotizacion(leadId, canalOrigen, datos, uid) {
+export async function crearCotizacion(leadId, canalOrigen, datos, uid, opcion = "A") {
   const refContador = doc(db, "contadores", "cotizaciones");
 
-  const vigenteAnterior = await obtenerCotizacionVigentePorLead(leadId);
+  // La versión y el reemplazo se calculan DENTRO de la misma opción:
+  // cada opción (A, B, C…) tiene su propio historial de versiones.
+  const vigenteAnterior = await obtenerCotizacionVigentePorOpcion(leadId, opcion);
   const nuevaVersion = vigenteAnterior ? (vigenteAnterior.version || 1) + 1 : 1;
 
   const nuevoId = await runTransaction(db, async (transaction) => {
@@ -590,6 +592,9 @@ export async function crearCotizacion(leadId, canalOrigen, datos, uid) {
     transaction.set(refNueva, {
       ...datos,
       leadId,
+      opcion,
+      // Si la opción ya estaba aprobada, la nueva versión sigue aprobada.
+      aprobada: !!vigenteAnterior?.aprobada,
       numero: folio,
       version: nuevaVersion,
       estado: "vigente",
@@ -614,15 +619,75 @@ export async function actualizarCotizacion(id, datos) {
 }
 
 /**
- * Devuelve la cotización vigente de un Lead, o null si el Lead
- * todavía no tiene ninguna.
+ * Opciones de un Lead: cada opción (A, B, C…) es una cotización
+ * distinta del mismo proyecto (ej. cubierta de cuarzo vs. postformado).
+ * Devuelve la versión vigente de CADA opción, ordenadas por letra.
+ * Las cotizaciones antiguas, sin campo "opcion", cuentan como opción A.
  */
-export async function obtenerCotizacionVigentePorLead(leadId) {
+export async function listarOpcionesVigentesPorLead(leadId) {
   const ref = collection(db, "cotizaciones");
   const q = query(ref, where("leadId", "==", leadId), where("estado", "==", "vigente"));
   const snap = await getDocs(q);
-  if (snap.empty) return null;
-  return { id: snap.docs[0].id, ...snap.docs[0].data() };
+  return snap.docs
+    .map(d => {
+      const datos = d.data();
+      return { id: d.id, ...datos, opcion: datos.opcion || "A" };
+    })
+    .sort((x, y) => x.opcion.localeCompare(y.opcion));
+}
+
+/**
+ * La opción "principal" del Lead: la marcada como Aprobada; si no hay
+ * ninguna aprobada, la modificada más recientemente. Es la que leen
+ * Documentación, la Descripción de Cotización y el Presupuesto estimado.
+ */
+export function elegirOpcionPrincipal(opciones) {
+  if (!opciones || opciones.length === 0) return null;
+  const aprobada = opciones.find(o => o.aprobada);
+  if (aprobada) return aprobada;
+  const ms = (o) => o.actualizadoEn?.toMillis?.() ?? 0;
+  return opciones.slice().sort((x, y) => ms(y) - ms(x))[0];
+}
+
+/** Siguiente letra libre para una opción nueva (A, B, C…). */
+export function siguienteLetraOpcion(opciones) {
+  const maxCodigo = (opciones || []).reduce(
+    (max, o) => Math.max(max, (o.opcion || "A").charCodeAt(0)), 64
+  );
+  return String.fromCharCode(maxCodigo + 1);
+}
+
+/** Cotización vigente de una opción puntual del Lead (o null). */
+export async function obtenerCotizacionVigentePorOpcion(leadId, opcion) {
+  const opciones = await listarOpcionesVigentesPorLead(leadId);
+  return opciones.find(o => o.opcion === opcion) || null;
+}
+
+/**
+ * Devuelve la cotización "principal" de un Lead (aprobada, o la más
+ * reciente), o null si todavía no tiene ninguna. Mantiene el mismo
+ * nombre y forma de respuesta de siempre, así los módulos que ya la
+ * usan (CRM, Documentación) siguen funcionando sin cambios.
+ */
+export async function obtenerCotizacionVigentePorLead(leadId) {
+  const opciones = await listarOpcionesVigentesPorLead(leadId);
+  return elegirOpcionPrincipal(opciones);
+}
+
+/**
+ * Marca (o desmarca) una opción como Aprobada. Solo puede haber una
+ * aprobada por Lead: al aprobar una, se desmarcan las demás.
+ */
+export async function marcarOpcionAprobada(leadId, idCotizacion, aprobada = true) {
+  const opciones = await listarOpcionesVigentesPorLead(leadId);
+  const batch = writeBatch(db);
+  opciones.forEach(o => {
+    const debeEstarAprobada = aprobada && o.id === idCotizacion;
+    if (!!o.aprobada !== debeEstarAprobada) {
+      batch.update(doc(db, "cotizaciones", o.id), { aprobada: debeEstarAprobada });
+    }
+  });
+  await batch.commit();
 }
 
 /**
