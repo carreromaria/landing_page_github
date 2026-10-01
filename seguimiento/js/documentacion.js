@@ -567,16 +567,19 @@ function cotizacionDisponible(p, doc) {
 // ============================================================
 // Definición de documentos y grilla
 // ============================================================
+// El orden del array ES el orden de impresión (01 a 11); renderizarDocsGrid()
+// numera cada tarjeta según su posición acá, así que para cambiar el orden
+// de impresión basta con reordenar estas líneas.
 const DOCUMENTOS = [
   { sigla: 'PT',  nombre: 'Portada institucional', activo: true, generar: generarPortada },
   { sigla: 'CB',  nombre: 'Carta de Bienvenida', activo: true, generar: generarCartaBienvenida },
-  { sigla: 'CT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
+  { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
   { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarDescripcionCotizacion },
+  { sigla: 'CR',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
   { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, campos: ['fechaContrato', 'plazoDias'], generar: generarContratoVenta },
   { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, campos: ['fechaInstalacion'], generar: generarManualUso },
   { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, campos: ['fechaInstalacion'], generar: generarCertificadoGarantia },
   { sigla: 'ER',  nombre: 'Acta de Entrega y Recepción Conforme', activo: true, campos: ['fechaInstalacion', 'horaInicio', 'horaTermino', 'instalador', 'relacionCliente'], generar: generarActaEntrega },
-  { sigla: 'CA',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
   { sigla: 'TP',  nombre: 'Tarjeta de Servicio Postventa', activo: true, generar: generarTarjetaPostventa },
   { sigla: 'EG',  nombre: 'Tarjeta de Evaluación en Google', activo: true, generar: generarTarjetaEvaluacionGoogle }
 ];
@@ -584,7 +587,8 @@ const DOCUMENTOS = [
 function renderizarDocsGrid() {
   const grid = document.getElementById('docsGrid');
   grid.innerHTML = '';
-  DOCUMENTOS.forEach(doc => {
+  DOCUMENTOS.forEach((doc, indice) => {
+    const numero = String(indice + 1).padStart(2, '0');
     const card = document.createElement('div');
     card.className = 'doc-card' + (doc.activo ? '' : ' doc-pendiente');
     card.innerHTML = `
@@ -593,8 +597,9 @@ function renderizarDocsGrid() {
         ${doc.activo ? '' : '<span class="badge-proximamente">Próximamente</span>'}
       </div>
       <h3>${doc.nombre}</h3>
-      <div class="doc-card-botones">
+      <div class="doc-card-botones" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <button type="button" class="btn-secundario btn-vista-previa" ${doc.activo ? '' : 'disabled'}>Vista previa</button>
+        <span class="doc-numero-orden" title="Orden de impresión: ${numero} de ${DOCUMENTOS.length}" style="display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:26px; height:26px; border-radius:50%; background:#141213; color:#D6A52C; font-family:'Poppins', sans-serif; font-size:12px; font-weight:700;">${numero}</span>
       </div>
     `;
     if (doc.activo) {
