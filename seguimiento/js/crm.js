@@ -12,7 +12,8 @@ import {
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
-  obtenerCotizacionVigentePorLead
+  obtenerCotizacionVigentePorLead,
+  listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion
 } from './firestore.js';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
@@ -566,38 +567,61 @@ document.getElementById('btnVolverKanban').addEventListener('click', () => {
 // La cotización ya NO vive dentro del lead: vive en su propia
 // colección "cotizaciones", vinculada por leadId. Acá solo se
 // muestra un resumen de la cotización vigente (si existe) y se
-// navega al módulo Cotizaciones para crear/editar.
+// navega al módulo Cotizaciones para crear/editar. Si el lead tiene
+// varias opciones (A, B, C… — ej. cubierta de cuarzo vs. postformado),
+// se muestra una fila por opción.
 
 const cotizacionResumenVacio = document.getElementById('cotizacionResumenVacio');
 const cotizacionResumenExistente = document.getElementById('cotizacionResumenExistente');
 const btnIrACotizacionNueva = document.getElementById('btnIrACotizacionNueva');
-const btnIrACotizacionExistente = document.getElementById('btnIrACotizacionExistente');
+const cotizacionListaOpciones = document.getElementById('cotizacionListaOpciones');
+const btnNuevaOpcionCotizacion = document.getElementById('btnNuevaOpcionCotizacion');
 
 async function cargarResumenCotizacion(lead) {
   cotizacionResumenVacio.style.display = 'none';
   cotizacionResumenExistente.style.display = 'none';
+  cotizacionListaOpciones.innerHTML = '';
   document.getElementById('detalleAbono').textContent = '—';
   document.getElementById('detallePresupuesto').textContent = '—';
 
-  const enlace = `cotizaciones.html?leadId=${lead.id}`;
-  btnIrACotizacionNueva.href = enlace;
-  btnIrACotizacionExistente.href = enlace;
+  const enlaceBase = `cotizaciones.html?leadId=${encodeURIComponent(lead.id)}`;
+  btnIrACotizacionNueva.href = enlaceBase;
 
   try {
-    const vigente = await obtenerCotizacionVigentePorLead(lead.id);
+    const opciones = await listarOpcionesVigentesPorLead(lead.id);
 
-    if (!vigente) {
+    if (opciones.length === 0) {
       cotizacionResumenVacio.style.display = '';
       return;
     }
 
-    document.getElementById('cotResNumero').textContent =
-      `${vigente.numero} (v${vigente.version})`;
+    // Abono y Presupuesto estimado salen de la opción principal:
+    // la aprobada, o la más reciente si ninguna está aprobada.
+    const principal = elegirOpcionPrincipal(opciones);
     document.getElementById('detalleAbono').textContent =
-      `$${(vigente.abono || 0).toLocaleString('es-CL')} (${vigente.porcentajeAbono || 0}%)`;
-    // "Presupuesto estimado" en la tarjeta ahora muestra el Total de la
-    // cotización vigente (antes era un monto que se tipeaba a mano en el lead).
-    document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(vigente.totalConIva);
+      `$${(principal.abono || 0).toLocaleString('es-CL')} (${principal.porcentajeAbono || 0}%)`;
+    document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(principal.totalConIva);
+
+    const variasOpciones = opciones.length > 1;
+    cotizacionListaOpciones.innerHTML = opciones.map(o => {
+      const mostrarOpcion = variasOpciones || !!o.descripcionOpcion;
+      const lineaOpcion = mostrarOpcion
+        ? `<span class="crm-cotizacion-opcion">Opción ${escapeHtml(o.opcion)}${o.descripcionOpcion ? ' · ' + escapeHtml(o.descripcionOpcion) : ''}${o.aprobada ? ' <span class="crm-cotizacion-aprobada">✓ Aprobada</span>' : ''}</span>`
+        : '';
+      return `
+        <div class="crm-cotizacion-card">
+          <div class="crm-cotizacion-card-header">
+            <div class="crm-cotizacion-info">
+              <span class="crm-cotizacion-folio">${escapeHtml(o.numero)} (v${o.version})</span>
+              ${lineaOpcion}
+              <span class="crm-cotizacion-monto">${formatearPresupuesto(o.totalConIva)}</span>
+            </div>
+            <a href="${enlaceBase}&opcion=${encodeURIComponent(o.opcion)}" class="btn-secundario crm-cotizacion-ver">Ver / editar</a>
+          </div>
+        </div>`;
+    }).join('');
+
+    btnNuevaOpcionCotizacion.href = `${enlaceBase}&opcion=${encodeURIComponent(siguienteLetraOpcion(opciones))}`;
     cotizacionResumenExistente.style.display = '';
   } catch (err) {
     console.error('Error cargando cotización del lead:', err);
