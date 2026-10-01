@@ -788,7 +788,7 @@ html, body{
   letter-spacing: .01em;
 }
 
-.crm-cotizacion-card #btnIrACotizacionExistente {
+.crm-cotizacion-card .crm-cotizacion-ver {
   background: transparent;
   border: 1px solid #d6a52c;
   color: #d6a52c;
@@ -800,10 +800,55 @@ html, body{
   white-space: nowrap;
   transition: background .15s ease;
 }
-.crm-cotizacion-card #btnIrACotizacionExistente:hover {
+.crm-cotizacion-card .crm-cotizacion-ver:hover {
   background: rgba(214, 165, 44, 0.12);
 }
 
+/* Varias opciones de cotización (A, B, C…) bajo el mismo lead */
+#cotizacionListaOpciones .crm-cotizacion-card {
+  margin-bottom: 10px;
+}
+
+.crm-cotizacion-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.crm-cotizacion-opcion {
+  color: #d3bb8c;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.crm-cotizacion-aprobada {
+  display: inline-block;
+  margin-left: 4px;
+  color: #141213;
+  background: #d6a52c;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.crm-cotizacion-monto {
+  color: #faf7f2;
+  font-size: 13px;
+  opacity: .75;
+}
+
+.crm-cotizacion-nueva-opcion {
+  display: inline-block;
+  margin-top: 4px;
+  color: #b8860b;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.crm-cotizacion-nueva-opcion:hover { text-decoration: underline; }
 
 .crm-cotizacion-tabla-wrapper {
   margin: 14px 0 20px;
