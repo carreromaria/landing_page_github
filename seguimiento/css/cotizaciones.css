@@ -487,6 +487,15 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
     margin-top: 18px !important;
   }
 
+  /* ---------- Ver PDF / Ver Descripción, a ancho completo ---------- */
+  .cot-acciones-vista {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .cot-acciones-vista button {
+    width: 100%;
+  }
+
   /* ---------- Acciones finales (Ver PDF / Guardar), a ancho completo ---------- */
   .crm-cotizacion-acciones {
     flex-direction: column;
@@ -505,6 +514,20 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
    juntos, como un solo grupo a la derecha. */.crm-cotizacion-acciones {
   justify-content: flex-end;
   gap: 10px;
+  margin-top: 26px; /* aire entre el bloque de Descripción y los botones de guardar */
+}
+
+/* Ver PDF / Ver Descripción: fila propia arriba, entre los montos y el
+   bloque de Descripción de Cotización. */
+.cot-acciones-vista {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-top: 26px;
+}
+.cot-acciones-vista + .cot-desc-resumen {
+  margin-top: 18px !important;
 }
 
 /* ================= Impresión / "Guardar como PDF" ================= */
