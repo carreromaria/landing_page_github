@@ -21,7 +21,7 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=7';
+} from './documentos-cotizacion.js?v=8';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -293,6 +293,7 @@ function combinarCotizacion(base = {}, vigente) {
     fechaCotizacion: vigente.creadoEn?.toDate ? isoLocal(vigente.creadoEn.toDate()) : (base.fechaCotizacion || ''),
     validaDesde: vigente.validaDesde || '',
     proyecto: vigente.proyecto || '',
+    descripcionOpcion: vigente.descripcionOpcion || '',
     items,
     aplicaIva,
     subtotal,
@@ -398,7 +399,7 @@ function mostrarAvisoCotizacion(p) {
   let contenido;
 
   if (v) {
-    contenido = `✓ Cotización <strong>${escapeHtml(v.numero)}</strong> (versión ${escapeHtml(v.version ?? 1)}) cargada desde el módulo Cotizaciones. <a href="cotizaciones.html?leadId=${encodeURIComponent(leadId)}">Ver / editar</a>`;
+    contenido = `✓ Cotización <strong>${escapeHtml(v.numero)}</strong> (versión ${escapeHtml(v.version ?? 1)})${v.descripcionOpcion ? ` — opción ${escapeHtml(v.opcion || 'A')}: ${escapeHtml(v.descripcionOpcion)}` : ''} cargada desde el módulo Cotizaciones. <a href="cotizaciones.html?leadId=${encodeURIComponent(leadId)}">Ver / editar</a>`;
   } else if (p.errorCotizacion) {
     contenido = '⚠️ No pudimos leer la cotización de este proyecto. Recarga la página e intenta de nuevo.';
   } else if (leadId) {
