@@ -5,11 +5,16 @@
 // Reutiliza auth.js y firestore.js, igual que el resto del panel.
 // La cotización vive en su propia colección "cotizaciones",
 // vinculada a un Lead por leadId. Un Lead puede tener varias
-// versiones a lo largo del tiempo; solo una queda "vigente".
+// versiones a lo largo del tiempo; solo una queda "vigente" por opción.
+// Además, un Lead puede tener varias OPCIONES en paralelo (A, B, C…):
+// cotizaciones distintas del mismo proyecto (ej. cubierta de cuarzo vs.
+// postformado), cada una con su propio historial de versiones.
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  listarServiciosActivos, obtenerLead, obtenerCotizacionVigentePorLead,
+  listarServiciosActivos, obtenerLead,
+  listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
+  marcarOpcionAprobada,
   listarCotizacionesPorLead, crearCotizacion, actualizarCotizacion,
   escucharCotizacionesVigentes, crearServicioCatalogo,
   listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion,
@@ -28,7 +33,9 @@ let catalogoDescripcionCompleto = []; // catálogo de Materiales/Herrajes/Cubier
 let usuariosStaffCotizacion = []; // para resolver leadActual.vendedorAsignado (uid) a un nombre
 let cotizacionRowCounter = 0;
 let leadActual = null;
-let vigenteActual = null;   // null si el lead todavía no tiene cotización
+let vigenteActual = null;   // null si esta opción todavía no está guardada
+let opcionesLead = [];      // versión vigente de cada opción del lead
+let opcionActual = 'A';     // letra de la opción que se está editando
 let dejarDeEscuchar = null;
 
 const CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios'];
@@ -36,7 +43,9 @@ const NOMBRES_CATEGORIA_DESCRIPCION = {
   materiales: 'Materiales', herrajes: 'Herrajes', cubiertas: 'Cubiertas', accesorios: 'Accesorios'
 };
 
-const leadId = new URLSearchParams(window.location.search).get('leadId');
+const parametrosURL = new URLSearchParams(window.location.search);
+const leadId = parametrosURL.get('leadId');
+const opcionDesdeURL = (parametrosURL.get('opcion') || '').toUpperCase().slice(0, 1);
 
 // ---------- Referencias DOM ----------
 
@@ -61,6 +70,9 @@ const cotAbono = document.getElementById('cotAbono');
 const cotizacionError = document.getElementById('cotizacionError');
 const btnGuardarCotizacion = document.getElementById('btnGuardarCotizacion');
 const btnGuardarNuevaVersion = document.getElementById('btnGuardarNuevaVersion');
+const btnMarcarAprobada = document.getElementById('btnMarcarAprobada');
+const cotDescripcionOpcion = document.getElementById('cotDescripcionOpcion');
+const cotOpcionesBar = document.getElementById('cotOpcionesBar');
 const btnDescargarPDF = document.getElementById('btnDescargarPDF');
 const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
@@ -231,16 +243,26 @@ function renderListaCotizaciones(cotizaciones) {
   }
   listaCotizacionesVacio.style.display = 'none';
 
+  // Cuántas opciones tiene cada lead: si tiene más de una, se muestra
+  // la etiqueta de opción en todas sus filas.
+  const opcionesPorLead = {};
+  cotizaciones.forEach(c => { opcionesPorLead[c.leadId] = (opcionesPorLead[c.leadId] || 0) + 1; });
+
   cotizaciones.forEach((c) => {
+    const opcion = c.opcion || 'A';
+    const mostrarOpcion = opcionesPorLead[c.leadId] > 1 || !!c.descripcionOpcion;
+    const etiquetaOpcion = mostrarOpcion
+      ? `<div style="font-size:12px; color:#8a7a5a; margin-top:3px;">Opción ${escapeHtml(opcion)}${c.descripcionOpcion ? ' · ' + escapeHtml(c.descripcionOpcion) : ''}${c.aprobada ? ' · ✓ Aprobada' : ''}</div>`
+      : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="cat-codigo">${escapeHtml(c.numero)} <span class="cot-badge-version">v${c.version}</span></td>
       <td>${escapeHtml(c.clienteNombre || '—')}</td>
-      <td>${escapeHtml(c.proyecto || '—')}</td>
+      <td>${escapeHtml(c.proyecto || '—')}${etiquetaOpcion}</td>
       <td>${formatearMoneda(c.totalGeneral)}</td>
       <td>${formatearMoneda(c.abono)}</td>
       <td>${formatearFecha(c.actualizadoEn)}</td>
-      <td><a href="cotizaciones.html?leadId=${c.leadId}" class="cot-btn-ver">Ver / editar</a></td>
+      <td><a href="cotizaciones.html?leadId=${c.leadId}&opcion=${encodeURIComponent(opcion)}" class="cot-btn-ver">Ver / editar</a></td>
     `;
     tablaCotizacionesBody.appendChild(tr);
   });
@@ -282,31 +304,40 @@ async function inicializarEditor() {
 
   mejorarSelect('#cotFormaPago', { ancho: 'auto' });
 
+  // Opción a editar: la que viene en la URL; si no viene, 'A' provisoriamente
+  // y cargarCotizacionVigente() la reemplaza por la principal del lead.
+  opcionActual = opcionDesdeURL || 'A';
+
   await cargarCotizacionVigente();
   cargarVersionesAnteriores();
 }
 
 async function cargarCotizacionVigente() {
-  vigenteActual = await obtenerCotizacionVigentePorLead(leadId);
+  opcionesLead = await listarOpcionesVigentesPorLead(leadId);
 
-  if (vigenteActual) {
-    editorFolioVersion.textContent = `${vigenteActual.numero} · versión ${vigenteActual.version}`;
-    btnGuardarNuevaVersion.style.display = '';
-    btnGuardarCotizacion.textContent = 'Guardar cambios';
-    renderFilas(vigenteActual.items);
-    cotDescuento.value = vigenteActual.descuento ? formatearMilesInput(String(vigenteActual.descuento)) : '';
-    cotPorcentajeAbono.value = vigenteActual.porcentajeAbono ?? '';
-    cotAplicaIva.checked = !!vigenteActual.aplicaIva;
-    cotFechaEntregaInicio.value = vigenteActual.fechaEntregaInicio || '';
-    cotFechaEntregaFin.value = vigenteActual.fechaEntregaFin || '';
-    cotFormaPago.value = vigenteActual.formaPago || '';
-    cotValidaDesde.value = vigenteActual.validaDesde || '';
-    renderChecklistDescripcionCompleto(vigenteActual.descripcionCotizacion || {});
-    actualizarResumenDescripcion();
+  // Si la URL no trae opción, se abre la principal (aprobada o más reciente).
+  if (!opcionDesdeURL && !vigenteActual) {
+    const principal = elegirOpcionPrincipal(opcionesLead);
+    if (principal) opcionActual = principal.opcion;
+  }
+
+  vigenteActual = opcionesLead.find(o => o.opcion === opcionActual) || null;
+
+  // Opción nueva (todavía no guardada): arranca como copia de la principal,
+  // para cambiar solo lo que difiere (cubierta, color, herrajes…).
+  const base = vigenteActual || elegirOpcionPrincipal(opcionesLead);
+
+  if (base) {
+    renderFilas(base.items);
+    cotDescuento.value = base.descuento ? formatearMilesInput(String(base.descuento)) : '';
+    cotPorcentajeAbono.value = base.porcentajeAbono ?? '';
+    cotAplicaIva.checked = !!base.aplicaIva;
+    cotFechaEntregaInicio.value = base.fechaEntregaInicio || '';
+    cotFechaEntregaFin.value = base.fechaEntregaFin || '';
+    cotFormaPago.value = base.formaPago || '';
+    cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : new Date().toISOString().slice(0, 10);
+    renderChecklistDescripcionCompleto(base.descripcionCotizacion || {});
   } else {
-    editorFolioVersion.textContent = 'Aún no tiene cotización — se creará como versión 1';
-    btnGuardarNuevaVersion.style.display = 'none';
-    btnGuardarCotizacion.textContent = 'Guardar cotización';
     renderFilas([]);
     cotDescuento.value = '';
     cotPorcentajeAbono.value = '';
@@ -316,14 +347,77 @@ async function cargarCotizacionVigente() {
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
     renderChecklistDescripcionCompleto({});
-    actualizarResumenDescripcion();
   }
+  actualizarResumenDescripcion();
+
+  cotDescripcionOpcion.value = vigenteActual?.descripcionOpcion || '';
+
+  if (vigenteActual) {
+    editorFolioVersion.textContent = `Opción ${opcionActual} · ${vigenteActual.numero} · versión ${vigenteActual.version}`;
+    btnGuardarNuevaVersion.style.display = '';
+    btnGuardarCotizacion.textContent = 'Guardar cambios';
+  } else if (base) {
+    editorFolioVersion.textContent = `Opción ${opcionActual} nueva — copia de la opción ${base.opcion}, se crea al guardar`;
+    btnGuardarNuevaVersion.style.display = 'none';
+    btnGuardarCotizacion.textContent = 'Guardar opción';
+  } else {
+    editorFolioVersion.textContent = 'Aún no tiene cotización — se creará como versión 1';
+    btnGuardarNuevaVersion.style.display = 'none';
+    btnGuardarCotizacion.textContent = 'Guardar cotización';
+  }
+
+  actualizarBotonAprobada();
+  renderBarraOpciones();
   recalcularCotizacion();
 }
 
+/** Chips con las opciones del lead + acceso a "+ Nueva opción". */
+function renderBarraOpciones() {
+  if (opcionesLead.length === 0) {
+    cotOpcionesBar.style.display = 'none';
+    return;
+  }
+  const enlace = (letra) => `cotizaciones.html?leadId=${encodeURIComponent(leadId)}&opcion=${encodeURIComponent(letra)}`;
+
+  const chips = opcionesLead.map(o => {
+    const activa = o.opcion === opcionActual;
+    const texto = `${o.aprobada ? '✓ ' : ''}${o.opcion}${o.descripcionOpcion ? ' · ' + o.descripcionOpcion : ''}`;
+    return `<a href="${enlace(o.opcion)}" class="cot-chip-opcion${activa ? ' activa' : ''}">${escapeHtml(texto)}</a>`;
+  });
+
+  // Opción nueva aún sin guardar: se muestra como chip activo provisional.
+  if (!vigenteActual) {
+    chips.push(`<span class="cot-chip-opcion activa">${escapeHtml(opcionActual)} · nueva (sin guardar)</span>`);
+  } else {
+    chips.push(`<a href="${enlace(siguienteLetraOpcion(opcionesLead))}" class="cot-chip-opcion cot-chip-nueva">+ Nueva opción</a>`);
+  }
+
+  cotOpcionesBar.innerHTML = chips.join('');
+  cotOpcionesBar.style.display = '';
+}
+
+/** El botón "Aprobada" solo tiene sentido si ya está guardada y hay más de una opción (o ya está aprobada). */
+function actualizarBotonAprobada() {
+  const visible = !!vigenteActual && (opcionesLead.length > 1 || !!vigenteActual.aprobada);
+  btnMarcarAprobada.style.display = visible ? '' : 'none';
+  btnMarcarAprobada.textContent = vigenteActual?.aprobada ? 'Quitar aprobación' : '✓ Marcar como aprobada';
+}
+
+btnMarcarAprobada.addEventListener('click', async () => {
+  if (!vigenteActual) return;
+  try {
+    await marcarOpcionAprobada(leadId, vigenteActual.id, !vigenteActual.aprobada);
+    mostrarToast(vigenteActual.aprobada ? 'Aprobación quitada.' : `Opción ${opcionActual} marcada como aprobada.`);
+    await cargarCotizacionVigente();
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudo actualizar la aprobación.', 'error');
+  }
+});
+
 async function cargarVersionesAnteriores() {
   const todas = await listarCotizacionesPorLead(leadId);
-  const anteriores = todas.filter(c => c.estado !== 'vigente');
+  const anteriores = todas.filter(c => c.estado !== 'vigente' && (c.opcion || 'A') === opcionActual);
 
   if (anteriores.length === 0) {
     cotVersionesAnteriores.style.display = 'none';
@@ -666,13 +760,25 @@ async function guardar({ comoNuevaVersion }) {
     fechaEntregaFin: cotFechaEntregaFin.value,
     formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value,
-    descripcionCotizacion: leerDescripcionCotizacion()
+    descripcionCotizacion: leerDescripcionCotizacion(),
+    descripcionOpcion: cotDescripcionOpcion.value.trim()
   };
+
+  // Con más de una opción, cada una necesita su descripción para poder distinguirlas.
+  const variasOpciones = opcionesLead.length > 1 || opcionActual !== 'A';
+  if (variasOpciones && !datos.descripcionOpcion) {
+    cotizacionError.textContent = 'Escribe una descripción para esta opción (ej. "Cubierta de cuarzo") para poder distinguirla de las otras.';
+    cotizacionError.classList.add('visible');
+    cotDescripcionOpcion.focus();
+    return;
+  }
 
   try {
     if (!vigenteActual || comoNuevaVersion) {
-      await crearCotizacion(leadId, leadActual.canalOrigen, datos, STAFF_ACTUAL.uid);
-      mostrarToast(comoNuevaVersion ? 'Nueva versión creada.' : 'Cotización creada.');
+      await crearCotizacion(leadId, leadActual.canalOrigen, datos, STAFF_ACTUAL.uid, opcionActual);
+      mostrarToast(comoNuevaVersion ? 'Nueva versión creada.' : (opcionActual === 'A' && opcionesLead.length === 0 ? 'Cotización creada.' : `Opción ${opcionActual} creada.`));
+      // Deja la opción en la URL, para que al recargar siga en la misma.
+      history.replaceState(null, '', `cotizaciones.html?leadId=${encodeURIComponent(leadId)}&opcion=${encodeURIComponent(opcionActual)}`);
     } else {
       await actualizarCotizacion(vigenteActual.id, datos);
       mostrarToast('Cotización actualizada.');
