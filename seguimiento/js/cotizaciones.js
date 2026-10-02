@@ -23,7 +23,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos COT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=8';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=10';
 
 // ---------- Estado ----------
 
@@ -73,6 +73,20 @@ const btnGuardarNuevaVersion = document.getElementById('btnGuardarNuevaVersion')
 const btnMarcarAprobada = document.getElementById('btnMarcarAprobada');
 const cotDescripcionOpcion = document.getElementById('cotDescripcionOpcion');
 const cotOpcionesBar = document.getElementById('cotOpcionesBar');
+
+// Textos de entrada siempre en MAYÚSCULA (se convierte al escribir y al guardar).
+function forzarMayusculasInput(el) {
+  el.addEventListener('input', () => {
+    const inicio = el.selectionStart;
+    const fin = el.selectionEnd;
+    const mayus = el.value.toLocaleUpperCase('es-CL');
+    if (mayus !== el.value) {
+      el.value = mayus;
+      try { el.setSelectionRange(inicio, fin); } catch (_) { /* sin selección */ }
+    }
+  });
+}
+forzarMayusculasInput(cotDescripcionOpcion);
 const btnDescargarPDF = document.getElementById('btnDescargarPDF');
 const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
@@ -496,6 +510,7 @@ function agregarFilaCotizacion(item = {}) {
     recalcularCotizacion();
   });
 
+  forzarMayusculasInput(inpDesc);
   inpDesc.addEventListener('input', recalcularCotizacion);
   activarFormatoCantidad(inpCant);
   inpCant.addEventListener('input', () => { actualizarTotalFila(rowId); recalcularCotizacion(); });
@@ -692,7 +707,7 @@ function leerItemsCotizacion() {
     const total = Math.round(cantidadNum * valorUnitario);
     return {
       codigo: document.getElementById(`cotCod_${rowId}`).value,
-      descripcion: document.getElementById(`cotDesc_${rowId}`).value.trim(),
+      descripcion: document.getElementById(`cotDesc_${rowId}`).value.trim().toLocaleUpperCase('es-CL'),
       cantidad,
       valorUnitario,
       total
@@ -761,13 +776,13 @@ async function guardar({ comoNuevaVersion }) {
     descuento, neto,
     aplicaIva, ivaMonto, totalConIva: total,
     porcentajeAbono: porcentaje, abono,
-    clienteNombre: leadActual.nombre || '',
+    clienteNombre: (leadActual.nombre || '').toLocaleUpperCase('es-CL'),
     fechaEntregaInicio: cotFechaEntregaInicio.value,
     fechaEntregaFin: cotFechaEntregaFin.value,
     formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value,
     descripcionCotizacion: leerDescripcionCotizacion(),
-    descripcionOpcion: cotDescripcionOpcion.value.trim()
+    descripcionOpcion: cotDescripcionOpcion.value.trim().toLocaleUpperCase('es-CL')
   };
 
   // Con más de una opción, cada una necesita su descripción para poder distinguirlas.
