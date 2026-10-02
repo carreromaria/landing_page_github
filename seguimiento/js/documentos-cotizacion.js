@@ -110,14 +110,14 @@ function sumarDiasCalendario(fechaStr, dias) {
 /** Arma "Calle Número, Sector - Comuna" a partir del objeto dirección estructurado del lead. */
 function formatearDireccion(direccion) {
   if (!direccion) return '—';
-  if (typeof direccion === 'string') return direccion;
+  if (typeof direccion === 'string') return direccion.toLocaleUpperCase('es-CL');
   const partes = [];
   if (direccion.calle || direccion.numero) {
     partes.push([direccion.calle, direccion.numero].filter(Boolean).join(' '));
   }
   const zona = [direccion.sector, direccion.comuna].filter(Boolean).join(' - ');
   if (zona) partes.push(zona);
-  return partes.join(', ') || '—';
+  return partes.join(', ').toLocaleUpperCase('es-CL') || '—';
 }
 
 /** "CT-WSP-00002" -> "DC-WSP-00002" */
@@ -230,7 +230,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
   const filas = (cotizacion.items || []).map(item => `<tr>
       <td>${escapeHtml(item.codigo)}</td>
       <td>${escapeHtml(item.cantidad)}</td>
-      <td>${escapeHtml(item.descripcion)}</td>
+      <td>${escapeHtml(String(item.descripcion ?? '').toLocaleUpperCase('es-CL'))}</td>
       <td>${formatearMoneda(item.valorUnitario)}</td>
       <td>${formatearMoneda(item.total)}</td>
     </tr>`).join('');
@@ -278,7 +278,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <th>FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
-      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}${cotizacion.descripcionOpcion ? `<br><strong>${escapeHtml(cotizacion.descripcionOpcion)}</strong>` : ''}</td>
+      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}${cotizacion.descripcionOpcion ? `<br><strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : ''}</td>
       <td>${fecha}</td>
     </tr>
     <tr>
@@ -294,7 +294,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <th colspan="2">TELÉFONO:</th>
     </tr>
     <tr>
-      <td>${escapeHtml(cliente.nombre || '—')}</td>
+      <td>${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}</td>
       <td colspan="2">${escapeHtml(cliente.telefono || '—')}</td>
     </tr>
     <tr>
@@ -350,7 +350,7 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
   <p class="pdf-dc-intro">
-    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml(cliente.nombre || '—')}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
   </p>
 
   <div class="pdf-dc-seccion">
