@@ -1035,3 +1035,15 @@ html, body{
 .crm-proyecto-vinculado a:hover {
   text-decoration: underline;
 }
+
+
+/* ================= Textos siempre en MAYÚSCULA (vista uniforme) ================= */
+/* Los leads antiguos pueden estar guardados en minúscula: esto los muestra
+   uniformes sin tocar los datos. Los nuevos ya se guardan en mayúscula. */
+.crm-card-nombre,
+.crm-card-meta,
+#detalleNombre,
+#lNombre, #lTipoProyecto, #lCalle, #lDepto, #lSector, #lIndicaciones,
+#eNombre, #eTipoProyecto, #eCalle, #eDepto, #eSector, #eIndicaciones {
+  text-transform: uppercase;
+}
