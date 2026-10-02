@@ -535,3 +535,11 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
    scroll se colaban en el PDF). Ahora js/documentos-cotizacion.js copia el
    documento a una zona de impresión limpia y las reglas de impresión viven,
    una sola vez, en css/pdf-documentos.css (compartidas con Documentación). */
+
+
+/* ================= Textos siempre en MAYÚSCULA ================= */
+.cot-item-descripcion,
+#cotDescripcionOpcion,
+#editorClienteNombre {
+  text-transform: uppercase;
+}
