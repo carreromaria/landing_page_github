@@ -697,6 +697,30 @@ document.getElementById('btnAgregarNota').addEventListener('click', async () => 
   }
 });
 
+// ---------- Textos de entrada siempre en MAYÚSCULA ----------
+// Para que tarjetas, fichas y PDF queden uniformes. Se convierte mientras
+// se escribe (conservando la posición del cursor) y de nuevo al guardar.
+// Email, teléfono, RUT y las notas de bitácora se dejan tal cual.
+function activarMayusculas(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      const inicio = el.selectionStart;
+      const fin = el.selectionEnd;
+      const mayus = el.value.toLocaleUpperCase('es-CL');
+      if (mayus !== el.value) {
+        el.value = mayus;
+        try { el.setSelectionRange(inicio, fin); } catch (_) { /* inputs sin selección */ }
+      }
+    });
+  });
+}
+activarMayusculas([
+  'lNombre', 'lTipoProyecto', 'lCalle', 'lDepto', 'lSector', 'lIndicaciones',
+  'eNombre', 'eTipoProyecto', 'eCalle', 'eDepto', 'eSector', 'eIndicaciones'
+]);
+
 // ---------- Modal: nuevo lead ----------
 
 const modalNuevoLead = document.getElementById('modalNuevoLead');
@@ -719,13 +743,13 @@ formNuevoLead.addEventListener('submit', async (e) => {
   errorEl.classList.remove('visible');
 
   const datos = {
-    nombre: document.getElementById('lNombre').value.trim(),
+    nombre: document.getElementById('lNombre').value.trim().toLocaleUpperCase('es-CL'),
     telefono: document.getElementById('lTelefono').value.trim(),
     email: document.getElementById('lEmail').value.trim(),
     rut: limpiarRut(document.getElementById('lRut').value),
     direccion: leerDireccionDelFormulario('l'),
     canalOrigen: document.getElementById('lCanal').value,
-    tipoProyecto: document.getElementById('lTipoProyecto').value.trim(),
+    tipoProyecto: document.getElementById('lTipoProyecto').value.trim().toLocaleUpperCase('es-CL'),
     vendedorAsignado: document.getElementById('lVendedor').value || null,
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
     creadoPorNombre: STAFF_ACTUAL?.nombre || ''
@@ -775,13 +799,13 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
   if (!lead) return;
 
-  document.getElementById('eNombre').value = lead.nombre || '';
+  document.getElementById('eNombre').value = (lead.nombre || '').toLocaleUpperCase('es-CL');
   document.getElementById('eTelefono').value = lead.telefono || '';
   document.getElementById('eEmail').value = lead.email || '';
   document.getElementById('eRut').value = lead.rut || '';
   escribirDireccionEnFormulario('e', lead.direccion);
   document.getElementById('eCanal').value = lead.canalOrigen || '';
-  document.getElementById('eTipoProyecto').value = lead.tipoProyecto || '';
+  document.getElementById('eTipoProyecto').value = (lead.tipoProyecto || '').toLocaleUpperCase('es-CL');
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
   document.getElementById('modalEditarError').textContent = '';
   document.getElementById('modalEditarError').classList.remove('visible');
@@ -800,13 +824,13 @@ formEditarLead.addEventListener('submit', async (e) => {
   errorEl.classList.remove('visible');
 
   const datos = {
-    nombre: document.getElementById('eNombre').value.trim(),
+    nombre: document.getElementById('eNombre').value.trim().toLocaleUpperCase('es-CL'),
     telefono: document.getElementById('eTelefono').value.trim(),
     email: document.getElementById('eEmail').value.trim(),
     rut: limpiarRut(document.getElementById('eRut').value),
     direccion: leerDireccionDelFormulario('e'),
     canalOrigen: document.getElementById('eCanal').value,
-    tipoProyecto: document.getElementById('eTipoProyecto').value.trim(),
+    tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toLocaleUpperCase('es-CL'),
     vendedorAsignado: document.getElementById('eVendedor').value || null
   };
 
