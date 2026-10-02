@@ -21,7 +21,7 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=8';
+} from './documentos-cotizacion.js?v=10';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -163,25 +163,25 @@ function fechaGarantiaHasta(isoFecha) {
   return fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+/**
+ * Nombre del cliente tal como sale en los documentos. Mantiene el nombre
+ * histórico `tituloCase` (lo usan varios generadores), pero ahora devuelve
+ * MAYÚSCULA para que todos los documentos queden uniformes.
+ */
 function tituloCase(texto) {
-  return (texto || '')
-    .toLowerCase()
-    .split(' ')
-    .filter(Boolean)
-    .map(p => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(' ');
+  return (texto || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('es-CL');
 }
 
 function formatearDireccionSimple(direccion) {
   if (!direccion) return '____________________';
-  if (typeof direccion === 'string') return direccion;
+  if (typeof direccion === 'string') return direccion.toLocaleUpperCase('es-CL');
   const partes = [
     [direccion.calle, direccion.numero].filter(Boolean).join(' '),
     direccion.depto,
     direccion.sector,
     direccion.comuna
   ].filter(Boolean);
-  return partes.join(', ') || '____________________';
+  return partes.join(', ').toLocaleUpperCase('es-CL') || '____________________';
 }
 
 /**
