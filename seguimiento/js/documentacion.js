@@ -20,8 +20,8 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 // un solo archivo compartido con el módulo Cotizaciones.
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
-  prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=11';
+  prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento
+} from './documentos-cotizacion.js?v=12';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -634,7 +634,12 @@ function renderizarDocsGrid() {
         }
         // generar() puede ser async (el DC lee el catálogo en vivo) o sync (el resto).
         const html = await doc.generar(p);
-        abrirModalDocumento(html, `${doc.sigla}-${PROYECTO_ACTUAL.codigo}`);
+        abrirModalDocumento(html, `${doc.sigla}-${PROYECTO_ACTUAL.codigo}`, nombreArchivoDocumento({
+          documento: doc.nombre,
+          cliente: p.cliente || p.lead?.nombre,
+          // la versión solo existe en los documentos que salen de la cotización
+          version: doc.requiereCotizacionReal ? p.cotizacionReal?.version : undefined
+        }));
       });
     }
     grid.appendChild(card);
@@ -1204,9 +1209,12 @@ export { formatearFechaLarga, fechaGarantiaHasta, formatearDireccionSimple, form
 // ============================================================
 const modalDocumento = document.getElementById('modalDocumento');
 
-function abrirModalDocumento(html, nombreArchivoBase) {
+let NOMBRE_PDF_ACTUAL = ''; // nombre sugerido al guardar el documento abierto como PDF
+
+function abrirModalDocumento(html, nombreArchivoBase, nombrePdf = '') {
   document.getElementById('hojaDocumentoImprimir').innerHTML = html;
   document.getElementById('hojaDocumentoImprimir').dataset.archivo = nombreArchivoBase;
+  NOMBRE_PDF_ACTUAL = nombrePdf;
   modalDocumento.classList.add('open');
 }
 function cerrarModalDocumento() {
@@ -1239,7 +1247,7 @@ async function asegurarPoppins() {
 async function imprimirDocumentoActual() {
   await asegurarPoppins();
   const documento = document.querySelector('#hojaDocumentoImprimir > *');
-  await imprimirDocumentoPdf(documento);
+  await imprimirDocumentoPdf(documento, NOMBRE_PDF_ACTUAL);
 }
 
 document.getElementById('btnImprimirDoc').addEventListener('click', imprimirDocumentoActual);
