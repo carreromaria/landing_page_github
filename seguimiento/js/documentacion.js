@@ -16,12 +16,12 @@ import {
   listarCatalogoDescripcionActivo, listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
-// Diseño de los documentos oficiales (COT, DC, encabezado y pie) e impresión:
+// Diseño de los documentos oficiales (CT, DC, encabezado y pie) e impresión:
 // un solo archivo compartido con el módulo Cotizaciones.
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
   prepararAlturasParaImprimir, imprimirDocumentoPdf
-} from './documentos-cotizacion.js?v=10';
+} from './documentos-cotizacion.js?v=11';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -376,7 +376,7 @@ function nombreVendedorPorUid(uid) {
 }
 
 /**
- * Datos del cliente para los documentos COT y DC. Salen del LEAD, igual
+ * Datos del cliente para los documentos CT y DC. Salen del LEAD, igual
  * que en el módulo Cotizaciones, para que ambos módulos impriman
  * exactamente lo mismo. Si el proyecto no tiene lead vinculado, se usan
  * los datos del proyecto.
@@ -554,7 +554,7 @@ function listaLineas(texto, textoVacio = 'Según cotización aprobada.') {
 }
 
 /**
- * ¿Se puede generar este documento? COT y DC exigen la cotización real
+ * ¿Se puede generar este documento? CT y DC exigen la cotización real
  * del módulo Cotizaciones. El resto (contrato, comprobante de abono)
  * también la usa, pero acepta datos antiguos ya guardados en el
  * proyecto (total > 0) para no bloquear proyectos previos al cambio.
@@ -574,9 +574,9 @@ function cotizacionDisponible(p, doc) {
 const DOCUMENTOS = [
   { sigla: 'PT',  nombre: 'Portada institucional', activo: true, generar: generarPortada },
   { sigla: 'CB',  nombre: 'Carta de Bienvenida', activo: true, generar: generarCartaBienvenida },
-  { sigla: 'COT', nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
+  { sigla: 'CT',  nombre: 'Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarCotizacion },
   { sigla: 'DC',  nombre: 'Descripción de la Cotización', activo: true, requiereCotizacion: true, requiereCotizacionReal: true, generar: generarDescripcionCotizacion },
-  { sigla: 'CR',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
+  { sigla: 'RA',  nombre: 'Comprobante de Recepción de Abono', activo: true, requiereCotizacion: true, campos: ['medioPago', 'banco', 'fechaPago'], generar: generarComprobanteAbono },
   { sigla: 'CV',  nombre: 'Contrato de Venta e Instalación', activo: true, requiereCotizacion: true, campos: ['fechaContrato', 'plazoDias'], generar: generarContratoVenta },
   { sigla: 'MU',  nombre: 'Manual de Uso y Mantención', activo: true, campos: ['fechaInstalacion'], generar: generarManualUso },
   { sigla: 'CG',  nombre: 'Certificado de Garantía Comercial', activo: true, campos: ['fechaInstalacion'], generar: generarCertificadoGarantia },
@@ -839,7 +839,7 @@ function generarPortada(p) {
 }
 
 // ============================================================
-// COT — Cotización
+// CT — Cotización
 // ============================================================
 function generarCotizacion(p) {
   // Es el mismo documento que se descarga en el módulo Cotizaciones:
@@ -993,7 +993,7 @@ function generarCertificadoGarantia(p) {
 function generarActaEntrega(p) {
   const cot = p.cotizacion || {};
   const codigo = codigoDocumento('ER', p);
-  const numeroCotizacion = cot.numero || codigoDocumento('COT', p);
+  const numeroCotizacion = cot.numero || codigoDocumento('CT', p);
 
   const checklist = (items) => items.map(i => `<li>☐ ${i}</li>`).join('');
 
@@ -1068,12 +1068,12 @@ function generarActaEntrega(p) {
 }
 
 // ============================================================
-// CR — Comprobante de Recepción de Abono
+// RA — Comprobante de Recepción de Abono
 // ============================================================
 function generarComprobanteAbono(p) {
   const cot = p.cotizacion || {};
-  const codigo = codigoDocumento('CR', p);
-  const numeroCotizacion = cot.numero || codigoDocumento('COT', p);
+  const codigo = codigoDocumento('RA', p);
+  const numeroCotizacion = cot.numero || codigoDocumento('CT', p);
 
   return `
     <div class="hoja-documento doc-formal">
@@ -1181,7 +1181,7 @@ function generarTarjetaEvaluacionGoogle(p) {
 // ============================================================
 function tablaDatosProyecto(p) {
   const cot = p.cotizacion || {};
-  const numeroCotizacion = cot.numero || codigoDocumento('COT', p);
+  const numeroCotizacion = cot.numero || codigoDocumento('CT', p);
   return `
     <p><strong>DATOS DEL PROYECTO:</strong></p>
     <p>
