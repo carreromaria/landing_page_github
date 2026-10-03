@@ -23,7 +23,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf } from './documentos-cotizacion.js?v=11';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=12';
 
 // ---------- Estado ----------
 
@@ -937,7 +937,7 @@ modalPdfCotizacion.addEventListener('click', (e) => {
 });
 
 document.getElementById('btnImprimirPdf').addEventListener('click', () => {
-  imprimirDocumentoPdf(document.getElementById('plantillaPDF'));
+  imprimirDocumentoPdf(document.getElementById('plantillaPDF'), nombreArchivoCotizacion('Cotización'));
 });
 
 document.getElementById('btnDescargarPdfModal').addEventListener('click', () => {
@@ -947,8 +947,17 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador.
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
-  imprimirDocumentoPdf(document.getElementById('plantillaPDF'));
+  imprimirDocumentoPdf(document.getElementById('plantillaPDF'), nombreArchivoCotizacion('Cotización'));
 });
+
+/** Nombre sugerido del PDF: "Cotización · Patricia Rivera · V2 · LINENCE". */
+function nombreArchivoCotizacion(documento) {
+  return nombreArchivoDocumento({
+    documento,
+    cliente: leadActual?.nombre,
+    version: vigenteActual?.version
+  });
+}
 
 /** Resuelve leadActual.vendedorAsignado (uid) a un nombre, igual que nombreVendedor() en crm.js. */
 function nombreVendedorPorUid(uid) {
@@ -1001,10 +1010,10 @@ modalPdfDescripcion.addEventListener('click', (e) => {
 });
 
 document.getElementById('btnImprimirDC').addEventListener('click', () => {
-  imprimirDocumentoPdf(document.getElementById('plantillaDC'));
+  imprimirDocumentoPdf(document.getElementById('plantillaDC'), nombreArchivoCotizacion('Descripción de la Cotización'));
 });
 
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
-  imprimirDocumentoPdf(document.getElementById('plantillaDC'));
+  imprimirDocumentoPdf(document.getElementById('plantillaDC'), nombreArchivoCotizacion('Descripción de la Cotización'));
 });
