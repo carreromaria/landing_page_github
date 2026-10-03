@@ -574,7 +574,15 @@ export async function crearCotizacion(leadId, canalOrigen, datos, uid, opcion = 
   // La versión y el reemplazo se calculan DENTRO de la misma opción:
   // cada opción (A, B, C…) tiene su propio historial de versiones.
   const vigenteAnterior = await obtenerCotizacionVigentePorOpcion(leadId, opcion);
-  const nuevaVersion = vigenteAnterior ? (vigenteAnterior.version || 1) + 1 : 1;
+
+  // El número de versión sale de TODO el historial de esa opción (vigente +
+  // reemplazadas), no solo de la vigente: así nunca puede repetirse ni
+  // volver a V1 si por cualquier motivo la vigente no se encuentra.
+  // Primera cotización de la opción = V1; cada versión nueva = la mayor + 1.
+  const historialOpcion = (await listarCotizacionesPorLead(leadId))
+    .filter(c => (c.opcion || "A") === opcion);
+  const mayorVersion = historialOpcion.reduce((max, c) => Math.max(max, Number(c.version) || 1), 0);
+  const nuevaVersion = mayorVersion + 1;
 
   const nuevoId = await runTransaction(db, async (transaction) => {
     const snapContador = await transaction.get(refContador);
