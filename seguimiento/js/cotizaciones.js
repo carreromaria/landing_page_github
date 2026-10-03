@@ -437,26 +437,32 @@ btnMarcarAprobada.addEventListener('click', async () => {
 
 async function cargarVersionesAnteriores() {
   const todas = await listarCotizacionesPorLead(leadId);
-  const anteriores = todas.filter(c => c.estado !== 'vigente' && (c.opcion || 'A') === opcionActual);
+  // Historial de ESTA opción: la versión actual + las anteriores, para que
+  // se vea que la V1 quedó guardada desde el primer guardado.
+  const historial = todas.filter(c => (c.opcion || 'A') === opcionActual);
 
-  if (anteriores.length === 0) {
+  if (historial.length === 0) {
     cotVersionesAnteriores.style.display = 'none';
     return;
   }
 
+  const hayAnteriores = historial.some(c => c.estado !== 'vigente');
   cotVersionesAnteriores.style.display = '';
-  listaVersionesAnteriores.innerHTML = anteriores.map(c => `
+  btnVerVersiones.textContent = listaVersionesAnteriores.style.display === 'block'
+    ? 'Ocultar historial de versiones'
+    : 'Ver historial de versiones';
+  listaVersionesAnteriores.innerHTML = historial.map(c => `
     <div class="cot-version-item">
-      <span>${escapeHtml(c.numero)} · v${c.version} — ${formatearFecha(c.actualizadoEn)}</span>
+      <span>${escapeHtml(c.numero)} · v${c.version}${c.estado === 'vigente' ? ' (actual)' : ''} — ${formatearFecha(c.actualizadoEn)}</span>
       <span>${formatearMoneda(c.totalGeneral)}</span>
     </div>
-  `).join('');
+  `).join('') + (hayAnteriores ? '' : '<div class="cot-version-item"><span>Aún no hay versiones anteriores.</span></div>');
 }
 
 btnVerVersiones.addEventListener('click', () => {
-  const visible = listaVersionesAnteriores.style.display !== 'none';
+  const visible = listaVersionesAnteriores.style.display === 'block';
   listaVersionesAnteriores.style.display = visible ? 'none' : 'block';
-  btnVerVersiones.textContent = visible ? 'Ver versiones anteriores' : 'Ocultar versiones anteriores';
+  btnVerVersiones.textContent = visible ? 'Ver historial de versiones' : 'Ocultar historial de versiones';
 });
 
 // ---------- Filas de la tabla ----------
