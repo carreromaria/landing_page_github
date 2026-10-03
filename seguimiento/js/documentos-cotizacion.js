@@ -498,8 +498,9 @@ function estructurarCopiaParaImprimir(copia) {
  * impresión limpia, directamente en <body>, y solo se imprime eso. Las reglas
  * de css/pdf-documentos.css hacen el resto.
  * @param {HTMLElement} origen el documento visible en pantalla
+ * @param {string} [nombreArchivo] nombre sugerido al "Guardar como PDF" (ver nombreArchivoDocumento)
  */
-export async function imprimirDocumentoPdf(origen) {
+export async function imprimirDocumentoPdf(origen, nombreArchivo) {
   if (!origen) return;
   // Poppins tiene que estar cargada antes de medir (y de imprimir)
   try { await document.fonts.ready; } catch (e) { /* sin soporte: se sigue igual */ }
@@ -518,11 +519,35 @@ export async function imprimirDocumentoPdf(origen) {
   zona.appendChild(copia);
   document.body.classList.add('imprimiendo-pdf-doc');
 
+  // Chrome propone como nombre del PDF el título de la página: se cambia
+  // solo mientras dura la impresión y se devuelve al terminar.
+  const tituloOriginal = document.title;
+  if (nombreArchivo) document.title = nombreArchivo;
+
   const limpiar = () => {
     document.body.classList.remove('imprimiendo-pdf-doc');
     zona.innerHTML = '';
+    document.title = tituloOriginal;
     window.removeEventListener('afterprint', limpiar);
   };
   window.addEventListener('afterprint', limpiar);
   window.print();
+}
+
+/**
+ * Arma el nombre sugerido del PDF: "Documento · Cliente · V2 · LINENCE".
+ * Documento, cliente y versión son dinámicos; LINENCE es fijo. Si el
+ * documento no tiene versión (carta, contrato, acta...), esa parte se omite.
+ * @param {{documento:string, cliente?:string, version?:number|string}} datos
+ */
+export function nombreArchivoDocumento({ documento, cliente, version } = {}) {
+  const limpiar = (t) => String(t ?? '')
+    .replace(/[\\/:*?"<>|]/g, '') // caracteres no permitidos en nombres de archivo
+    .replace(/\s+/g, ' ')
+    .trim();
+  // "PATRICIA RIVERA" / "patricia rivera" -> "Patricia Rivera"
+  const nombrePropio = (t) => limpiar(t).toLocaleLowerCase('es-CL')
+    .replace(/(^|\s)(\S)/g, (m, sp, ch) => sp + ch.toLocaleUpperCase('es-CL'));
+  const v = (version === undefined || version === null || version === '') ? '' : 'V' + limpiar(version);
+  return [limpiar(documento), nombrePropio(cliente), v, 'LINENCE'].filter(Boolean).join(' · ');
 }
