@@ -1,7 +1,7 @@
 // ============================================================
 // LINENCE — Documentos oficiales de Cotización (fuente única)
 // ============================================================
-// Aquí vive, UNA sola vez, el diseño del documento "Cotización" (COT)
+// Aquí vive, UNA sola vez, el diseño del documento "Cotización" (CT)
 // y del documento "Descripción de Cotización" (DC). Lo importan:
 //   - cotizaciones.js  (módulo Cotizaciones)
 //   - documentacion.js (módulo Documentación)
@@ -214,7 +214,7 @@ export function htmlPie(titulo = '', folio = '', contenidoFijo = '') {
 `;
 }
 
-// ---------- COT — Cotización ----------
+// ---------- CT — Cotización ----------
 
 export function htmlCotizacion({ cotizacion, cliente = {} }) {
   const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
