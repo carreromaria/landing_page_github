@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=9">
+<link rel="stylesheet" href="css/cotizaciones.css?v=10">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -243,6 +243,7 @@
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="elementos">+ Elemento</button>
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="tiposMaterial">+ Material</button>
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="acabados">+ Acabado</button>
+            <button type="button" class="cot-btn-agregar-opcion" id="btnGestionarOpciones">⚙ Gestionar opciones</button>
           </span>
         </div>
         <p class="cot-desc-vacio" style="margin:0 0 8px;">Una fila por cada elemento del mueble (ej. Mueble aéreo · Melamina · ARCILLA). El acabado y el código del color son opcionales. Se imprime en la Descripción de Cotización y se menciona en el contrato y el acta de entrega.</p>
@@ -359,6 +360,19 @@
   </div>
 </div>
 
+<!-- ================= Modal: gestionar opciones de Elemento / Material / Acabado ================= -->
+<div id="modalGestionarOpciones" class="cat-modal-overlay" style="display:none;">
+  <div class="cat-modal" style="max-width:560px; width:100%; max-height:85vh; overflow-y:auto;">
+    <h2>Gestionar opciones</h2>
+    <p class="crm-cotizacion-texto-vacio">Cambia el nombre de una opción o desactívala para que deje de aparecer en los selects. Las cotizaciones ya guardadas no cambian.</p>
+    <p id="gestionError" class="cat-error"></p>
+    <div id="gestionListas"></div>
+    <div class="cat-modal-acciones">
+      <button type="button" class="btn-dorado" id="btnCerrarGestion">Listo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL: VISTA PREVIA / DESCARGA DEL PDF ================= -->
 <!-- La plantilla vive SIEMPRE visible de verdad adentro de este modal
      (nunca escondida con display:none ni sacada de pantalla) — así el
@@ -393,6 +407,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=12"></script>
+<script type="module" src="js/cotizaciones.js?v=13"></script>
 </body>
 </html>
