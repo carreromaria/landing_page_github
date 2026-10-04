@@ -19,9 +19,9 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 // Diseño de los documentos oficiales (CT, DC, encabezado y pie) e impresión:
 // un solo archivo compartido con el módulo Cotizaciones.
 import {
-  htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie,
+  htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento
-} from './documentos-cotizacion.js?v=12';
+} from './documentos-cotizacion.js?v=14';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -726,6 +726,12 @@ function generarContratoVenta(p) {
   const plazoDias = cot.plazoDias || 16;
   // Si ya se definió en "Datos de contrato", sale marcada; si no, queda ( ) para marcar en la firma.
   const casillaImagenes = (opcion) => cot.autorizaImagenes === opcion ? '(X)' : '( )';
+  // Materiales y colores que el cliente eligió (se registran en el editor de Cotizaciones).
+  // Si la cotización no los tiene (proyectos antiguos), queda el texto genérico de siempre.
+  const filasMC = filasMaterialesColores(p.cotizacionReal);
+  const itemsColorCV = filasMC.length
+    ? filasMC.map(f => `<li>${escapeHtml(f.elemento || '—')}: ${escapeHtml(f.material || '—')}${f.acabado ? ' ' + escapeHtml(f.acabado.toLowerCase()) : ''}, color ${escapeHtml(f.color || '—')}${f.codigo ? ' (código ' + escapeHtml(f.codigo) + ')' : ''}.</li>`).join('')
+    : '<li>Color: Según muestra aprobada.</li>';
 
   return `
     <div class="hoja-documento doc-formal">
@@ -761,7 +767,7 @@ function generarContratoVenta(p) {
           <li>Tipo de mobiliario: ${tipoMobiliario}.</li>
           <li>Fabricación a medida.</li>
           <li>Materiales: Según cotización aprobada.</li>
-          <li>Color: Según muestra aprobada.</li>
+          ${itemsColorCV}
           <li>Herrajes: Según especificación técnica.</li>
           <li>Cubierta: Según cotización (si aplica).</li>
           <li>Lavamanos: Según cotización (si aplica).</li>
@@ -999,6 +1005,9 @@ function generarActaEntrega(p) {
   const cot = p.cotizacion || {};
   const codigo = codigoDocumento('ER', p);
   const numeroCotizacion = cot.numero || codigoDocumento('CT', p);
+  // Solo si la cotización tiene materiales y colores registrados, se agrega al control
+  // el punto para que el cliente verifique lo recibido contra lo que eligió.
+  const hayMaterialesColores = filasMaterialesColores(p.cotizacionReal).length > 0;
 
   const checklist = (items) => items.map(i => `<li>☐ ${i}</li>`).join('');
 
@@ -1033,7 +1042,7 @@ function generarActaEntrega(p) {
 
         <p><strong>CUARTA:</strong> <u>VERIFICACIÓN DEL PROYECTO</u>. Se deja constancia de que el cliente realizó una inspección visual y funcional del proyecto junto al representante de LINENCE.</p>
         <p><strong>Control de Verificación</strong></p>
-        <ul>${checklist(['Dimensiones conforme al proyecto.', 'Nivelación del mobiliario.', 'Correcta fijación de módulos.', 'Funcionamiento de puertas.', 'Funcionamiento de cajones.', 'Regulación de bisagras.', 'Funcionamiento de correderas.', 'Terminaciones revisadas.', 'Cantos inspeccionados.', 'Cubiertas instaladas correctamente.', 'Sellos y siliconas revisados.', 'Limpieza final realizada.', 'Área de trabajo entregada en condiciones adecuadas.'])}</ul>
+        <ul>${checklist(['Dimensiones conforme al proyecto.', 'Nivelación del mobiliario.', 'Correcta fijación de módulos.', 'Funcionamiento de puertas.', 'Funcionamiento de cajones.', 'Regulación de bisagras.', 'Funcionamiento de correderas.', 'Terminaciones revisadas.', 'Cantos inspeccionados.', 'Cubiertas instaladas correctamente.', ...(hayMaterialesColores ? ['Materiales y colores conforme a lo elegido en la Descripción de Cotización.'] : []), 'Sellos y siliconas revisados.', 'Limpieza final realizada.', 'Área de trabajo entregada en condiciones adecuadas.'])}</ul>
 
         <p><strong>QUINTA:</strong> <u>ELEMENTOS ENTREGADOS.</u> Se deja constancia de la entrega de los siguientes elementos:</p>
         <ul>${checklist(['Llaves.', 'Controles remotos.', 'Accesorios adicionales.', 'Repuestos (si aplica).', ...(cot.otrosElementos ? [`Otros: ${escapeHtml(cot.otrosElementos)}`] : [])])}</ul>
