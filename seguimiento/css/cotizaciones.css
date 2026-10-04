@@ -303,6 +303,106 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   z-index: 10000;
 }
 
+/* ================= Materiales y colores elegidos (dentro del modal de Descripción) ================= */
+
+.cot-mc-atajos {
+  display: inline-flex;
+  gap: 14px;
+}
+
+.cot-mc-filas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.cot-mc-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 34px;
+  gap: 10px;
+  align-items: end;
+  background: #faf7f2;
+  border: 1px solid #ece4d3;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.cot-mc-campo {
+  min-width: 0;
+}
+.cot-mc-campo--doble { grid-column: span 2; }
+
+.cot-mc-sugeridas {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cot-mc-sugeridas .ln-dropdown { min-width: 230px; }
+.cot-mc-sugeridas button { height: 38px; padding: 0 16px; font-size: 13px; }
+.cot-mc-campo label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #141213;
+  margin-bottom: 5px;
+}
+.cot-mc-campo input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid #d3bb8c;
+  border-radius: 6px;
+  font-size: 13.5px;
+  font-family: 'Poppins', sans-serif;
+  text-transform: uppercase;
+}
+.cot-mc-campo .ln-dropdown,
+.cot-mc-campo .ln-dropdown-trigger {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cot-mc-eliminar {
+  height: 36px;
+  width: 34px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #8a7a5a;
+  cursor: pointer;
+  font-size: 13px;
+}
+.cot-mc-eliminar:hover { background: #fdf7ea; color: #141213; }
+
+.cot-mc-agregar {
+  background: none;
+  border: none;
+  color: #d6a52c;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  padding: 0;
+}
+.cot-mc-agregar:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .cot-mc-fila {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .cot-mc-campo--doble { grid-column: auto; }
+  .cot-mc-sugeridas { flex-direction: column; align-items: stretch; }
+  .cot-mc-sugeridas .ln-dropdown { min-width: 0; width: 100%; }
+  .cot-mc-sugeridas button { width: 100%; }
+  .cot-mc-eliminar {
+    width: 100%;
+  }
+}
+
 /* ================= Checklist de Descripción de Cotización ================= */
 /* Contenido de adentro del modal grande de arriba (no es la plantilla
    del PDF, esa usa .pdf-dc-* del archivo compartido). */
