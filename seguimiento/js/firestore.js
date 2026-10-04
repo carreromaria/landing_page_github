@@ -497,9 +497,13 @@ export async function cambiarEstadoServicioCatalogo(id, activo) {
 // o desactivan, para no perder trazabilidad de cotizaciones antiguas
 // que ya hayan usado una opción.
 //
-// Cada documento tiene: { categoria: 'materiales'|'herrajes'|'cubiertas'|'accesorios', nombre, activo }
+// Cada documento tiene: { categoria: 'materiales'|'herrajes'|'cubiertas'|'accesorios'|'elementos'|'tiposMaterial'|'acabados', nombre, activo }
 
-const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios'];
+// 'elementos' y 'tiposMaterial' alimentan los selects del bloque "Materiales y
+// colores elegidos" (Elemento: mueble aéreo, cubierta… / Material: melamina,
+// cuarzo…). Viven en la misma colección para no crear una nueva (y no tener que
+// publicar reglas nuevas en Firebase Console).
+const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios', 'elementos', 'tiposMaterial', 'acabados'];
 
 /**
  * Lista todas las opciones del catálogo (activas e inactivas),
