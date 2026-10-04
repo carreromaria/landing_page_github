@@ -336,6 +336,31 @@ function filaChecklist(catalogo, categoria, seleccionIds = []) {
   `).join('');
 }
 
+/**
+ * Filas de "Materiales y colores elegidos" tal como quedaron registradas en la
+ * cotización (cotizacion.materialesColores). Si no hay filas (cotizaciones
+ * antiguas) devuelve []. También la usan CV y ER, en documentacion.js.
+ */
+export function filasMaterialesColores(cotizacion) {
+  const filas = Array.isArray(cotizacion?.materialesColores) ? cotizacion.materialesColores : [];
+  return filas.filter(f => f && (f.elemento || f.material || f.color || f.acabado || f.codigo));
+}
+
+function htmlMaterialesColores(cotizacion) {
+  const filas = filasMaterialesColores(cotizacion);
+  if (!filas.length) return '';
+  // Acabado y código son opcionales: su columna solo aparece si alguna fila los tiene.
+  const hayAcabado = filas.some(f => f.acabado);
+  const hayCodigo = filas.some(f => f.codigo);
+  return `
+  <p class="pdf-dc-seccion-titulo" style="margin:16px var(--m) 4px;">5. MATERIALES Y COLORES ELEGIDOS POR EL CLIENTE:</p>
+  <p class="pdf-dc-nota" style="margin:0 var(--m) 8px;">El Cliente declara haber elegido los siguientes materiales y colores para su proyecto, los cuales se utilizarán en la fabricación.</p>
+  <table class="pdf-tabla-info" style="margin-bottom:18px;">
+    <thead><tr><th>ELEMENTO</th><th>MATERIAL</th>${hayAcabado ? '<th>ACABADO</th>' : ''}<th>COLOR</th>${hayCodigo ? '<th>CÓDIGO</th>' : ''}</tr></thead>
+    <tbody>${filas.map(f => `<tr><td>${escapeHtml(f.elemento || '—')}</td><td>${escapeHtml(f.material || '—')}</td>${hayAcabado ? `<td>${escapeHtml(f.acabado || '—')}</td>` : ''}<td>${escapeHtml(f.color || '—')}</td>${hayCodigo ? `<td>${escapeHtml(f.codigo || '—')}</td>` : ''}</tr>`).join('')}</tbody>
+  </table>`;
+}
+
 export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
   const seleccion = cotizacion.descripcionCotizacion || {};
@@ -373,7 +398,7 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
     <p class="pdf-dc-seccion-titulo">4. ACCESORIOS:</p>
     <div class="pdf-dc-lista">${filaChecklist(catalogo, 'accesorios', seleccion.accesorios)}</div>
   </div>
-
+${htmlMaterialesColores(cotizacion)}
 ${htmlPie(titulo, folio)}`;
 }
 
