@@ -545,6 +545,17 @@ export async function crearOpcionCatalogoDescripcion(datos) {
   return ref.id;
 }
 
+/**
+ * Cambia el nombre de una opción del catálogo (ej. "Mueble base" → "Mueble bajo").
+ * `clave` (opcional) guarda el nombre original de una opción sugerida por el sistema,
+ * para que "Cargar filas sugeridas" siga encontrándola aunque cambie de nombre.
+ * Las cotizaciones ya guardadas no cambian: guardan el texto tal como estaba.
+ */
+export async function renombrarOpcionCatalogoDescripcion(id, nombre, clave) {
+  const ref = doc(db, "catalogoDescripcion", id);
+  await updateDoc(ref, clave ? { nombre, clave } : { nombre });
+}
+
 /** Activa o desactiva una opción del catálogo (nunca se elimina de raíz). */
 export async function cambiarEstadoOpcionCatalogoDescripcion(id, activo) {
   const ref = doc(db, "catalogoDescripcion", id);
