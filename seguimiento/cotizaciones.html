@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=7">
+<link rel="stylesheet" href="css/cotizaciones.css?v=9">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -235,6 +235,32 @@
     </div>
 
     <div class="cot-desc-modal-scroll">
+      <!-- Materiales y colores que eligió el cliente: select de Elemento y Material (catálogo editable) + color libre -->
+      <div class="cot-desc-seccion" id="cotSeccionMaterialesColores">
+        <div class="cot-desc-seccion-titulo">
+          <span>Materiales y colores elegidos</span>
+          <span class="cot-mc-atajos">
+            <button type="button" class="cot-btn-agregar-opcion" data-categoria="elementos">+ Elemento</button>
+            <button type="button" class="cot-btn-agregar-opcion" data-categoria="tiposMaterial">+ Material</button>
+            <button type="button" class="cot-btn-agregar-opcion" data-categoria="acabados">+ Acabado</button>
+          </span>
+        </div>
+        <p class="cot-desc-vacio" style="margin:0 0 8px;">Una fila por cada elemento del mueble (ej. Mueble aéreo · Melamina · ARCILLA). El acabado y el código del color son opcionales. Se imprime en la Descripción de Cotización y se menciona en el contrato y el acta de entrega.</p>
+        <div class="cot-mc-sugeridas">
+          <select id="cotMcPlantilla">
+            <option value="cocina">Cocina</option>
+            <option value="closet">Clóset / Vestidor</option>
+            <option value="bano">Baño / Vanitorio</option>
+            <option value="entretenimiento">Centro de entretenimiento</option>
+            <option value="office">Home office / Escritorio</option>
+            <option value="logia">Logia / Lavandería</option>
+          </select>
+          <button type="button" class="btn-secundario" id="btnCargarSugeridas">Cargar filas sugeridas</button>
+        </div>
+        <div id="cotMcFilas" class="cot-mc-filas"></div>
+        <button type="button" class="cot-mc-agregar" id="btnAgregarFilaMc">+ Agregar fila</button>
+      </div>
+
       <div class="cot-desc-seccion">
         <div class="cot-desc-seccion-titulo">
           <span>Materiales</span>
@@ -367,6 +393,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=10"></script>
+<script type="module" src="js/cotizaciones.js?v=12"></script>
 </body>
 </html>
