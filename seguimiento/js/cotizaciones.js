@@ -17,7 +17,8 @@ import {
   marcarOpcionAprobada,
   listarCotizacionesPorLead, crearCotizacion, actualizarCotizacion,
   escucharCotizacionesVigentes, crearServicioCatalogo,
-  listarCatalogoDescripcionActivo, crearOpcionCatalogoDescripcion,
+  listarCatalogoDescripcion, crearOpcionCatalogoDescripcion,
+  renombrarOpcionCatalogoDescripcion, cambiarEstadoOpcionCatalogoDescripcion,
   listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -29,7 +30,8 @@ import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDoc
 
 let STAFF_ACTUAL = null;
 let serviciosCatalogo = [];
-let catalogoDescripcionCompleto = []; // catálogo de Materiales/Herrajes/Cubiertas/Accesorios (DC)
+let catalogoDescripcionCompleto = []; // solo las opciones ACTIVAS del catálogo (checklist y selects)
+let catalogoDescripcionTodo = [];     // todas (activas e inactivas), para "Gestionar opciones"
 let usuariosStaffCotizacion = []; // para resolver leadActual.vendedorAsignado (uid) a un nombre
 let cotizacionRowCounter = 0;
 let leadActual = null;
@@ -300,7 +302,7 @@ async function inicializarEditor() {
   }
 
   try {
-    catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+    await recargarCatalogoDescripcion();
     await asegurarCatalogoMaterialesColores();
   } catch (err) {
     console.error(err);
@@ -619,20 +621,32 @@ const PLANTILLAS_MATERIALES_COLORES = {
   logia: ['Módulos superiores e inferiores', 'Cubierta']
 };
 
+// Nombres originales que el sistema usa en "Cargar filas sugeridas". Si María renombra
+// una de estas opciones, se guarda su nombre original en el campo `clave` para que las
+// filas sugeridas la sigan encontrando con el nombre nuevo.
+const CLAVES_SUGERIDAS = new Set([...ELEMENTOS_INICIALES, ...Object.values(PLANTILLAS_MATERIALES_COLORES).flat()]);
+
+/** Carga TODO el catálogo; los selects y el checklist usan solo las activas. */
+async function recargarCatalogoDescripcion() {
+  catalogoDescripcionTodo = await listarCatalogoDescripcion();
+  catalogoDescripcionCompleto = catalogoDescripcionTodo.filter(o => o.activo !== false);
+}
+
 /** La primera vez (catálogo vacío) deja listas las opciones básicas; después se agregan con "+ Elemento" / "+ Material". */
 async function asegurarCatalogoMaterialesColores() {
   let huboCambios = false;
   const sembrar = async (categoria, nombres) => {
-    if (catalogoDescripcionCompleto.some(o => o.categoria === categoria)) return;
+    // Se mira el catálogo completo: si María desactivó todo lo de una categoría, no se vuelve a sembrar.
+    if (catalogoDescripcionTodo.some(o => o.categoria === categoria)) return;
     for (const nombre of nombres) {
-      await crearOpcionCatalogoDescripcion({ categoria, nombre });
+      await crearOpcionCatalogoDescripcion({ categoria, nombre, ...(categoria === 'elementos' ? { clave: nombre } : {}) });
     }
     huboCambios = true;
   };
   await sembrar('elementos', ELEMENTOS_INICIALES);
   await sembrar('tiposMaterial', MATERIALES_INICIALES);
   await sembrar('acabados', ACABADOS_INICIALES);
-  if (huboCambios) catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+  if (huboCambios) await recargarCatalogoDescripcion();
 }
 
 function opcionesSelectMc(categoria, seleccionado) {
@@ -711,6 +725,115 @@ function validarMaterialesColores(filas) {
     : null;
 }
 
+// ---------- Gestionar opciones (renombrar / activar / desactivar) ----------
+
+const modalGestionarOpciones = document.getElementById('modalGestionarOpciones');
+const gestionListas = document.getElementById('gestionListas');
+const gestionError = document.getElementById('gestionError');
+const CAMPO_FILA_POR_CATEGORIA = { elementos: 'elemento', tiposMaterial: 'material', acabados: 'acabado' };
+
+function normalizarNombre(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
+function renderGestionOpciones() {
+  gestionListas.innerHTML = CATEGORIAS_MATERIALES_COLORES.map(categoria => {
+    const opciones = catalogoDescripcionTodo.filter(o => o.categoria === categoria);
+    const filas = opciones.length ? opciones.map(o => `
+      <div class="cot-gest-fila ${o.activo === false ? 'inactiva' : ''}" data-id="${o.id}" data-cat="${categoria}" data-original="${escapeHtml(o.nombre)}">
+        <input type="text" class="cot-gest-nombre" value="${escapeHtml(o.nombre)}" aria-label="Nombre de la opción">
+        <button type="button" class="cot-gest-guardar" disabled>Guardar</button>
+        <label class="cot-gest-activo"><input type="checkbox" ${o.activo === false ? '' : 'checked'}> Activo</label>
+      </div>
+    `).join('') : '<p class="cot-desc-vacio">Aún no hay opciones.</p>';
+    return `<div class="cot-gest-seccion"><div class="cot-gest-titulo">${NOMBRES_CATEGORIA_DESCRIPCION[categoria]}</div>${filas}</div>`;
+  }).join('');
+}
+
+function mostrarErrorGestion(texto) {
+  gestionError.textContent = texto || '';
+  gestionError.classList.toggle('visible', !!texto);
+}
+
+/** Vuelve a leer el catálogo y a dibujar los selects del bloque conservando lo ya escrito (con un reemplazo de nombre opcional). */
+async function refrescarTrasGestion(reemplazo) {
+  const filasActuales = leerMaterialesColoresCrudo();
+  if (reemplazo) {
+    filasActuales.forEach(f => {
+      if (f[reemplazo.campo] === reemplazo.viejo) f[reemplazo.campo] = reemplazo.nuevo;
+    });
+  }
+  await recargarCatalogoDescripcion();
+  renderMaterialesColores(filasActuales);
+  renderGestionOpciones();
+  actualizarResumenDescripcion();
+}
+
+document.getElementById('btnGestionarOpciones').addEventListener('click', () => {
+  mostrarErrorGestion('');
+  renderGestionOpciones();
+  modalGestionarOpciones.style.display = 'flex';
+});
+document.getElementById('btnCerrarGestion').addEventListener('click', () => {
+  modalGestionarOpciones.style.display = 'none';
+});
+
+gestionListas.addEventListener('input', (e) => {
+  const input = e.target.closest('.cot-gest-nombre');
+  if (!input) return;
+  const fila = input.closest('.cot-gest-fila');
+  fila.querySelector('.cot-gest-guardar').disabled = input.value.trim() === fila.dataset.original || !input.value.trim();
+});
+
+gestionListas.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target.closest('.cot-gest-nombre')) return;
+  e.preventDefault();
+  const boton = e.target.closest('.cot-gest-fila').querySelector('.cot-gest-guardar');
+  if (!boton.disabled) boton.click();
+});
+
+gestionListas.addEventListener('click', async (e) => {
+  const boton = e.target.closest('.cot-gest-guardar');
+  if (!boton || boton.disabled) return;
+  const fila = boton.closest('.cot-gest-fila');
+  const { id, cat: categoria, original } = fila.dataset;
+  const nuevo = fila.querySelector('.cot-gest-nombre').value.trim();
+  mostrarErrorGestion('');
+
+  const repetido = catalogoDescripcionTodo.some(o =>
+    o.categoria === categoria && o.id !== id && normalizarNombre(o.nombre) === normalizarNombre(nuevo));
+  if (repetido) {
+    mostrarErrorGestion(`Ya existe una opción llamada "${nuevo}" en ${NOMBRES_CATEGORIA_DESCRIPCION[categoria]}.`);
+    return;
+  }
+
+  try {
+    const doc = catalogoDescripcionTodo.find(o => o.id === id);
+    const clave = (!doc?.clave && CLAVES_SUGERIDAS.has(doc?.nombre)) ? doc.nombre : undefined;
+    await renombrarOpcionCatalogoDescripcion(id, nuevo, clave);
+    await refrescarTrasGestion({ campo: CAMPO_FILA_POR_CATEGORIA[categoria], viejo: original, nuevo });
+    mostrarToast(`Renombrado a "${nuevo}".`);
+  } catch (err) {
+    console.error(err);
+    mostrarErrorGestion('No se pudo guardar el cambio. Intenta de nuevo.');
+  }
+});
+
+gestionListas.addEventListener('change', async (e) => {
+  const check = e.target.closest('.cot-gest-activo input');
+  if (!check) return;
+  const { id } = check.closest('.cot-gest-fila').dataset;
+  mostrarErrorGestion('');
+  try {
+    await cambiarEstadoOpcionCatalogoDescripcion(id, check.checked);
+    await refrescarTrasGestion();
+  } catch (err) {
+    console.error(err);
+    check.checked = !check.checked;
+    mostrarErrorGestion('No se pudo cambiar el estado. Intenta de nuevo.');
+  }
+});
+
 /** Adivina la plantilla a partir del texto libre de "tipo de proyecto" del lead. */
 function plantillaPorTipoProyecto(texto) {
   const t = String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -725,18 +848,25 @@ function plantillaPorTipoProyecto(texto) {
 
 /** Agrega las filas sugeridas que falten (no pisa ni duplica lo que ya está escrito). */
 async function cargarFilasSugeridas() {
-  const clave = document.getElementById('cotMcPlantilla').value;
-  const elementos = PLANTILLAS_MATERIALES_COLORES[clave] || [];
+  const clavePlantilla = document.getElementById('cotMcPlantilla').value;
+  const nombresBase = PLANTILLAS_MATERIALES_COLORES[clavePlantilla] || [];
+  const encontrar = (n) => catalogoDescripcionTodo.find(o => o.categoria === 'elementos' && (o.clave === n || o.nombre === n));
   try {
-    const faltantes = elementos.filter(n => !catalogoDescripcionCompleto.some(o => o.categoria === 'elementos' && o.nombre === n));
+    const faltantes = nombresBase.filter(n => !encontrar(n));
     for (const nombre of faltantes) {
-      await crearOpcionCatalogoDescripcion({ categoria: 'elementos', nombre });
+      await crearOpcionCatalogoDescripcion({ categoria: 'elementos', nombre, clave: nombre });
     }
-    if (faltantes.length) catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+    if (faltantes.length) await recargarCatalogoDescripcion();
   } catch (err) {
     console.error(err);
     mostrarToast('No se pudieron agregar algunos elementos al catálogo.', 'error');
   }
+
+  // Se usa el nombre actual de cada opción (por si fue renombrada) y se omiten las desactivadas.
+  const elementos = nombresBase
+    .map(encontrar)
+    .filter(o => o && o.activo !== false)
+    .map(o => o.nombre);
 
   const actuales = leerMaterialesColoresCrudo();
   const yaEstan = new Set(actuales.map(f => f.elemento));
@@ -869,12 +999,12 @@ document.getElementById('btnGuardarNuevaOpcion').addEventListener('click', async
       // las filas con lo que ya estaba escrito, así el select nuevo aparece en todas.
       const filasActuales = leerMaterialesColoresCrudo();
       await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
-      catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+      await recargarCatalogoDescripcion();
       renderMaterialesColores(filasActuales);
     } else {
       const seleccionActual = leerDescripcionCotizacion();
       const nuevoId = await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
-      catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+      await recargarCatalogoDescripcion();
       seleccionActual[categoriaNuevaOpcion].push(nuevoId);
       renderChecklistDescripcionCategoria(categoriaNuevaOpcion, seleccionActual[categoriaNuevaOpcion]);
     }
