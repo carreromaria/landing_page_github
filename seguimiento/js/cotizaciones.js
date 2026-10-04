@@ -23,7 +23,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=12';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=14';
 
 // ---------- Estado ----------
 
@@ -40,8 +40,12 @@ let dejarDeEscuchar = null;
 
 const CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios'];
 const NOMBRES_CATEGORIA_DESCRIPCION = {
-  materiales: 'Materiales', herrajes: 'Herrajes', cubiertas: 'Cubiertas', accesorios: 'Accesorios'
+  materiales: 'Materiales', herrajes: 'Herrajes', cubiertas: 'Cubiertas', accesorios: 'Accesorios',
+  // Catálogos de los selects de "Materiales y colores elegidos"
+  elementos: 'Elemento', tiposMaterial: 'Material', acabados: 'Acabado'
 };
+const CATEGORIAS_MATERIALES_COLORES = ['elementos', 'tiposMaterial', 'acabados'];
+let materialesColoresRowCounter = 0;
 
 const parametrosURL = new URLSearchParams(window.location.search);
 const leadId = parametrosURL.get('leadId');
@@ -102,6 +106,7 @@ const contenedoresChecklistDescripcion = {
   cubiertas: document.getElementById('cotDescCubiertas'),
   accesorios: document.getElementById('cotDescAccesorios')
 };
+const cotMcFilas = document.getElementById('cotMcFilas');
 const cotDescResumenTexto = document.getElementById('cotDescResumenTexto');
 const modalDescripcionCotizacion = document.getElementById('modalDescripcionCotizacion');
 const btnEditarDescripcion = document.getElementById('btnEditarDescripcion');
@@ -296,6 +301,7 @@ async function inicializarEditor() {
 
   try {
     catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+    await asegurarCatalogoMaterialesColores();
   } catch (err) {
     console.error(err);
     mostrarToast('No se pudo cargar el catálogo de la Descripción de Cotización.', 'error');
@@ -317,6 +323,9 @@ async function inicializarEditor() {
   editorClienteNombre.textContent = leadActual.nombre || '—';
 
   mejorarSelect('#cotFormaPago', { ancho: 'auto' });
+  mejorarSelect('#cotMcPlantilla');
+  const plantillaDetectada = plantillaPorTipoProyecto(leadActual.tipoProyecto);
+  if (plantillaDetectada) document.getElementById('cotMcPlantilla').value = plantillaDetectada;
 
   // Opción a editar: la que viene en la URL; si no viene, 'A' provisoriamente
   // y cargarCotizacionVigente() la reemplaza por la principal del lead.
@@ -351,6 +360,7 @@ async function cargarCotizacionVigente() {
     cotFormaPago.value = base.formaPago || '';
     cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : new Date().toISOString().slice(0, 10);
     renderChecklistDescripcionCompleto(base.descripcionCotizacion || {});
+    renderMaterialesColores(base.materialesColores || []);
   } else {
     renderFilas([]);
     cotDescuento.value = '';
@@ -361,6 +371,7 @@ async function cargarCotizacionVigente() {
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
     renderChecklistDescripcionCompleto({});
+    renderMaterialesColores([]);
   }
   actualizarResumenDescripcion();
 
@@ -585,6 +596,176 @@ cotizacionItemsBody.addEventListener('click', (e) => {
   }
 });
 
+// ---------- Materiales y colores elegidos ----------
+// Una fila por elemento del mueble: Elemento (select) + Material (select) + Color (texto libre).
+// Los selects salen del catálogo editable (colección catalogoDescripcion, categorías
+// 'elementos' y 'tiposMaterial'). En la cotización se guardan como texto
+// (materialesColores: [{ elemento, material, color }]), así el documento no depende de
+// que una opción del catálogo se desactive más adelante.
+
+const ELEMENTOS_INICIALES = ['Mueble aéreo', 'Mueble base', 'Cubierta'];
+const MATERIALES_INICIALES = ['Melamina', 'Postformado', 'Cuarzo'];
+const ACABADOS_INICIALES = ['Mate', 'Brillante', 'Texturizado', 'Liso'];
+
+// Filas sugeridas según el tipo de proyecto: solo dejan listos los elementos
+// (María completa material, color, acabado y código). Si falta alguno en el
+// catálogo de Elemento, se crea al cargar la plantilla.
+const PLANTILLAS_MATERIALES_COLORES = {
+  cocina: ['Mueble base', 'Mueble aéreo', 'Cubierta'],
+  closet: ['Estructura interna', 'Puertas y frentes'],
+  bano: ['Estructura y frentes', 'Cubierta'],
+  entretenimiento: ['Fondo de TV', 'Mueble base', 'Repisas'],
+  office: ['Cubierta de escritorio', 'Cajoneras'],
+  logia: ['Módulos superiores e inferiores', 'Cubierta']
+};
+
+/** La primera vez (catálogo vacío) deja listas las opciones básicas; después se agregan con "+ Elemento" / "+ Material". */
+async function asegurarCatalogoMaterialesColores() {
+  let huboCambios = false;
+  const sembrar = async (categoria, nombres) => {
+    if (catalogoDescripcionCompleto.some(o => o.categoria === categoria)) return;
+    for (const nombre of nombres) {
+      await crearOpcionCatalogoDescripcion({ categoria, nombre });
+    }
+    huboCambios = true;
+  };
+  await sembrar('elementos', ELEMENTOS_INICIALES);
+  await sembrar('tiposMaterial', MATERIALES_INICIALES);
+  await sembrar('acabados', ACABADOS_INICIALES);
+  if (huboCambios) catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+}
+
+function opcionesSelectMc(categoria, seleccionado) {
+  const nombres = catalogoDescripcionCompleto.filter(o => o.categoria === categoria).map(o => o.nombre);
+  // Si la opción guardada ya no está activa en el catálogo, se muestra igual para no perder el dato.
+  if (seleccionado && !nombres.includes(seleccionado)) nombres.push(seleccionado);
+  const opciones = nombres.map(n =>
+    `<option value="${escapeHtml(n)}" ${n === seleccionado ? 'selected' : ''}>${escapeHtml(n)}</option>`
+  ).join('');
+  return `<option value="">Selecciona…</option>${opciones}`;
+}
+
+function agregarFilaMaterialColor(fila = {}) {
+  const id = materialesColoresRowCounter++;
+  const div = document.createElement('div');
+  div.className = 'cot-mc-fila';
+  div.dataset.mcId = id;
+  div.innerHTML = `
+    <div class="cot-mc-campo">
+      <label for="cotMcEl_${id}">Elemento</label>
+      <select id="cotMcEl_${id}">${opcionesSelectMc('elementos', fila.elemento)}</select>
+    </div>
+    <div class="cot-mc-campo">
+      <label for="cotMcMat_${id}">Material</label>
+      <select id="cotMcMat_${id}">${opcionesSelectMc('tiposMaterial', fila.material)}</select>
+    </div>
+    <div class="cot-mc-campo">
+      <label for="cotMcAcab_${id}">Acabado <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
+      <select id="cotMcAcab_${id}">${opcionesSelectMc('acabados', fila.acabado)}</select>
+    </div>
+    <button type="button" class="cot-mc-eliminar" data-mc-id="${id}" aria-label="Quitar fila">✕</button>
+    <div class="cot-mc-campo cot-mc-campo--doble">
+      <label for="cotMcCol_${id}">Color</label>
+      <input type="text" id="cotMcCol_${id}" placeholder="Ej: ARCILLA" value="${escapeHtml(fila.color || '')}">
+    </div>
+    <div class="cot-mc-campo">
+      <label for="cotMcCod_${id}">Código del color <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
+      <input type="text" id="cotMcCod_${id}" placeholder="Ej: código del proveedor" value="${escapeHtml(fila.codigo || '')}">
+    </div>
+  `;
+  cotMcFilas.appendChild(div);
+
+  mejorarSelect(`#cotMcEl_${id}`);
+  mejorarSelect(`#cotMcMat_${id}`);
+  mejorarSelect(`#cotMcAcab_${id}`);
+  forzarMayusculasInput(document.getElementById(`cotMcCol_${id}`));
+  forzarMayusculasInput(document.getElementById(`cotMcCod_${id}`));
+}
+
+/** Dibuja las filas guardadas; si no hay ninguna, deja una vacía lista para llenar. */
+function renderMaterialesColores(filas = []) {
+  cotMcFilas.innerHTML = '';
+  materialesColoresRowCounter = 0;
+  const lista = filas.length ? filas : [{}];
+  lista.forEach(f => agregarFilaMaterialColor(f));
+}
+
+/** Lee las filas del bloque, sin las que están completamente vacías. */
+function leerMaterialesColoresCrudo() {
+  return [...cotMcFilas.querySelectorAll('.cot-mc-fila')].map(div => {
+    const id = div.dataset.mcId;
+    return {
+      elemento: document.getElementById(`cotMcEl_${id}`).value,
+      material: document.getElementById(`cotMcMat_${id}`).value,
+      color: document.getElementById(`cotMcCol_${id}`).value.trim().toLocaleUpperCase('es-CL'),
+      acabado: document.getElementById(`cotMcAcab_${id}`).value,
+      codigo: document.getElementById(`cotMcCod_${id}`).value.trim().toLocaleUpperCase('es-CL')
+    };
+  }).filter(f => f.elemento || f.material || f.color || f.acabado || f.codigo);
+}
+
+function validarMaterialesColores(filas) {
+  const incompleta = filas.some(f => !f.elemento || !f.material || !f.color);
+  return incompleta
+    ? 'En "Materiales y colores elegidos" hay una fila incompleta: completa elemento, material y color, o quita la fila (Editar selección).'
+    : null;
+}
+
+/** Adivina la plantilla a partir del texto libre de "tipo de proyecto" del lead. */
+function plantillaPorTipoProyecto(texto) {
+  const t = String(texto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/cocina/.test(t)) return 'cocina';
+  if (/closet|vestidor|walk/.test(t)) return 'closet';
+  if (/bano|vanitorio|vanity/.test(t)) return 'bano';
+  if (/entretenimiento|\btv\b|living|rack/.test(t)) return 'entretenimiento';
+  if (/escritorio|office|oficina/.test(t)) return 'office';
+  if (/logia|lavander/.test(t)) return 'logia';
+  return null;
+}
+
+/** Agrega las filas sugeridas que falten (no pisa ni duplica lo que ya está escrito). */
+async function cargarFilasSugeridas() {
+  const clave = document.getElementById('cotMcPlantilla').value;
+  const elementos = PLANTILLAS_MATERIALES_COLORES[clave] || [];
+  try {
+    const faltantes = elementos.filter(n => !catalogoDescripcionCompleto.some(o => o.categoria === 'elementos' && o.nombre === n));
+    for (const nombre of faltantes) {
+      await crearOpcionCatalogoDescripcion({ categoria: 'elementos', nombre });
+    }
+    if (faltantes.length) catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No se pudieron agregar algunos elementos al catálogo.', 'error');
+  }
+
+  const actuales = leerMaterialesColoresCrudo();
+  const yaEstan = new Set(actuales.map(f => f.elemento));
+  const nuevas = elementos.filter(n => !yaEstan.has(n)).map(n => ({ elemento: n }));
+  if (!nuevas.length) {
+    mostrarToast('Esos elementos ya están en la lista.', 'info');
+    return;
+  }
+  renderMaterialesColores([...actuales, ...nuevas]);
+  actualizarResumenDescripcion();
+  mostrarToast('Filas sugeridas cargadas. Completa material y color.');
+}
+
+document.getElementById('btnCargarSugeridas').addEventListener('click', cargarFilasSugeridas);
+
+document.getElementById('btnAgregarFilaMc').addEventListener('click', () => {
+  agregarFilaMaterialColor();
+  actualizarResumenDescripcion();
+});
+
+cotMcFilas.addEventListener('click', (e) => {
+  const btn = e.target.closest('.cot-mc-eliminar');
+  if (!btn) return;
+  btn.closest('.cot-mc-fila').remove();
+  actualizarResumenDescripcion();
+});
+cotMcFilas.addEventListener('change', () => actualizarResumenDescripcion());
+cotMcFilas.addEventListener('input', () => actualizarResumenDescripcion());
+
 // ---------- Checklist: Descripción de Cotización ----------
 
 /** Dibuja las opciones activas de una categoría, marcando las ya seleccionadas (por id). */
@@ -624,6 +805,10 @@ function actualizarResumenDescripcion() {
   const partes = CATEGORIAS_DESCRIPCION
     .filter(categoria => seleccion[categoria].length > 0)
     .map(categoria => `${seleccion[categoria].length} ${NOMBRES_CATEGORIA_DESCRIPCION[categoria].toLowerCase()}`);
+  const cantidadColores = leerMaterialesColoresCrudo().length;
+  if (cantidadColores) {
+    partes.unshift(`${cantidadColores} ${cantidadColores === 1 ? 'elemento con color' : 'elementos con color'}`);
+  }
   cotDescResumenTexto.textContent = partes.length
     ? `${partes.join(' · ')} seleccionados.`
     : 'Sin opciones marcadas aún.';
@@ -679,11 +864,20 @@ document.getElementById('btnGuardarNuevaOpcion').addEventListener('click', async
   }
 
   try {
-    const seleccionActual = leerDescripcionCotizacion();
-    const nuevoId = await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
-    catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
-    seleccionActual[categoriaNuevaOpcion].push(nuevoId);
-    renderChecklistDescripcionCategoria(categoriaNuevaOpcion, seleccionActual[categoriaNuevaOpcion]);
+    if (CATEGORIAS_MATERIALES_COLORES.includes(categoriaNuevaOpcion)) {
+      // Opción para los selects de "Materiales y colores elegidos": se vuelven a dibujar
+      // las filas con lo que ya estaba escrito, así el select nuevo aparece en todas.
+      const filasActuales = leerMaterialesColoresCrudo();
+      await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
+      catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+      renderMaterialesColores(filasActuales);
+    } else {
+      const seleccionActual = leerDescripcionCotizacion();
+      const nuevoId = await crearOpcionCatalogoDescripcion({ categoria: categoriaNuevaOpcion, nombre });
+      catalogoDescripcionCompleto = await listarCatalogoDescripcionActivo();
+      seleccionActual[categoriaNuevaOpcion].push(nuevoId);
+      renderChecklistDescripcionCategoria(categoriaNuevaOpcion, seleccionActual[categoriaNuevaOpcion]);
+    }
     actualizarResumenDescripcion();
     modalNuevaOpcionDescripcion.style.display = 'none';
     mostrarToast(`"${nombre}" agregado al catálogo.`);
@@ -774,6 +968,14 @@ async function guardar({ comoNuevaVersion }) {
     return;
   }
 
+  const materialesColores = leerMaterialesColoresCrudo();
+  const errorMateriales = validarMaterialesColores(materialesColores);
+  if (errorMateriales) {
+    cotizacionError.textContent = errorMateriales;
+    cotizacionError.classList.add('visible');
+    return;
+  }
+
   const datos = {
     // totalGeneral y totalConIva mantienen su nombre de campo en Firestore
     // (se usan en otros módulos), aunque ahora "Monto" y "Total" se llaman
@@ -788,6 +990,7 @@ async function guardar({ comoNuevaVersion }) {
     formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value,
     descripcionCotizacion: leerDescripcionCotizacion(),
+    materialesColores,
     descripcionOpcion: cotDescripcionOpcion.value.trim().toLocaleUpperCase('es-CL')
   };
 
