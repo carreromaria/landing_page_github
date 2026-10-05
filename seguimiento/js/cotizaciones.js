@@ -44,9 +44,9 @@ const CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesori
 const NOMBRES_CATEGORIA_DESCRIPCION = {
   materiales: 'Materiales', herrajes: 'Herrajes', cubiertas: 'Cubiertas', accesorios: 'Accesorios',
   // Catálogos de los selects de "Materiales y colores elegidos"
-  elementos: 'Elemento', tiposMaterial: 'Material', acabados: 'Acabado'
+  elementos: 'Elemento', tiposMaterial: 'Material', acabados: 'Acabado', proveedores: 'Proveedor'
 };
-const CATEGORIAS_MATERIALES_COLORES = ['elementos', 'tiposMaterial', 'acabados'];
+const CATEGORIAS_MATERIALES_COLORES = ['elementos', 'tiposMaterial', 'acabados', 'proveedores'];
 let materialesColoresRowCounter = 0;
 
 const parametrosURL = new URLSearchParams(window.location.search);
@@ -688,7 +688,7 @@ function agregarFilaMaterialColor(fila = {}) {
     </div>
     <div class="cot-mc-campo">
       <label for="cotMcProv_${id}">Proveedor <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
-      <input type="text" id="cotMcProv_${id}" placeholder="Ej: nombre del proveedor" value="${escapeHtml(fila.proveedor || '')}">
+      <select id="cotMcProv_${id}">${opcionesSelectMc('proveedores', fila.proveedor)}</select>
     </div>
   `;
   cotMcFilas.appendChild(div);
@@ -696,9 +696,10 @@ function agregarFilaMaterialColor(fila = {}) {
   mejorarSelect(`#cotMcEl_${id}`);
   mejorarSelect(`#cotMcMat_${id}`);
   mejorarSelect(`#cotMcAcab_${id}`);
+  mejorarSelect(`#cotMcProv_${id}`);
   forzarMayusculasInput(document.getElementById(`cotMcCol_${id}`));
   forzarMayusculasInput(document.getElementById(`cotMcCod_${id}`));
-  forzarMayusculasInput(document.getElementById(`cotMcProv_${id}`));
+
 }
 
 /** Dibuja las filas guardadas; si no hay ninguna, deja una vacía lista para llenar. */
@@ -719,7 +720,7 @@ function leerMaterialesColoresCrudo() {
       color: document.getElementById(`cotMcCol_${id}`).value.trim().toLocaleUpperCase('es-CL'),
       acabado: document.getElementById(`cotMcAcab_${id}`).value,
       codigo: document.getElementById(`cotMcCod_${id}`).value.trim().toLocaleUpperCase('es-CL'),
-      proveedor: document.getElementById(`cotMcProv_${id}`).value.trim().toLocaleUpperCase('es-CL')
+      proveedor: document.getElementById(`cotMcProv_${id}`).value
     };
   }).filter(f => f.elemento || f.material || f.color || f.acabado || f.codigo || f.proveedor);
 }
@@ -736,7 +737,7 @@ function validarMaterialesColores(filas) {
 const modalGestionarOpciones = document.getElementById('modalGestionarOpciones');
 const gestionListas = document.getElementById('gestionListas');
 const gestionError = document.getElementById('gestionError');
-const CAMPO_FILA_POR_CATEGORIA = { elementos: 'elemento', tiposMaterial: 'material', acabados: 'acabado' };
+const CAMPO_FILA_POR_CATEGORIA = { elementos: 'elemento', tiposMaterial: 'material', acabados: 'acabado', proveedores: 'proveedor' };
 
 function normalizarNombre(t) {
   return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
@@ -976,7 +977,7 @@ const nuevaOpcionTitulo = document.getElementById('nuevaOpcionTitulo');
 const nuevaOpcionNombre = document.getElementById('nuevaOpcionNombre');
 const nuevaOpcionError = document.getElementById('nuevaOpcionError');
 
-document.querySelectorAll('.cot-btn-agregar-opcion').forEach(btn => {
+document.querySelectorAll('.cot-btn-agregar-opcion[data-categoria]').forEach(btn => {
   btn.addEventListener('click', () => {
     categoriaNuevaOpcion = btn.dataset.categoria;
     nuevaOpcionTitulo.textContent = `Nueva opción — ${NOMBRES_CATEGORIA_DESCRIPCION[categoriaNuevaOpcion]}`;
