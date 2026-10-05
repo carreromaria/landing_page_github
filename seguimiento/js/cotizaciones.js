@@ -24,7 +24,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=14';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=15';
 
 // ---------- Estado ----------
 
@@ -678,13 +678,17 @@ function agregarFilaMaterialColor(fila = {}) {
       <select id="cotMcAcab_${id}">${opcionesSelectMc('acabados', fila.acabado)}</select>
     </div>
     <button type="button" class="cot-mc-eliminar" data-mc-id="${id}" aria-label="Quitar fila">✕</button>
-    <div class="cot-mc-campo cot-mc-campo--doble">
+    <div class="cot-mc-campo">
       <label for="cotMcCol_${id}">Color</label>
       <input type="text" id="cotMcCol_${id}" placeholder="Ej: ARCILLA" value="${escapeHtml(fila.color || '')}">
     </div>
     <div class="cot-mc-campo">
-      <label for="cotMcCod_${id}">Código del color <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
-      <input type="text" id="cotMcCod_${id}" placeholder="Ej: código del proveedor" value="${escapeHtml(fila.codigo || '')}">
+      <label for="cotMcCod_${id}">Código <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
+      <input type="text" id="cotMcCod_${id}" placeholder="Ej: código del color" value="${escapeHtml(fila.codigo || '')}">
+    </div>
+    <div class="cot-mc-campo">
+      <label for="cotMcProv_${id}">Proveedor <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
+      <input type="text" id="cotMcProv_${id}" placeholder="Ej: nombre del proveedor" value="${escapeHtml(fila.proveedor || '')}">
     </div>
   `;
   cotMcFilas.appendChild(div);
@@ -694,6 +698,7 @@ function agregarFilaMaterialColor(fila = {}) {
   mejorarSelect(`#cotMcAcab_${id}`);
   forzarMayusculasInput(document.getElementById(`cotMcCol_${id}`));
   forzarMayusculasInput(document.getElementById(`cotMcCod_${id}`));
+  forzarMayusculasInput(document.getElementById(`cotMcProv_${id}`));
 }
 
 /** Dibuja las filas guardadas; si no hay ninguna, deja una vacía lista para llenar. */
@@ -713,9 +718,10 @@ function leerMaterialesColoresCrudo() {
       material: document.getElementById(`cotMcMat_${id}`).value,
       color: document.getElementById(`cotMcCol_${id}`).value.trim().toLocaleUpperCase('es-CL'),
       acabado: document.getElementById(`cotMcAcab_${id}`).value,
-      codigo: document.getElementById(`cotMcCod_${id}`).value.trim().toLocaleUpperCase('es-CL')
+      codigo: document.getElementById(`cotMcCod_${id}`).value.trim().toLocaleUpperCase('es-CL'),
+      proveedor: document.getElementById(`cotMcProv_${id}`).value.trim().toLocaleUpperCase('es-CL')
     };
-  }).filter(f => f.elemento || f.material || f.color || f.acabado || f.codigo);
+  }).filter(f => f.elemento || f.material || f.color || f.acabado || f.codigo || f.proveedor);
 }
 
 function validarMaterialesColores(filas) {
