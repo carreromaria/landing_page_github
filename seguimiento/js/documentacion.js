@@ -21,7 +21,7 @@ import { mejorarSelect } from './components/dropdown-linence.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento
-} from './documentos-cotizacion.js?v=14';
+} from './documentos-cotizacion.js?v=15';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
