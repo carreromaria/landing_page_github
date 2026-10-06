@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css?v=8">
+<link rel="stylesheet" href="css/crm.css?v=9">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 </head>
 <body>
@@ -160,10 +160,10 @@
       </div>
       <div class="crm-detalle-grid">
         <div class="crm-detalle-dato">
-          <div class="etiqueta">Presupuesto estimado</div>
+          <div class="etiqueta">Presupuesto total</div>
           <div class="valor-copiable">
             <span class="valor" id="detallePresupuesto">—</span>
-            <button type="button" class="btn-copiar" data-copiar="detallePresupuesto" aria-label="Copiar presupuesto estimado">
+            <button type="button" class="btn-copiar" data-copiar="detallePresupuesto" aria-label="Copiar presupuesto total">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
@@ -177,6 +177,18 @@
             </button>
           </div>
         </div>
+        <div class="crm-detalle-dato">
+          <div class="etiqueta">Saldo</div>
+          <div class="valor-copiable">
+            <span class="valor" id="detalleSaldo">—</span>
+            <button type="button" class="btn-copiar" data-copiar="detalleSaldo" aria-label="Copiar saldo">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Segunda fila: datos del lead (los montos van arriba, en su propia fila) -->
+      <div class="crm-detalle-grid crm-detalle-grid--datos">
         <div class="crm-detalle-dato">
           <div class="etiqueta">RUT</div>
           <div class="valor-copiable">
@@ -504,6 +516,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20261001b"></script>
+<script type="module" src="js/crm.js?v=20261006a"></script>
 </body>
 </html>
