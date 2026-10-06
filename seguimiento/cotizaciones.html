@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=10">
+<link rel="stylesheet" href="css/cotizaciones.css?v=11">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -200,11 +200,15 @@
       <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
     </div>
 
-    <div class="cot-desc-resumen" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
-      <div style="background:#141213; padding:10px 16px;">
+    <!-- Sección plegable: se oculta y se despliega con la flechita (parte colapsada) -->
+    <div class="cot-desc-resumen cot-desc-card colapsada" id="cotDescCard" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
+      <div class="cot-desc-card-header" id="cotDescToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="cotDescCuerpo">
         <h2 id="cotDescTituloCard" class="cat-title" style="font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:#D6A52C; font-weight:700;">Descripción de Cotización</h2>
+        <span class="cot-chevron" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </span>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:14px 16px; background:#fff;">
+      <div class="cot-desc-cuerpo" id="cotDescCuerpo">
         <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
         <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
       </div>
@@ -408,6 +412,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=15"></script>
+<script type="module" src="js/cotizaciones.js?v=16"></script>
 </body>
 </html>
