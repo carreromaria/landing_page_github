@@ -727,6 +727,56 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   }
 }
 
+/* ============================================================
+   FIX teléfono — editor de cotización (abierto desde el CRM)
+   En el video la pantalla se "achica" al entrar (queda un espacio vacío a la
+   derecha y hay que arrastrar la vista): algún elemento se mide más ancho que
+   el teléfono y Safari reduce todo para que quepa. En vez de adivinar cuál,
+   se impide que CUALQUIER elemento ensanche la página, y se refuerza lo que
+   más se desbordaba (el campo de fecha "Válida desde" y la tabla de ítems).
+   Solo afecta a teléfono/tablet (≤900px).
+   ============================================================ */
+@media (max-width: 900px) {
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-x: clip;   /* donde exista, sin crear otro contenedor de scroll */
+  }
+  body { position: relative; }
+
+  #vistaEditorCotizacion {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-x: clip;
+  }
+  #vistaEditorCotizacion > * { max-width: 100%; min-width: 0; }
+
+  /* La tabla de ítems se desplaza por dentro de su propia caja, nunca ensancha la página */
+  #vistaEditorCotizacion .crm-cotizacion-tabla-wrapper {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Campos de fecha: Safari les da un ancho mínimo propio y se salían de la tarjeta */
+  .cot-campo-doc input[type="date"],
+  .cot-rango-fechas input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  .cot-rango-fechas { min-width: 0; }
+}
+
 /* ================= Acciones finales del editor (Ver PDF / Ver Descripción / Guardar) ================= */
 /* .crm-cotizacion-acciones se define en crm.css (compartida con el CRM) con
    justify-content:space-between, que deja "Ver PDF"/"Ver Descripción" pegados
