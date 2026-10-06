@@ -79,7 +79,7 @@ function activarFormatoMiles(inputEl) {
 
 ['lTelefono', 'eTelefono'].forEach(id => activarFormatoTelefono(document.getElementById(id)));
 // (antes acá también se activaba formato de miles para 'lPresupuesto'/'ePresupuesto';
-// ese campo se quitó del formulario, ver nota en 'Presupuesto estimado' de la tarjeta)
+// ese campo se quitó del formulario, ver nota en 'Presupuesto total' de la tarjeta)
 
 // ---------- RUT (mismo algoritmo que dashboard.js, para que valide igual) ----------
 
@@ -268,7 +268,7 @@ document.getElementById('btnCerrarSesion').addEventListener('click', async () =>
 });
 
 // ---------- Copiar al portapapeles ----------
-// Los botones .btn-copiar viven junto a Presupuesto, Abono, RUT,
+// Los botones .btn-copiar viven junto a Presupuesto, Abono, Saldo, RUT,
 // Teléfono y Correo en la tarjeta resumen del lead. Cada uno trae
 // data-copiar="<id del elemento con el valor>".
 
@@ -470,6 +470,7 @@ function abrirDetalleLead(id) {
   document.getElementById('detalleMetaProyecto').textContent =
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
   document.getElementById('detallePresupuesto').textContent = '—'; // se llena con el Total de la cotización, ver cargarResumenCotizacion()
+  document.getElementById('detalleSaldo').textContent = '—';
   document.getElementById('detalleRut').textContent = formatearRutParaMostrar(lead.rut);
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
@@ -583,6 +584,7 @@ async function cargarResumenCotizacion(lead) {
   cotizacionListaOpciones.innerHTML = '';
   document.getElementById('detalleAbono').textContent = '—';
   document.getElementById('detallePresupuesto').textContent = '—';
+  document.getElementById('detalleSaldo').textContent = '—';
 
   const enlaceBase = `cotizaciones.html?leadId=${encodeURIComponent(lead.id)}`;
   btnIrACotizacionNueva.href = enlaceBase;
@@ -595,12 +597,21 @@ async function cargarResumenCotizacion(lead) {
       return;
     }
 
-    // Abono y Presupuesto estimado salen de la opción principal:
+    // Presupuesto total, Abono y Saldo salen de la opción principal:
     // la aprobada, o la más reciente si ninguna está aprobada.
     const principal = elegirOpcionPrincipal(opciones);
     document.getElementById('detalleAbono').textContent =
       `$${(principal.abono || 0).toLocaleString('es-CL')} (${principal.porcentajeAbono || 0}%)`;
     document.getElementById('detallePresupuesto').textContent = formatearPresupuesto(principal.totalConIva);
+
+    // Saldo = lo que queda por pagar (total − abono) y su porcentaje (100% − % de abono).
+    // Se recalcula solo si cambia el abono de la cotización.
+    if (principal.totalConIva || principal.totalConIva === 0) {
+      const saldo = Math.max(0, Number(principal.totalConIva) - Number(principal.abono || 0));
+      const pctSaldo = Math.min(100, Math.max(0, Math.round((100 - Number(principal.porcentajeAbono || 0)) * 100) / 100));
+      document.getElementById('detalleSaldo').textContent =
+        `$${saldo.toLocaleString('es-CL')} (${pctSaldo.toLocaleString('es-CL')}%)`;
+    }
 
     const variasOpciones = opciones.length > 1;
     cotizacionListaOpciones.innerHTML = opciones.map(o => {
