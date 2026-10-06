@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=11">
+<link rel="stylesheet" href="css/cotizaciones.css?v=12">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -200,15 +200,11 @@
       <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
     </div>
 
-    <!-- Sección plegable: se oculta y se despliega con la flechita (parte colapsada) -->
-    <div class="cot-desc-resumen cot-desc-card colapsada" id="cotDescCard" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
-      <div class="cot-desc-card-header" id="cotDescToggle" role="button" tabindex="0" aria-expanded="false" aria-controls="cotDescCuerpo">
+    <div class="cot-desc-resumen" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
+      <div style="background:#141213; padding:10px 16px;">
         <h2 id="cotDescTituloCard" class="cat-title" style="font-size:13px; letter-spacing:.06em; text-transform:uppercase; margin:0; color:#D6A52C; font-weight:700;">Descripción de Cotización</h2>
-        <span class="cot-chevron" aria-hidden="true">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </span>
       </div>
-      <div class="cot-desc-cuerpo" id="cotDescCuerpo">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:14px 16px; background:#fff;">
         <p class="subtitulo" id="cotDescResumenTexto" style="margin:0;">Sin opciones marcadas aún.</p>
         <button type="button" class="btn-secundario" id="btnEditarDescripcion">Editar selección</button>
       </div>
@@ -241,8 +237,11 @@
     <div class="cot-desc-modal-scroll">
       <!-- Materiales y colores que eligió el cliente: select de Elemento y Material (catálogo editable) + color libre -->
       <div class="cot-desc-seccion" id="cotSeccionMaterialesColores">
-        <div class="cot-desc-seccion-titulo">
-          <span>Materiales y colores elegidos</span>
+        <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
+          <span class="cot-sec-titulo">Materiales y colores elegidos</span>
+          <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+        </div>
+        <div class="cot-sec-cuerpo">
           <span class="cot-mc-atajos">
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="elementos">+ Elemento</button>
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="tiposMaterial">+ Material</button>
@@ -250,7 +249,6 @@
             <button type="button" class="cot-btn-agregar-opcion" data-categoria="proveedores">+ Proveedor</button>
             <button type="button" class="cot-btn-agregar-opcion" id="btnGestionarOpciones">⚙ Gestionar opciones</button>
           </span>
-        </div>
         <p class="cot-desc-vacio" style="margin:0 0 8px;">Una fila por cada elemento del mueble (ej. Mueble aéreo · Melamina · ARCILLA). El acabado y el código del color son opcionales. Se imprime en la Descripción de Cotización y se menciona en el contrato y el acta de entrega.</p>
         <div class="cot-mc-sugeridas">
           <select id="cotMcPlantilla">
@@ -265,38 +263,51 @@
         </div>
         <div id="cotMcFilas" class="cot-mc-filas"></div>
         <button type="button" class="cot-mc-agregar" id="btnAgregarFilaMc">+ Agregar fila</button>
+        </div>
       </div>
 
       <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Materiales</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button>
+        <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
+          <span class="cot-sec-titulo">Materiales</span>
+          <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
-        <div class="cot-desc-grid" id="cotDescMateriales"></div>
+        <div class="cot-sec-cuerpo">
+          <div class="cot-sec-acciones"><button type="button" class="cot-btn-agregar-opcion" data-categoria="materiales">+ Agregar opción</button></div>
+          <div class="cot-desc-grid" id="cotDescMateriales"></div>
+        </div>
       </div>
 
       <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Herrajes</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button>
+        <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
+          <span class="cot-sec-titulo">Herrajes</span>
+          <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
-        <div class="cot-desc-grid" id="cotDescHerrajes"></div>
+        <div class="cot-sec-cuerpo">
+          <div class="cot-sec-acciones"><button type="button" class="cot-btn-agregar-opcion" data-categoria="herrajes">+ Agregar opción</button></div>
+          <div class="cot-desc-grid" id="cotDescHerrajes"></div>
+        </div>
       </div>
 
       <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Cubiertas</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button>
+        <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
+          <span class="cot-sec-titulo">Cubiertas</span>
+          <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
-        <div class="cot-desc-grid" id="cotDescCubiertas"></div>
+        <div class="cot-sec-cuerpo">
+          <div class="cot-sec-acciones"><button type="button" class="cot-btn-agregar-opcion" data-categoria="cubiertas">+ Agregar opción</button></div>
+          <div class="cot-desc-grid" id="cotDescCubiertas"></div>
+        </div>
       </div>
 
       <div class="cot-desc-seccion">
-        <div class="cot-desc-seccion-titulo">
-          <span>Accesorios</span>
-          <button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button>
+        <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
+          <span class="cot-sec-titulo">Accesorios</span>
+          <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
         </div>
-        <div class="cot-desc-grid" id="cotDescAccesorios"></div>
+        <div class="cot-sec-cuerpo">
+          <div class="cot-sec-acciones"><button type="button" class="cot-btn-agregar-opcion" data-categoria="accesorios">+ Agregar opción</button></div>
+          <div class="cot-desc-grid" id="cotDescAccesorios"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -412,6 +423,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=16"></script>
+<script type="module" src="js/cotizaciones.js?v=17"></script>
 </body>
 </html>
