@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=12">
+<link rel="stylesheet" href="css/cotizaciones.css?v=13">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -229,7 +229,16 @@
     <div class="cot-desc-modal-header">
       <div>
         <h2 id="cotDescTituloModal" class="cat-title" style="font-size:19px; margin:0;">Descripción de Cotización</h2>
-        <p class="subtitulo" style="margin:4px 0 0;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
+        <!-- Instrucciones plegables (parten ocultas para no ocupar media pantalla en el teléfono) -->
+        <div class="cot-desc-seccion cot-ayuda colapsada">
+          <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="false">
+            <span class="cot-sec-titulo">Instrucciones</span>
+            <span class="cot-sec-chevron" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg></span>
+          </div>
+          <div class="cot-sec-cuerpo">
+            <p class="subtitulo" style="margin:0;">Marca lo que aplique a este proyecto — se imprime junto con la cotización. Si falta una opción (ej. una tendencia nueva de herraje), agrégala con "+ Agregar opción" y queda disponible para siempre.</p>
+          </div>
+        </div>
       </div>
       <button type="button" class="btn-primario" id="btnCerrarDescripcion">Listo</button>
     </div>
@@ -423,6 +432,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=17"></script>
+<script type="module" src="js/cotizaciones.js?v=18"></script>
 </body>
 </html>
