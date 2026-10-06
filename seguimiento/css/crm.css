@@ -195,6 +195,13 @@
   margin-top:16px;
 }
 
+/* Segunda fila de la tarjeta del lead (RUT, vendedor, fechas): 4 columnas.
+   La primera fila es solo de montos (Presupuesto total, Abono, Saldo). */
+.crm-detalle-grid--datos{
+  grid-template-columns:repeat(4, 1fr);
+  margin-top:10px;
+}
+
 .crm-detalle-dato{
   background:var(--ink-soft);
   border-radius:8px;
@@ -714,8 +721,15 @@
   }
 }
 
+@media (max-width: 900px){
+  .crm-detalle-grid--datos{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
 @media (max-width: 640px){
-  .crm-detalle-grid{
+  .crm-detalle-grid,
+  .crm-detalle-grid--datos{
     grid-template-columns:1fr;
   }
 }
