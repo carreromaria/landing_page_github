@@ -16,8 +16,8 @@ let iniciado = false;
 export function iniciarControlInactividad({
   cerrarSesion,
   redirigirA = 'login.html',
-  minutos = 1,
-  avisoMinutos = 0.5
+  minutos = 30,
+  avisoMinutos = 28
 } = {}) {
   if (iniciado) return;          // evita duplicar si la página lo llama dos veces
   iniciado = true;
