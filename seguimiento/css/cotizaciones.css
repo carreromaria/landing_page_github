@@ -293,8 +293,12 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 .cot-desc-modal-scroll {
   max-height: 72vh;
   overflow-y: auto;
+  overflow-x: hidden; /* nada debe desplazar la vista hacia los lados */
   padding-right: 4px;
 }
+.cot-desc-modal,
+.cot-desc-modal-scroll,
+.cot-desc-seccion { min-width: 0; box-sizing: border-box; }
 
 /* El modal de "+ Agregar opción" puede abrirse encima de este modal
    grande — se asegura que siempre quede por delante, sin depender
@@ -307,7 +311,8 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 
 .cot-mc-atajos {
   display: inline-flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  gap: 6px 14px;
 }
 
 .cot-mc-filas {
@@ -390,6 +395,14 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 .cot-mc-agregar:hover { text-decoration: underline; }
 
 @media (max-width: 900px) {
+  /* Modal de Descripción en teléfono: ajustado al ancho de la pantalla */
+  .cot-desc-modal-overlay { padding: 12px 8px; }
+  .cot-desc-modal { padding: 16px 14px; }
+  .cot-desc-seccion-titulo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
   .cot-mc-fila {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -401,6 +414,49 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   .cot-mc-eliminar {
     width: 100%;
   }
+}
+
+/* ================= Tarjeta plegable "Descripción de Cotización" (con flechita) ================= */
+
+.cot-desc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #141213;
+  padding: 10px 16px;
+  cursor: pointer;
+  user-select: none;
+}
+.cot-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1.5px solid #d6a52c;
+  border-radius: 50%;
+  color: #d6a52c;
+  transition: transform .2s ease, background .15s ease;
+}
+.cot-desc-card-header:hover .cot-chevron { background: rgba(214, 165, 44, .15); }
+.cot-desc-card:not(.colapsada) .cot-chevron { transform: rotate(180deg); }
+
+.cot-desc-cuerpo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  background: #fff;
+}
+.cot-desc-card.colapsada .cot-desc-cuerpo { display: none; }
+
+@media (max-width: 900px) {
+  .cot-desc-cuerpo { flex-direction: column; align-items: stretch; }
+  .cot-desc-cuerpo button { width: 100%; }
 }
 
 /* ================= Gestionar opciones (Elemento / Material / Acabado) ================= */
