@@ -12,6 +12,7 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { obtenerUsuarioStaff } from './firestore.js';
+import { iniciarControlInactividad } from './inactividad.js';
 
 /**
  * Intenta iniciar sesión y valida que el usuario sea staff activo
@@ -44,7 +45,11 @@ export function observarSesionStaff(callback) {
     if (!user) { callback(null); return; }
     try {
       const staff = await obtenerUsuarioStaff(user.uid);
-      callback(staff && staff.activo === true ? staff : null);
+      const valido = staff && staff.activo === true ? staff : null;
+      // Cierre de sesión por inactividad (40 min) para TODAS las páginas
+      // protegidas y todos los usuarios de staff: se activa aquí, una sola vez.
+      if (valido) iniciarControlInactividad({ cerrarSesion, redirigirA: 'login.html' });
+      callback(valido);
     } catch (err) {
       console.error("Error validando sesión de staff:", err);
       callback(null);
