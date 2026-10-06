@@ -416,48 +416,41 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   }
 }
 
-/* ================= Tarjeta plegable "Descripción de Cotización" (con flechita) ================= */
+/* ================= Secciones plegables dentro del modal de Descripción (con flechita) ================= */
 
-.cot-desc-card-header {
+.cot-sec-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #141213;
-  padding: 10px 16px;
+  margin-bottom: 10px;
   cursor: pointer;
   user-select: none;
 }
-.cot-chevron {
+.cot-sec-titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #141213;
+}
+.cot-sec-chevron {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   width: 34px;
   height: 34px;
-  border: 1.5px solid #d6a52c;
+  border: 1.5px solid #e3d3a0;
   border-radius: 50%;
-  color: #d6a52c;
+  background: #fff;
+  color: #141213;
   transition: transform .2s ease, background .15s ease;
 }
-.cot-desc-card-header:hover .cot-chevron { background: rgba(214, 165, 44, .15); }
-.cot-desc-card:not(.colapsada) .cot-chevron { transform: rotate(180deg); }
+.cot-sec-header:hover .cot-sec-chevron { background: #fdf7ea; }
+.cot-desc-seccion.colapsada .cot-sec-chevron { transform: rotate(180deg); }
+.cot-desc-seccion.colapsada .cot-sec-cuerpo { display: none; }
+.cot-desc-seccion.colapsada .cot-sec-header { margin-bottom: 0; }
 
-.cot-desc-cuerpo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 14px 16px;
-  background: #fff;
-}
-.cot-desc-card.colapsada .cot-desc-cuerpo { display: none; }
-
-@media (max-width: 900px) {
-  .cot-desc-cuerpo { flex-direction: column; align-items: stretch; }
-  .cot-desc-cuerpo button { width: 100%; }
-}
+.cot-sec-acciones { margin-bottom: 8px; }
 
 /* ================= Gestionar opciones (Elemento / Material / Acabado) ================= */
 
@@ -756,4 +749,10 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 #cotDescripcionOpcion,
 #editorClienteNombre {
   text-transform: uppercase;
+}
+
+/* Atajos "+ Elemento / + Material…" dentro del cuerpo plegable de la sección de colores */
+.cot-sec-cuerpo > .cot-mc-atajos {
+  display: flex;
+  margin-bottom: 10px;
 }
