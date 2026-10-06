@@ -598,20 +598,20 @@ cotizacionItemsBody.addEventListener('click', (e) => {
   }
 });
 
-// ---------- Tarjeta plegable "Descripción de Cotización" ----------
-const cotDescCard = document.getElementById('cotDescCard');
-const cotDescToggle = document.getElementById('cotDescToggle');
-
-function alternarTarjetaDescripcion() {
-  const colapsada = cotDescCard.classList.toggle('colapsada');
-  cotDescToggle.setAttribute('aria-expanded', String(!colapsada));
+// ---------- Secciones plegables del modal de Descripción (flechita) ----------
+function alternarSeccionDescripcion(header) {
+  const seccion = header.closest('.cot-desc-seccion');
+  const colapsada = seccion.classList.toggle('colapsada');
+  header.setAttribute('aria-expanded', String(!colapsada));
 }
-cotDescToggle.addEventListener('click', alternarTarjetaDescripcion);
-cotDescToggle.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    alternarTarjetaDescripcion();
-  }
+document.querySelectorAll('.cot-sec-header').forEach(header => {
+  header.addEventListener('click', () => alternarSeccionDescripcion(header));
+  header.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      alternarSeccionDescripcion(header);
+    }
+  });
 });
 
 // ---------- Materiales y colores elegidos ----------
