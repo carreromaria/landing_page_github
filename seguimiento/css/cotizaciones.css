@@ -452,6 +452,13 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 
 .cot-sec-acciones { margin-bottom: 8px; }
 
+/* Instrucciones plegables bajo el título del modal */
+.cot-desc-modal-header > div:first-child { flex: 1; min-width: 0; }
+.cot-ayuda { margin: 8px 0 0; }
+.cot-ayuda .cot-sec-header { margin-bottom: 6px; }
+.cot-ayuda.colapsada .cot-sec-header { margin-bottom: 0; }
+.cot-ayuda .cot-sec-titulo { font-weight: 500; color: #8a7a5a; font-size: 13px; }
+
 /* ================= Gestionar opciones (Elemento / Material / Acabado) ================= */
 
 #modalGestionarOpciones { z-index: 10000; }
