@@ -598,6 +598,22 @@ cotizacionItemsBody.addEventListener('click', (e) => {
   }
 });
 
+// ---------- Tarjeta plegable "Descripción de Cotización" ----------
+const cotDescCard = document.getElementById('cotDescCard');
+const cotDescToggle = document.getElementById('cotDescToggle');
+
+function alternarTarjetaDescripcion() {
+  const colapsada = cotDescCard.classList.toggle('colapsada');
+  cotDescToggle.setAttribute('aria-expanded', String(!colapsada));
+}
+cotDescToggle.addEventListener('click', alternarTarjetaDescripcion);
+cotDescToggle.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    alternarTarjetaDescripcion();
+  }
+});
+
 // ---------- Materiales y colores elegidos ----------
 // Una fila por elemento del mueble: Elemento (select) + Material (select) + Color (texto libre).
 // Los selects salen del catálogo editable (colección catalogoDescripcion, categorías
