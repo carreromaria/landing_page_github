@@ -454,8 +454,8 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 
 /* Instrucciones plegables bajo el título del modal */
 .cot-desc-modal-header > div:first-child { flex: 1; min-width: 0; }
-.cot-ayuda { margin: 8px 0 0; }
-.cot-ayuda .cot-sec-header { margin-bottom: 6px; }
+.cot-ayuda { margin: 0 0 16px; }
+.cot-ayuda .cot-sec-header { margin-bottom: 8px; }
 .cot-ayuda.colapsada .cot-sec-header { margin-bottom: 0; }
 .cot-ayuda .cot-sec-titulo { font-weight: 500; color: #8a7a5a; font-size: 13px; }
 
@@ -763,3 +763,6 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   display: flex;
   margin-bottom: 10px;
 }
+
+/* "Gestionar opciones" en negro, para diferenciarlo de los "+ Agregar" dorados */
+.cot-btn-agregar-opcion#btnGestionarOpciones { color: #141213; }
