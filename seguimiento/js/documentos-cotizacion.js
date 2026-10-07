@@ -410,7 +410,15 @@ const ANCHO_HOJA_PX = 8.5 * PX_POR_PULGADA;        // Carta
 const ALTO_HOJA_PX = 11 * PX_POR_PULGADA;
 const MARGEN_VERTICAL_PX = 0.5 * PX_POR_PULGADA;   // margen de texto arriba y abajo de cada hoja
 const ALTO_UTIL_PX = ALTO_HOJA_PX - 2 * MARGEN_VERTICAL_PX;
-const ESPACIO_MINIMO_PIE_PX = 0;                   // separación mínima entre el texto y el pie
+// Margen de seguridad (px) entre el texto y el pie. Medido con un Chrome real: el
+// pie solo tenía 1 px de holgura, y bastaban 2 px de diferencia entre la medición en
+// pantalla y la impresión (redondeos, zoom de Windows, versión del navegador) para
+// que el pie saltara a una hoja en blanco. Con este margen esa diferencia se absorbe;
+// los px que quedan bajo el pie los cubre la franja dorada de .ln-pie::after (CSS).
+const MARGEN_SEGURIDAD_PIE_PX = 8;
+const ESPACIO_MINIMO_PIE_PX = MARGEN_SEGURIDAD_PIE_PX; // si sobra menos que esto, el pie va a una hoja nueva
+// true = escribe en la consola (F12) los valores medidos; útil si algún documento vuelve a descuadrarse.
+const DIAGNOSTICO_PIE = true;
 // pdf-pie: el cuadro de notas + totales de la Cotización, que también se ancla
 // al fondo de la última hoja (ver htmlPie/htmlCotizacion), igual que el pie.
 const NO_ES_CUERPO = ['ln-marca-agua', 'ln-encabezado', 'ln-espacio-pie', 'ln-pie', 'pdf-pie'];
@@ -492,11 +500,18 @@ export function prepararAlturasParaImprimir(plantilla) {
       // el pie no cabe debajo del texto: va al fondo de una hoja nueva
       espacio += ALTO_HOJA_PX;
     }
+    if (DIAGNOSTICO_PIE) {
+      console.info('[LINENCE pie]', {
+        documento: plantilla.className, ALTO_UTIL_PX, altoPie, yFinal: Math.round(yFinal * 100) / 100,
+        libreAntesDelPie: Math.round((ALTO_UTIL_PX - yFinal - altoPie) * 100) / 100,
+        espacioPie: Math.round(espacio * 100) / 100
+      });
+    }
   } finally {
     sim.remove();
   }
-  // 1 px de tolerancia para que un redondeo nunca empuje el pie a una hoja de más
-  plantilla.style.setProperty('--ln-espacio-pie', Math.max(0, Math.floor(espacio) - 1) + 'px');
+  // Se resta el margen de seguridad para que un redondeo nunca empuje el pie a una hoja de más
+  plantilla.style.setProperty('--ln-espacio-pie', Math.max(0, Math.floor(espacio) - 1 - MARGEN_SEGURIDAD_PIE_PX) + 'px');
 }
 
 /**
