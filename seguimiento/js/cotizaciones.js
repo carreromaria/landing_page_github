@@ -517,6 +517,16 @@ function agregarFilaCotizacion(item = {}) {
   mejorarSelect(`#cotCod_${rowId}`, { buscar: true, placeholderBuscar: 'Buscar por código o nombre…' });
 
   const selCodigo = document.getElementById(`cotCod_${rowId}`);
+
+  // El botón del código muestra solo el comienzo del texto (el resto se oculta con "…"):
+  // al pasar el mouse por encima se ve el nombre completo del servicio.
+  const actualizarTituloCodigo = () => {
+    const trigger = selCodigo.closest('td')?.querySelector('.ln-dropdown-trigger');
+    if (trigger) trigger.title = selCodigo.options[selCodigo.selectedIndex]?.text || '';
+  };
+  actualizarTituloCodigo();
+  selCodigo.addEventListener('change', actualizarTituloCodigo);
+
   const inpDesc = document.getElementById(`cotDesc_${rowId}`);
   const inpCant = document.getElementById(`cotCant_${rowId}`);
   const inpVU = document.getElementById(`cotVU_${rowId}`);
