@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
+<link rel="stylesheet" href="css/catalogo-servicios.css?v=2">
 </head>
 <body>
 
@@ -58,17 +58,34 @@
         <h1 class="cat-title">Catálogo Maestro</h1>
         <p class="subtitulo">Códigos y nombres de servicios usados en Leads y Cotizaciones.</p>
       </div>
-      <button id="btnNuevoServicio" class="btn-dorado"> + Nuevo producto o servicio</button>
     </header>
+
+    <!-- Filtros (mismo estilo que Proyectos: buscador + selectores + botón) -->
+    <div class="cat-filtros" id="catFiltros">
+      <input type="search" id="filtroTexto" class="cat-filtro-buscar" placeholder="Buscar por código o nombre…" autocomplete="off">
+      <select id="filtroCategoria" class="cat-filtro-select" aria-label="Filtrar por categoría">
+        <option value="">Todas las categorías</option>
+      </select>
+      <select id="filtroTipo" class="cat-filtro-select" aria-label="Filtrar por tipo">
+        <option value="">Todos los tipos</option>
+      </select>
+      <select id="filtroEstado" class="cat-filtro-select" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="activo">Activos</option>
+        <option value="inactivo">Inactivos</option>
+      </select>
+      <button type="button" id="btnLimpiarFiltros" class="cat-limpiar" style="display:none;">Limpiar</button>
+      <button id="btnNuevoServicio" class="btn-dorado">+ Nuevo producto o servicio</button>
+    </div>
 
     <div class="cat-tabla-wrapper">
       <table class="cat-tabla">
         <thead>
           <tr>
-            <th>Código</th>
-            <th>Nombre del servicio</th>
-            <th>Categoría</th>
-            <th>Tipo</th>
+            <th data-col="codigo" aria-sort="none"><button type="button" class="cat-orden" data-orden="codigo" aria-label="Ordenar por código">Código<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="nombre" aria-sort="none"><button type="button" class="cat-orden" data-orden="nombre" aria-label="Ordenar por nombre del servicio">Nombre del servicio<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="categoria" aria-sort="none"><button type="button" class="cat-orden" data-orden="categoria" aria-label="Ordenar por categoría">Categoría<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="tipo" aria-sort="none"><button type="button" class="cat-orden" data-orden="tipo" aria-label="Ordenar por tipo">Tipo<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
@@ -139,6 +156,6 @@
 
 <div id="catToast"></div>
 
-<script type="module" src="js/catalogo-servicios.js?v=1"></script>
+<script type="module" src="js/catalogo-servicios.js?v=2"></script>
 </body>
 </html>
