@@ -138,6 +138,12 @@
   font-family: 'Poppins', sans-serif;
   line-height: 1;
 }
+.ln-pie {
+  /* Sombra dorada sólida hacia abajo: cubre los px de seguridad que JS deja bajo
+     el pie (MARGEN_SEGURIDAD_PIE_PX). Es solo "tinta": no ocupa espacio en el
+     flujo, así no puede empujar el pie a una hoja en blanco. */
+  box-shadow: 0 0.2in 0 #d6a52c;
+}
 .ln-pie-fondo {
   position: absolute;
   inset: 0;
