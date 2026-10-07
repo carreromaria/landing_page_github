@@ -116,6 +116,105 @@
   font-size: 14px;
 }
 
+
+/* ===== Filtros (mismo estilo que la barra de Proyectos) ===== */
+.cat-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cat-filtro-buscar {
+  flex: 1 1 180px;
+  min-width: 0;
+  height: 42px;
+  padding: 0 16px;
+  background: #fff;
+  border: 1px solid var(--gold-line, #ecd9a8);
+  border-radius: 8px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: #141213;
+  box-sizing: border-box;
+}
+.cat-filtro-buscar::placeholder { color: #8a8a8a; }
+.cat-filtro-buscar:focus { outline: none; border-color: #d6a52c; }
+
+.cat-filtro-select {
+  height: 42px;
+  padding: 0 34px 0 16px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  border: 1px solid #d9d2c5;
+  border-radius: 999px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  color: #6b6b6b;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.cat-filtro-select:focus { outline: none; border-color: #d6a52c; }
+
+/* Filtro activo: se pinta en dorado */
+.cat-filtro-buscar.activo,
+.cat-filtro-select.activo {
+  border-color: #d6a52c;
+  background-color: #fbf3df;
+  color: #141213;
+  font-weight: 500;
+}
+
+.cat-limpiar {
+  background: none;
+  border: none;
+  color: #8a6d1c;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.cat-limpiar:hover { color: #141213; }
+
+.cat-filtros .btn-dorado { height: 42px; padding: 0 20px; white-space: nowrap; }
+
+/* ===== Orden por columna ===== */
+.cat-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.cat-orden:hover { color: #fff; }
+
+.cat-orden-icono { flex-shrink: 0; color: rgba(211, 187, 140, 0.4); }
+.cat-orden:hover .cat-orden-icono { color: rgba(211, 187, 140, 0.8); }
+
+/* Columna ordenada: se pinta la flecha activa en dorado */
+.cat-tabla thead th.orden-asc  .flecha-arriba,
+.cat-tabla thead th.orden-desc .flecha-abajo { color: #d6a52c; }
+.cat-tabla thead th.orden-asc  .flecha-abajo,
+.cat-tabla thead th.orden-desc .flecha-arriba { color: rgba(211, 187, 140, 0.25); }
+.cat-tabla thead th.orden-asc .cat-orden,
+.cat-tabla thead th.orden-desc .cat-orden { color: #d6a52c; }
+.cat-tabla thead th.orden-asc .cat-orden-icono,
+.cat-tabla thead th.orden-desc .cat-orden-icono { color: inherit; }
+.cat-orden-icono .flecha-arriba, .cat-orden-icono .flecha-abajo { color: inherit; }
+
 /* ===== Modal ===== */
 .cat-modal-overlay {
   position: fixed;
@@ -239,7 +338,12 @@
     align-items: stretch;
   }
 
-  #vistaCatalogo .cat-header .btn-dorado {
+  /* El botón ahora vive en la barra de filtros */
+  #vistaCatalogo .cat-filtros .btn-dorado {
     width: 100%;
+  }
+  #vistaCatalogo .cat-filtro-select {
+    flex: 1 1 140px;
+    min-width: 0;
   }
 }
