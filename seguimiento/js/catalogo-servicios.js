@@ -17,6 +17,10 @@ let servicios = [];
 let modoEdicion = null;       // null = creando, o el id del servicio en edición
 let idParaCambiarEstado = null;
 
+// Filtros y orden de la tabla (solo afectan lo que se ve, no los datos)
+const filtros = { texto: '', categoria: '', tipo: '', estado: '' };
+const orden = { col: null, dir: 'asc' };   // col: codigo | nombre | categoria | tipo
+
 // ---------- Referencias DOM ----------
 
 const tablaBody = document.getElementById('tablaServiciosBody');
@@ -89,6 +93,7 @@ sidebarOverlay?.addEventListener('click', cerrarSidebar);
 async function cargarServicios() {
   try {
     servicios = await listarServiciosCatalogo();
+    poblarOpcionesFiltro();
     renderTabla();
   } catch (err) {
     console.error(err);
@@ -96,16 +101,55 @@ async function cargarServicios() {
   }
 }
 
+function serviciosVisibles() {
+  const texto = quitarAcentos(filtros.texto).toLowerCase().trim();
+
+  let lista = servicios.filter((s) => {
+    if (texto) {
+      const pajar = quitarAcentos(`${s.codigo || ''} ${s.nombre || ''}`).toLowerCase();
+      if (!pajar.includes(texto)) return false;
+    }
+    if (filtros.categoria && (s.categoria || '') !== filtros.categoria) return false;
+    if (filtros.tipo && (s.tipo || '') !== filtros.tipo) return false;
+    if (filtros.estado) {
+      const activo = s.activo !== false;
+      if (filtros.estado === 'activo' && !activo) return false;
+      if (filtros.estado === 'inactivo' && activo) return false;
+    }
+    return true;
+  });
+
+  if (orden.col) {
+    const factor = orden.dir === 'asc' ? 1 : -1;
+    lista = [...lista].sort((a, b) => {
+      const va = String(a[orden.col] || '');
+      const vb = String(b[orden.col] || '');
+      // los vacíos siempre van al final, sea cual sea la dirección
+      if (!va && !vb) return 0;
+      if (!va) return 1;
+      if (!vb) return -1;
+      return factor * va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
+    });
+  }
+  return lista;
+}
+
 function renderTabla() {
   tablaBody.innerHTML = '';
+  actualizarEstadoControles();
 
-  if (servicios.length === 0) {
+  const visibles = serviciosVisibles();
+
+  if (visibles.length === 0) {
+    catVacio.textContent = servicios.length === 0
+      ? 'Aún no hay servicios creados.'
+      : 'Ningún servicio coincide con los filtros.';
     catVacio.style.display = 'block';
     return;
   }
   catVacio.style.display = 'none';
 
-  servicios.forEach((s) => {
+  visibles.forEach((s) => {
     const tr = document.createElement('tr');
     const estadoClase = s.activo !== false ? 'cat-estado-activo' : 'cat-estado-inactivo';
     const estadoTexto = s.activo !== false ? 'Activo' : 'Inactivo';
@@ -125,6 +169,72 @@ function renderTabla() {
     tablaBody.appendChild(tr);
   });
 }
+
+// ---------- Filtros y orden: controles ----------
+
+const filtroTexto = document.getElementById('filtroTexto');
+const filtroCategoria = document.getElementById('filtroCategoria');
+const filtroTipo = document.getElementById('filtroTipo');
+const filtroEstado = document.getElementById('filtroEstado');
+const btnLimpiarFiltros = document.getElementById('btnLimpiarFiltros');
+
+/** Llena Categoría y Tipo con los valores que realmente existen en el catálogo. */
+function poblarOpcionesFiltro() {
+  const llenar = (select, campo, textoTodos) => {
+    const actual = select.value;
+    const valores = [...new Set(servicios.map(s => s[campo]).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+    select.innerHTML = `<option value="">${textoTodos}</option>` +
+      valores.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    select.value = valores.includes(actual) ? actual : '';
+    filtros[campo] = select.value;
+  };
+  llenar(filtroCategoria, 'categoria', 'Todas las categorías');
+  llenar(filtroTipo, 'tipo', 'Todos los tipos');
+}
+
+/** Pinta en dorado los filtros activos y la flecha de la columna ordenada. */
+function actualizarEstadoControles() {
+  filtroTexto.classList.toggle('activo', !!filtros.texto.trim());
+  filtroCategoria.classList.toggle('activo', !!filtros.categoria);
+  filtroTipo.classList.toggle('activo', !!filtros.tipo);
+  filtroEstado.classList.toggle('activo', !!filtros.estado);
+
+  const hayFiltros = !!(filtros.texto.trim() || filtros.categoria || filtros.tipo || filtros.estado);
+  btnLimpiarFiltros.style.display = hayFiltros ? '' : 'none';
+
+  document.querySelectorAll('.cat-tabla thead th[data-col]').forEach((th) => {
+    const activa = th.dataset.col === orden.col;
+    th.classList.toggle('orden-asc', activa && orden.dir === 'asc');
+    th.classList.toggle('orden-desc', activa && orden.dir === 'desc');
+    th.setAttribute('aria-sort', !activa ? 'none' : (orden.dir === 'asc' ? 'ascending' : 'descending'));
+  });
+}
+
+filtroTexto.addEventListener('input', () => { filtros.texto = filtroTexto.value; renderTabla(); });
+filtroCategoria.addEventListener('change', () => { filtros.categoria = filtroCategoria.value; renderTabla(); });
+filtroTipo.addEventListener('change', () => { filtros.tipo = filtroTipo.value; renderTabla(); });
+filtroEstado.addEventListener('change', () => { filtros.estado = filtroEstado.value; renderTabla(); });
+
+btnLimpiarFiltros.addEventListener('click', () => {
+  filtros.texto = filtros.categoria = filtros.tipo = filtros.estado = '';
+  filtroTexto.value = filtroCategoria.value = filtroTipo.value = filtroEstado.value = '';
+  renderTabla();
+});
+
+// Clic en una cabecera: primero ascendente, siguiente clic descendente, y así alternando.
+document.querySelectorAll('.cat-orden').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const col = btn.dataset.orden;
+    if (orden.col === col) {
+      orden.dir = orden.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      orden.col = col;
+      orden.dir = 'asc';
+    }
+    renderTabla();
+  });
+});
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, c => ({
