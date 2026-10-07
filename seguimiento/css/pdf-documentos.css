@@ -318,6 +318,18 @@
 }
 .pdf-dc-item.incluido::before { color: #141213; }
 
+/* Alturas de línea FIJAS en la Descripción de Cotización (y tablas de datos).
+   Con "line-height: normal" el alto de cada línea depende de las métricas de la
+   fuente, y en Windows el navegador las redondea distinto en pantalla que al
+   imprimir: con ~40 filas la diferencia se acumula y una fila cambia de hoja, así
+   que la medición del pie (JS) no coincidía con lo impreso. En px fijos, pantalla
+   e impresión miden lo mismo. */
+.pdf-dc-heading { line-height: 20px; }
+.pdf-dc-seccion-titulo { line-height: 19px; }
+.pdf-dc-item { line-height: 18px; }
+.pdf-tabla-info th { line-height: 16px; }
+.pdf-tabla-info td { line-height: 19px; }
+
 /* ============================================================
    IMPRESIÓN / "Guardar como PDF"
    ============================================================ */
