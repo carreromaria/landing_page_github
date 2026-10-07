@@ -777,6 +777,60 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
   .cot-rango-fechas { min-width: 0; }
 }
 
+/* ============================================================
+   Columna CÓDIGO de la tabla de ítems: ancho limitado
+   El select de código muestra "COD — nombre del servicio" y los nombres largos
+   (ej. "DISEÑO 3D, LEVANTAMIENTO DE MEDIDAS, FABRICACIÓN…") ensanchaban la
+   columna y empujaban la tabla fuera de la vista. Ahora la caja tiene un ancho
+   máximo, se ve solo el comienzo del texto y el resto se oculta con "…"
+   (al pasar el mouse por encima se ve completo). La lista desplegable sigue
+   mostrando los nombres completos.
+   ============================================================ */
+#vistaEditorCotizacion .crm-cotizacion-tabla th:nth-child(2),
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(2) {
+  width: 260px;
+  max-width: 260px;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(2) .ln-dropdown {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  min-width: 0;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(2) .ln-dropdown-trigger {
+  width: 100%;
+  max-width: 260px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Si el texto va dentro de un <span>, es el que se recorta; la flecha no se achica */
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(2) .ln-dropdown-trigger > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(2) .ln-dropdown-trigger > :not(:first-child) {
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Caja "Proyecto (se arma automático con las descripciones)":
+   el texto se justifica y salta de línea en vez de salirse de la pantalla
+   ============================================================ */
+#cotProyectoAuto {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: justify;
+  text-justify: inter-word;
+  line-height: 1.5;
+}
+#cotProyectoAuto,
+.cot-proyecto-caja { min-width: 0; max-width: 100%; }
+
 /* ================= Acciones finales del editor (Ver PDF / Ver Descripción / Guardar) ================= */
 /* .crm-cotizacion-acciones se define en crm.css (compartida con el CRM) con
    justify-content:space-between, que deja "Ver PDF"/"Ver Descripción" pegados
