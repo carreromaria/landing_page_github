@@ -225,7 +225,12 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     : '—';
 
   const rangoEntregaLargo = formatearRangoFechasLargo(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin);
-  const diasHabiles = textoDiasHabiles(diasHabilesEntre(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin));
+  // Si la cotización trae los días hábiles tipeados, se muestran tal cual; si es antigua, se cuentan desde el rango.
+  const diasHabiles = textoDiasHabiles(
+    (cotizacion.diasHabilesEntrega !== null && cotizacion.diasHabilesEntrega !== undefined)
+      ? cotizacion.diasHabilesEntrega
+      : diasHabilesEntre(cotizacion.fechaEntregaInicio, cotizacion.fechaEntregaFin)
+  );
 
   const filas = (cotizacion.items || []).map(item => `<tr>
       <td>${escapeHtml(item.codigo)}</td>
