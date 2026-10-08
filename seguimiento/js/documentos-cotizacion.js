@@ -283,7 +283,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <th>FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
-      <td colspan="2">${escapeHtml(cotizacion.proyecto || '—')}${cotizacion.descripcionOpcion ? `<br><strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : ''}</td>
+      <td colspan="2">${cotizacion.descripcionOpcion ? `<strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : escapeHtml(cotizacion.proyecto || '—')}</td>
       <td>${fecha}</td>
     </tr>
     <tr>
