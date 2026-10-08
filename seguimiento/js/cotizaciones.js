@@ -96,8 +96,8 @@ forzarMayusculasInput(cotDescripcionOpcion);
 const btnDescargarPDF = document.getElementById('btnDescargarPDF');
 const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
-const cotFechaBaseEntrega = document.getElementById('cotFechaBaseEntrega');
 const cotDiasHabilesEntrega = document.getElementById('cotDiasHabilesEntrega');
+const cotValidaDesde = document.getElementById('cotValidaDesde');
 const cotFormaPago = document.getElementById('cotFormaPago');
 
 // ── Fecha de entrega estimada: se calcula con fecha base + días hábiles (lun-vie, sin descontar feriados)
@@ -124,7 +124,7 @@ function sumarDiasHabiles(fechaISO, dias) {
 
 /** Recalcula "Entrega desde" y "Entrega hasta" a partir de la fecha base y los días hábiles. */
 function recalcularFechaEntrega() {
-  const base = cotFechaBaseEntrega.value;
+  const base = cotValidaDesde.value; // "Válida desde" es también la fecha desde la que cuentan los días hábiles
   const dias = parseInt(cotDiasHabilesEntrega.value, 10);
   if (!base || isNaN(dias) || dias < 0) return;
   const inicio = sumarDiasHabiles(base, dias);
@@ -138,8 +138,7 @@ cotDiasHabilesEntrega.addEventListener('input', () => {
   cotDiasHabilesEntrega.value = cotDiasHabilesEntrega.value.replace(/\D/g, '');
   recalcularFechaEntrega();
 });
-cotFechaBaseEntrega.addEventListener('change', recalcularFechaEntrega);
-const cotValidaDesde = document.getElementById('cotValidaDesde');
+cotValidaDesde.addEventListener('change', recalcularFechaEntrega);
 const cotVersionesAnteriores = document.getElementById('cotVersionesAnteriores');
 const btnVerVersiones = document.getElementById('btnVerVersiones');
 const listaVersionesAnteriores = document.getElementById('listaVersionesAnteriores');
@@ -506,7 +505,6 @@ async function cargarCotizacionVigente() {
     cotAplicaIva.checked = !!base.aplicaIva;
     cotFechaEntregaInicio.value = base.fechaEntregaInicio || '';
     cotFechaEntregaFin.value = base.fechaEntregaFin || '';
-    cotFechaBaseEntrega.value = base.fechaBaseEntrega || fechaLocalISO(new Date());
     cotDiasHabilesEntrega.value = base.diasHabilesEntrega ?? '';
     cotFormaPago.value = base.formaPago || '';
     cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : new Date().toISOString().slice(0, 10);
@@ -519,7 +517,6 @@ async function cargarCotizacionVigente() {
     cotAplicaIva.checked = false;
     cotFechaEntregaInicio.value = '';
     cotFechaEntregaFin.value = '';
-    cotFechaBaseEntrega.value = fechaLocalISO(new Date());
     cotDiasHabilesEntrega.value = '';
     cotFormaPago.value = '';
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
@@ -1301,7 +1298,6 @@ async function guardar({ comoNuevaVersion }) {
     clienteNombre: (leadActual.nombre || '').toLocaleUpperCase('es-CL'),
     fechaEntregaInicio: cotFechaEntregaInicio.value,
     fechaEntregaFin: cotFechaEntregaFin.value,
-    fechaBaseEntrega: cotFechaBaseEntrega.value,
     diasHabilesEntrega: cotDiasHabilesEntrega.value === '' ? null : parseInt(cotDiasHabilesEntrega.value, 10),
     formaPago: cotFormaPago.value,
     validaDesde: cotValidaDesde.value,
