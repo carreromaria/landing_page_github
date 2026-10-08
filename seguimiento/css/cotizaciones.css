@@ -611,6 +611,12 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
     min-width: 0;
   }
 
+  /* ---------- Filtros del listado: los selectores se reparten el ancho ---------- */
+  #vistaListaCotizaciones .cat-filtro-select {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
   /* ---------- Encabezado fijo del listado (igual que CRM) ---------- */
   #vistaListaCotizaciones .cat-header {
     position: sticky;
