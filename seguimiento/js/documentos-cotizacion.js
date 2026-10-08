@@ -288,7 +288,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     </tr>
     <tr>
       <th colspan="2">FECHA DE ENTREGA:</th>
-      <th>DÍAS HÁBILES:</th>
+      <th>DÍAS HÁBILES FABRICACIÓN:</th>
     </tr>
     <tr>
       <td colspan="2">${rangoEntregaLargo}</td>
