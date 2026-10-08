@@ -24,7 +24,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=16';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=17';
 
 // ---------- Estado ----------
 
@@ -63,7 +63,6 @@ const listaCotizacionesVacio = document.getElementById('listaCotizacionesVacio')
 const editorClienteNombre = document.getElementById('editorClienteNombre');
 const editorFolioVersion = document.getElementById('editorFolioVersion');
 const cotizacionItemsBody = document.getElementById('cotizacionItemsBody');
-const cotProyectoAuto = document.getElementById('cotProyectoAuto');
 const cotTotalGeneral = document.getElementById('cotTotalGeneral');
 const cotDescuento = document.getElementById('cotDescuento');
 const cotNeto = document.getElementById('cotNeto');
@@ -1247,7 +1246,6 @@ function recalcularCotizacion() {
   const items = leerItemsCotizacion();
 
   const proyecto = items.map(i => i.descripcion).filter(Boolean).join(', ');
-  cotProyectoAuto.textContent = proyecto || '—';
 
   const monto = items.reduce((suma, i) => suma + (i.total || 0), 0);
   cotTotalGeneral.textContent = formatearMoneda(monto);
