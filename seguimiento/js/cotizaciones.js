@@ -248,17 +248,122 @@ function mostrarToast(mensaje, tipo = 'ok') {
 // ---------- VISTA: LISTA ----------
 // ============================================================
 
+// Lista completa tal como llega de Firestore (en tiempo real). Los filtros y el
+// orden solo cambian lo que se ve; nunca tocan los datos.
+let listaCotizaciones = [];
+const filtrosCot = { texto: '', estado: '', fecha: '' };
+const ordenCot = { col: null, dir: 'asc' };
+
 function inicializarLista() {
   dejarDeEscuchar = escucharCotizacionesVigentes(
-    (cotizaciones) => renderListaCotizaciones(cotizaciones),
+    (cotizaciones) => { listaCotizaciones = cotizaciones; renderListaCotizaciones(); },
     () => mostrarToast('No se pudieron cargar las cotizaciones.', 'error')
   );
 }
 
-function renderListaCotizaciones(cotizaciones) {
+function normalizarBusqueda(str) {
+  return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function valorOrdenCot(c, col) {
+  switch (col) {
+    case 'folio': return c.numero || '';
+    case 'cliente': return c.clienteNombre || '';
+    case 'proyecto': return c.proyecto || '';
+    case 'total': return Number(c.totalGeneral) || 0;
+    case 'abono': return Number(c.abono) || 0;
+    case 'actualizada': return c.actualizadoEn?.toDate?.().getTime() || 0;
+    default: return '';
+  }
+}
+
+function cotizacionesVisibles() {
+  const texto = normalizarBusqueda(filtrosCot.texto);
+  const dias = Number(filtrosCot.fecha) || 0;
+  const desde = dias ? Date.now() - dias * 24 * 60 * 60 * 1000 : 0;
+
+  let lista = listaCotizaciones.filter((c) => {
+    if (texto) {
+      const pajar = normalizarBusqueda(`${c.numero || ''} ${c.clienteNombre || ''} ${c.proyecto || ''} ${c.descripcionOpcion || ''}`);
+      if (!pajar.includes(texto)) return false;
+    }
+    if (filtrosCot.estado === 'aprobada' && !c.aprobada) return false;
+    if (filtrosCot.estado === 'pendiente' && c.aprobada) return false;
+    if (desde) {
+      const t = c.actualizadoEn?.toDate?.().getTime() || 0;
+      if (t < desde) return false;
+    }
+    return true;
+  });
+
+  if (ordenCot.col) {
+    const factor = ordenCot.dir === 'asc' ? 1 : -1;
+    lista = [...lista].sort((a, b) => {
+      const va = valorOrdenCot(a, ordenCot.col);
+      const vb = valorOrdenCot(b, ordenCot.col);
+      if (typeof va === 'number') return factor * (va - vb);
+      if (!va && !vb) return 0;
+      if (!va) return 1;   // los vacíos siempre al final
+      if (!vb) return -1;
+      return factor * va.localeCompare(vb, 'es', { numeric: true, sensitivity: 'base' });
+    });
+  }
+  return lista;
+}
+
+function actualizarControlesFiltroCot() {
+  const fTexto = document.getElementById('filtroCotTexto');
+  const fEstado = document.getElementById('filtroCotEstado');
+  const fFecha = document.getElementById('filtroCotFecha');
+  fTexto.classList.toggle('activo', !!filtrosCot.texto.trim());
+  fEstado.classList.toggle('activo', !!filtrosCot.estado);
+  fFecha.classList.toggle('activo', !!filtrosCot.fecha);
+  document.getElementById('btnLimpiarFiltrosCot').style.display =
+    (filtrosCot.texto.trim() || filtrosCot.estado || filtrosCot.fecha) ? '' : 'none';
+
+  document.querySelectorAll('#vistaListaCotizaciones .cat-tabla thead th[data-col]').forEach((th) => {
+    const activa = th.dataset.col === ordenCot.col;
+    th.classList.toggle('orden-asc', activa && ordenCot.dir === 'asc');
+    th.classList.toggle('orden-desc', activa && ordenCot.dir === 'desc');
+    th.setAttribute('aria-sort', !activa ? 'none' : (ordenCot.dir === 'asc' ? 'ascending' : 'descending'));
+  });
+}
+
+document.getElementById('filtroCotTexto').addEventListener('input', (e) => { filtrosCot.texto = e.target.value; renderListaCotizaciones(); });
+document.getElementById('filtroCotEstado').addEventListener('change', (e) => { filtrosCot.estado = e.target.value; renderListaCotizaciones(); });
+document.getElementById('filtroCotFecha').addEventListener('change', (e) => { filtrosCot.fecha = e.target.value; renderListaCotizaciones(); });
+document.getElementById('btnLimpiarFiltrosCot').addEventListener('click', () => {
+  filtrosCot.texto = filtrosCot.estado = filtrosCot.fecha = '';
+  document.getElementById('filtroCotTexto').value = '';
+  document.getElementById('filtroCotEstado').value = '';
+  document.getElementById('filtroCotFecha').value = '';
+  renderListaCotizaciones();
+});
+
+// Clic en una cabecera: primero ascendente, siguiente clic descendente, y así alternando.
+document.querySelectorAll('#vistaListaCotizaciones .cat-orden').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const col = btn.dataset.orden;
+    if (ordenCot.col === col) {
+      ordenCot.dir = ordenCot.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      ordenCot.col = col;
+      ordenCot.dir = 'asc';
+    }
+    renderListaCotizaciones();
+  });
+});
+
+function renderListaCotizaciones() {
   tablaCotizacionesBody.innerHTML = '';
+  actualizarControlesFiltroCot();
+
+  const cotizaciones = cotizacionesVisibles();
 
   if (cotizaciones.length === 0) {
+    listaCotizacionesVacio.textContent = listaCotizaciones.length === 0
+      ? 'Aún no hay cotizaciones creadas. Crea una desde el detalle de un Lead en CRM.'
+      : 'Ninguna cotización coincide con los filtros.';
     listaCotizacionesVacio.style.display = 'block';
     return;
   }
@@ -267,7 +372,7 @@ function renderListaCotizaciones(cotizaciones) {
   // Cuántas opciones tiene cada lead: si tiene más de una, se muestra
   // la etiqueta de opción en todas sus filas.
   const opcionesPorLead = {};
-  cotizaciones.forEach(c => { opcionesPorLead[c.leadId] = (opcionesPorLead[c.leadId] || 0) + 1; });
+  listaCotizaciones.forEach(c => { opcionesPorLead[c.leadId] = (opcionesPorLead[c.leadId] || 0) + 1; });
 
   cotizaciones.forEach((c) => {
     const opcion = c.opcion || 'A';
