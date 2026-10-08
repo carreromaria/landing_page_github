@@ -15,8 +15,8 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=17">
-<link rel="stylesheet" href="css/catalogo-servicios.css?v=1">
+<link rel="stylesheet" href="css/cotizaciones.css?v=18">
+<link rel="stylesheet" href="css/catalogo-servicios.css?v=2">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
@@ -64,16 +64,33 @@
       </div>
     </header>
 
+    <!-- Filtros (mismo estilo y comportamiento que el Catálogo y Proyectos) -->
+    <div class="cat-filtros" id="cotFiltros">
+      <input type="search" id="filtroCotTexto" class="cat-filtro-buscar" placeholder="Buscar por folio, cliente o proyecto…" autocomplete="off">
+      <select id="filtroCotEstado" class="cat-filtro-select" aria-label="Filtrar por estado">
+        <option value="">Todos los estados</option>
+        <option value="aprobada">Aprobadas</option>
+        <option value="pendiente">Sin aprobar</option>
+      </select>
+      <select id="filtroCotFecha" class="cat-filtro-select" aria-label="Filtrar por fecha de actualización">
+        <option value="">Cualquier fecha</option>
+        <option value="7">Últimos 7 días</option>
+        <option value="30">Últimos 30 días</option>
+        <option value="90">Últimos 90 días</option>
+      </select>
+      <button type="button" id="btnLimpiarFiltrosCot" class="cat-limpiar" style="display:none;">Limpiar</button>
+    </div>
+
     <div class="cat-tabla-wrapper">
       <table class="cat-tabla">
         <thead>
           <tr>
-            <th>Folio</th>
-            <th>Cliente</th>
-            <th>Proyecto</th>
-            <th>Total</th>
-            <th>Abono</th>
-            <th>Actualizada</th>
+            <th data-col="folio" aria-sort="none"><button type="button" class="cat-orden" data-orden="folio" aria-label="Ordenar por folio">Folio<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="cliente" aria-sort="none"><button type="button" class="cat-orden" data-orden="cliente" aria-label="Ordenar por cliente">Cliente<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="proyecto" aria-sort="none"><button type="button" class="cat-orden" data-orden="proyecto" aria-label="Ordenar por proyecto">Proyecto<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="total" aria-sort="none"><button type="button" class="cat-orden" data-orden="total" aria-label="Ordenar por total">Total<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="abono" aria-sort="none"><button type="button" class="cat-orden" data-orden="abono" aria-label="Ordenar por abono">Abono<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
+            <th data-col="actualizada" aria-sort="none"><button type="button" class="cat-orden" data-orden="actualizada" aria-label="Ordenar por actualizada">Actualizada<svg class="cat-orden-icono" width="12" height="14" viewBox="0 0 12 14" fill="none" aria-hidden="true"><path class="flecha-arriba" d="M6 1 L10 6 H2 Z" fill="currentColor"/><path class="flecha-abajo" d="M6 13 L2 8 H10 Z" fill="currentColor"/></svg></button></th>
             <th></th>
           </tr>
         </thead>
@@ -432,6 +449,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=19"></script>
+<script type="module" src="js/cotizaciones.js?v=20"></script>
 </body>
 </html>
