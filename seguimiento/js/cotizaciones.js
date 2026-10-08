@@ -98,7 +98,25 @@ const cotFechaEntregaInicio = document.getElementById('cotFechaEntregaInicio');
 const cotFechaEntregaFin = document.getElementById('cotFechaEntregaFin');
 const cotDiasHabilesEntrega = document.getElementById('cotDiasHabilesEntrega');
 const cotValidaDesde = document.getElementById('cotValidaDesde');
-const cotFormaPago = document.getElementById('cotFormaPago');
+const cotFormaPagoTodas = document.getElementById('cotFormaPagoTodas');
+const cotFormaPagoChecks = Array.from(document.querySelectorAll('input[name="formaPagoOpt"]'));
+
+/** Formas de pago marcadas, como texto "Transferencia, Depósito" (así se guarda y se imprime). */
+function leerFormaPago() {
+  return cotFormaPagoChecks.filter(c => c.checked).map(c => c.value).join(', ');
+}
+function escribirFormaPago(texto) {
+  const marcadas = String(texto || '').split(',').map(x => x.trim()).filter(Boolean);
+  cotFormaPagoChecks.forEach(c => { c.checked = marcadas.includes(c.value); });
+  sincronizarTodasFormaPago();
+}
+function sincronizarTodasFormaPago() {
+  cotFormaPagoTodas.checked = cotFormaPagoChecks.every(c => c.checked);
+}
+cotFormaPagoTodas.addEventListener('change', () => {
+  cotFormaPagoChecks.forEach(c => { c.checked = cotFormaPagoTodas.checked; });
+});
+cotFormaPagoChecks.forEach(c => c.addEventListener('change', sincronizarTodasFormaPago));
 
 // ── Fecha de entrega estimada: se calcula con fecha base + días hábiles (lun-vie, sin descontar feriados)
 const MARGEN_DIAS_ENTREGA_FINAL = 3; // la fecha final = fecha inicial + 3 días corridos (editable a mano)
@@ -470,7 +488,6 @@ async function inicializarEditor() {
   }
   editorClienteNombre.textContent = leadActual.nombre || '—';
 
-  mejorarSelect('#cotFormaPago', { ancho: 'auto' });
   mejorarSelect('#cotMcPlantilla');
   const plantillaDetectada = plantillaPorTipoProyecto(leadActual.tipoProyecto);
   if (plantillaDetectada) document.getElementById('cotMcPlantilla').value = plantillaDetectada;
@@ -506,7 +523,7 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaInicio.value = base.fechaEntregaInicio || '';
     cotFechaEntregaFin.value = base.fechaEntregaFin || '';
     cotDiasHabilesEntrega.value = base.diasHabilesEntrega ?? '';
-    cotFormaPago.value = base.formaPago || '';
+    escribirFormaPago(base.formaPago);
     cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : new Date().toISOString().slice(0, 10);
     renderChecklistDescripcionCompleto(base.descripcionCotizacion || {});
     renderMaterialesColores(base.materialesColores || []);
@@ -518,7 +535,7 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaInicio.value = '';
     cotFechaEntregaFin.value = '';
     cotDiasHabilesEntrega.value = '';
-    cotFormaPago.value = '';
+    escribirFormaPago('');
     cotValidaDesde.value = new Date().toISOString().slice(0, 10);
     renderChecklistDescripcionCompleto({});
     renderMaterialesColores([]);
@@ -1299,7 +1316,7 @@ async function guardar({ comoNuevaVersion }) {
     fechaEntregaInicio: cotFechaEntregaInicio.value,
     fechaEntregaFin: cotFechaEntregaFin.value,
     diasHabilesEntrega: cotDiasHabilesEntrega.value === '' ? null : parseInt(cotDiasHabilesEntrega.value, 10),
-    formaPago: cotFormaPago.value,
+    formaPago: leerFormaPago(),
     validaDesde: cotValidaDesde.value,
     descripcionCotizacion: leerDescripcionCotizacion(),
     materialesColores,
