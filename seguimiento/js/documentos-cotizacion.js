@@ -277,10 +277,11 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   return `${htmlEncabezado('Cotización', cotizacion.numero)}
 
-  <table class="pdf-tabla-info" style="table-layout:auto;width:100%;">
+  <table class="pdf-tabla-info">
+    <colgroup><col><col style="width:205px;"></colgroup>
     <tr>
       <th>PROYECTO:</th>
-      <th style="width:1%;white-space:nowrap;">FECHA DE COTIZACIÓN:</th>
+      <th style="white-space:nowrap;">FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
       <td>${cotizacion.descripcionOpcion ? `<strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : escapeHtml(cotizacion.proyecto || '—')}</td>
