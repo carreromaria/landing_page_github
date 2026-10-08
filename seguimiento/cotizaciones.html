@@ -18,6 +18,23 @@
 <link rel="stylesheet" href="css/cotizaciones.css?v=18">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=2">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+/* Fila de datos del documento: días hábiles | entrega (ocupa lo que sobra) | válida desde; forma de pago en fila propia */
+.cot-datos-documento.cot-datos-flex { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; }
+.cot-datos-flex .cot-campo-dias { flex:0 0 96px; min-width:0; }
+.cot-datos-flex .cot-campo-dias input { width:100%; text-align:center; }
+.cot-datos-flex .cot-campo-entrega { flex:1 1 280px; min-width:0; }
+.cot-datos-flex .cot-campo-entrega .cot-rango-fechas { display:flex; align-items:center; gap:8px; width:100%; }
+.cot-datos-flex .cot-campo-entrega .cot-rango-fechas input { flex:1 1 0; min-width:0; }
+.cot-datos-flex .cot-campo-valida { flex:0 0 auto; }
+.cot-datos-flex .cot-campo-pago { flex:1 1 100%; }
+.cot-pago-opciones { display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+.cot-pago-op { flex:1 1 0; min-width:110px; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border:1px solid #d9c9a3; border-radius:10px; background:#fff; font-size:14px; cursor:pointer; user-select:none; }
+.cot-pago-op input { accent-color:#d4a62a; width:16px; height:16px; margin:0; cursor:pointer; }
+.cot-pago-op:has(input:checked) { border-color:#d4a62a; background:#fbf3dc; font-weight:600; }
+.cot-pago-todas { flex:0 0 auto; background:#141213; color:#d4a62a; border-color:#141213; }
+.cot-pago-todas:has(input:checked) { background:#141213; color:#d4a62a; border-color:#d4a62a; }
+</style>
 </head>
 <body>
 
@@ -129,12 +146,12 @@
       <div id="listaVersionesAnteriores" style="display:none;"></div>
     </div>
 
-    <div class="cot-datos-documento">
-      <div class="cot-campo-doc">
+    <div class="cot-datos-documento cot-datos-flex">
+      <div class="cot-campo-doc cot-campo-dias">
         <label for="cotDiasHabilesEntrega">Días hábiles</label>
         <input type="text" id="cotDiasHabilesEntrega" inputmode="numeric" maxlength="3" placeholder="Ej: 20">
       </div>
-      <div class="cot-campo-doc">
+      <div class="cot-campo-doc cot-campo-entrega">
         <label>Fecha de entrega estimada</label>
         <div class="cot-rango-fechas">
           <input type="date" id="cotFechaEntregaInicio">
@@ -142,21 +159,21 @@
           <input type="date" id="cotFechaEntregaFin">
         </div>
       </div>
-      <div class="cot-campo-doc">
-        <label for="cotFormaPago">Forma de pago</label>
-        <select id="cotFormaPago">
-          <option value="">Selecciona…</option>
-          <option value="Transferencia">Transferencia</option>
-          <option value="Depósito">Depósito</option>
-          <option value="Débito">Débito</option>
-          <option value="Crédito">Crédito</option>
-          <option value="Efectivo">Efectivo</option>
-          <option value="Cheque">Cheque</option>
-        </select>
-      </div>
-      <div class="cot-campo-doc">
+      <div class="cot-campo-doc cot-campo-valida">
         <label for="cotValidaDesde">Válida desde</label>
         <input type="date" id="cotValidaDesde">
+      </div>
+      <div class="cot-campo-doc cot-campo-pago">
+        <label>Forma de pago</label>
+        <div class="cot-pago-opciones" id="cotFormaPagoGrupo">
+          <label class="cot-pago-op cot-pago-todas"><input type="checkbox" id="cotFormaPagoTodas"> Todas</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Transferencia"> Transferencia</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Depósito"> Depósito</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Débito"> Débito</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Crédito"> Crédito</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Efectivo"> Efectivo</label>
+          <label class="cot-pago-op"><input type="checkbox" name="formaPagoOpt" value="Cheque"> Cheque</label>
+        </div>
       </div>
     </div>
 
