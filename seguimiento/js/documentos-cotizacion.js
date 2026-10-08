@@ -277,37 +277,41 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   return `${htmlEncabezado('Cotización', cotizacion.numero)}
 
-  <table class="pdf-tabla-info">
+  <table class="pdf-tabla-info" style="table-layout:auto;width:100%;">
     <tr>
-      <th colspan="2">PROYECTO:</th>
-      <th>FECHA DE COTIZACIÓN:</th>
+      <th>PROYECTO:</th>
+      <th style="width:1%;white-space:nowrap;">FECHA DE COTIZACIÓN:</th>
     </tr>
     <tr>
-      <td colspan="2">${cotizacion.descripcionOpcion ? `<strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : escapeHtml(cotizacion.proyecto || '—')}</td>
-      <td>${fecha}</td>
+      <td>${cotizacion.descripcionOpcion ? `<strong>${escapeHtml(cotizacion.descripcionOpcion.toLocaleUpperCase('es-CL'))}</strong>` : escapeHtml(cotizacion.proyecto || '—')}</td>
+      <td style="white-space:nowrap;">${fecha}</td>
     </tr>
     <tr>
-      <th colspan="2">FECHA DE ENTREGA:</th>
-      <th>DÍAS HÁBILES FABRICACIÓN:</th>
+      <th>FECHA DE ENTREGA:</th>
+      <th style="white-space:nowrap;">DÍAS HÁBILES FABRICACIÓN:</th>
     </tr>
     <tr>
-      <td colspan="2">${rangoEntregaLargo}</td>
-      <td>${diasHabiles}</td>
+      <td>${rangoEntregaLargo}</td>
+      <td style="white-space:nowrap;">${diasHabiles}</td>
     </tr>
     <tr>
       <th>CLIENTE:</th>
-      <th colspan="2">TELÉFONO:</th>
+      <th style="white-space:nowrap;">TELÉFONO:</th>
     </tr>
     <tr>
       <td>${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}</td>
-      <td colspan="2">${escapeHtml(cliente.telefono || '—')}</td>
+      <td style="white-space:nowrap;">${escapeHtml(cliente.telefono || '—')}</td>
     </tr>
     <tr>
-      <th>DIRECCIÓN:</th>
+      <th colspan="2">DIRECCIÓN:</th>
+    </tr>
+    <tr>
+      <td colspan="2">${escapeHtml(formatearDireccion(cliente.direccion))}</td>
+    </tr>
+    <tr>
       <th colspan="2">FORMA DE PAGO:</th>
     </tr>
     <tr>
-      <td>${escapeHtml(formatearDireccion(cliente.direccion))}</td>
       <td colspan="2">${escapeHtml(cotizacion.formaPago || '—')}</td>
     </tr>
   </table>
