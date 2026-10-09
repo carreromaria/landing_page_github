@@ -148,11 +148,24 @@ function formatearDireccionSimple(direccion) {
 }
 
 /**
- * Arma el código de un documento reutilizando el código de cotización
- * ya existente en el proyecto (ej. "CT-WSP-00004" → "CB-WSP-00004").
- * Si el proyecto no tiene código de cotización, usa su código LIN.
+ * Arma el código de un documento.
+ *
+ *  - CT (Cotización) y DC (Descripción) conservan el número de la cotización,
+ *    porque van en pareja (CT-COC-00023 / DC-COC-00023).
+ *  - El resto de los documentos (CB, RA, CV, MU, CG, ER…) usan el número del
+ *    proyecto ganado: proyecto LIN-00004 de tipo cocina → CV-COC-00004.
+ *  - Proyectos antiguos, creados antes del "tipo de mueble", conservan su
+ *    código de siempre (el número de la cotización) para no alterar documentos
+ *    que el cliente ya recibió o firmó.
  */
 function codigoDocumento(prefijo, proyecto) {
+  const esDeCotizacion = prefijo === 'CT' || prefijo === 'DC';
+  const numeroProyecto = (String(proyecto.codigo || '').match(/(\d+)$/) || [])[1];
+  const tipo = proyecto.tipoProyectoCodigo;
+  if (!esDeCotizacion && tipo && numeroProyecto) {
+    return `${prefijo}-${tipo}-${numeroProyecto.padStart(5, '0')}`;
+  }
+
   const base = proyecto.codigoCotizacion || '';
   const match = base.match(/^[A-Z]+-([A-Z]+)-(\d+)$/);
   if (match) return `${prefijo}-${match[1]}-${match[2]}`;
