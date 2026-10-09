@@ -18,6 +18,7 @@ import {
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -217,7 +218,7 @@ const toastContainer = document.getElementById('toastContainer');
 mejorarSelect('#filtroCanal', { ancho: 'auto' });
 mejorarSelect('#filtroVendedor', { ancho: 'auto' });
 
-['lRegion', 'lComuna', 'lCanal', 'lVendedor', 'eRegion', 'eComuna', 'eCanal', 'eVendedor']
+['lRegion', 'lComuna', 'lCanal', 'lTipoCodigo', 'lVendedor', 'eRegion', 'eComuna', 'eCanal', 'eTipoCodigo', 'eVendedor']
   .forEach(id => mejorarSelect('#' + id));
 
 // ---------- Guardia de sesión (mismo patrón que dashboard.html) ----------
@@ -739,6 +740,7 @@ const formNuevoLead = document.getElementById('formNuevoLead');
 
 document.getElementById('btnNuevoLead').addEventListener('click', () => {
   formNuevoLead.reset();
+  poblarSelectTipoProyecto(document.getElementById('lTipoCodigo'));
   document.getElementById('modalLeadError').textContent = '';
   document.getElementById('modalLeadError').classList.remove('visible');
   modalNuevoLead.classList.add('visible');
@@ -761,13 +763,14 @@ formNuevoLead.addEventListener('submit', async (e) => {
     direccion: leerDireccionDelFormulario('l'),
     canalOrigen: document.getElementById('lCanal').value,
     tipoProyecto: document.getElementById('lTipoProyecto').value.trim().toLocaleUpperCase('es-CL'),
+    tipoProyectoCodigo: document.getElementById('lTipoCodigo').value,
     vendedorAsignado: document.getElementById('lVendedor').value || null,
     notaInicial: document.getElementById('lNotaInicial').value.trim(),
     creadoPorNombre: STAFF_ACTUAL?.nombre || ''
   };
 
-  if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto) {
-    errorEl.textContent = 'Completa nombre, canal de origen y tipo de proyecto.';
+  if (!datos.nombre || !datos.canalOrigen || !datos.tipoProyecto || !datos.tipoProyectoCodigo) {
+    errorEl.textContent = 'Completa nombre, canal de origen, tipo de mueble (código) y tipo de proyecto.';
     errorEl.classList.add('visible');
     return;
   }
@@ -817,6 +820,7 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   escribirDireccionEnFormulario('e', lead.direccion);
   document.getElementById('eCanal').value = lead.canalOrigen || '';
   document.getElementById('eTipoProyecto').value = (lead.tipoProyecto || '').toLocaleUpperCase('es-CL');
+  poblarSelectTipoProyecto(document.getElementById('eTipoCodigo'), lead.tipoProyectoCodigo || '');
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
   document.getElementById('modalEditarError').textContent = '';
   document.getElementById('modalEditarError').classList.remove('visible');
@@ -842,6 +846,8 @@ formEditarLead.addEventListener('submit', async (e) => {
     direccion: leerDireccionDelFormulario('e'),
     canalOrigen: document.getElementById('eCanal').value,
     tipoProyecto: document.getElementById('eTipoProyecto').value.trim().toLocaleUpperCase('es-CL'),
+    // Leads antiguos pueden no tener tipo de mueble: solo se guarda si se eligió uno
+    ...(document.getElementById('eTipoCodigo').value ? { tipoProyectoCodigo: document.getElementById('eTipoCodigo').value } : {}),
     vendedorAsignado: document.getElementById('eVendedor').value || null
   };
 
@@ -888,6 +894,7 @@ formEditarLead.addEventListener('submit', async (e) => {
           direccion: datos.direccion,
           canalOrigen: datos.canalOrigen,
           tipoProyecto: datos.tipoProyecto.toUpperCase(),
+          ...(datos.tipoProyectoCodigo ? { tipoProyectoCodigo: datos.tipoProyectoCodigo } : {}),
           responsable: nombreResponsableDesdeLead({ ...leadActual, vendedorAsignado: datos.vendedorAsignado })
         });
         sincronizado = true;
@@ -948,6 +955,7 @@ async function armarProyectoDesdeLead(lead) {
     telefono: lead.telefono || '',
     email: (lead.email || '').toUpperCase(),
     tipoProyecto: (lead.tipoProyecto || '').toUpperCase(),
+    tipoProyectoCodigo: lead.tipoProyectoCodigo || '',
     categoria: 'Bronce',
     cantidadProyectosCliente: 1,
     responsable: nombreResponsableDesdeLead(lead),
