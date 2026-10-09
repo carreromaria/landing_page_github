@@ -1332,7 +1332,9 @@ async function guardar({ comoNuevaVersion }) {
 
   try {
     if (!vigenteActual || comoNuevaVersion) {
-      await crearCotizacion(leadId, leadActual.canalOrigen, datos, STAFF_ACTUAL.uid, opcionActual);
+      // El código usa el tipo de mueble (COC, CLO…). Los leads antiguos, creados antes
+      // de este cambio, siguen con su canal (WSP…) para no alterar sus documentos.
+      await crearCotizacion(leadId, leadActual.tipoProyectoCodigo || leadActual.canalOrigen, datos, STAFF_ACTUAL.uid, opcionActual);
       mostrarToast(comoNuevaVersion ? 'Nueva versión creada.' : (opcionActual === 'A' && opcionesLead.length === 0 ? 'Cotización creada como versión 1.' : `Opción ${opcionActual} creada como versión 1.`));
       // Deja la opción en la URL, para que al recargar siga en la misma.
       history.replaceState(null, '', `cotizaciones.html?leadId=${encodeURIComponent(leadId)}&opcion=${encodeURIComponent(opcionActual)}`);
