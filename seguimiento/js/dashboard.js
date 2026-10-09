@@ -18,6 +18,7 @@ import { generarEnlaceWhatsappManual, generarEnlaceWhatsappBienvenida } from './
 import { generarToken, formatearFecha } from './utils.js';
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
 
 let TODOS_LOS_PROYECTOS = [];
 let STAFF_ACTUAL = null;
@@ -111,10 +112,14 @@ function claseCategoria(categoria) {
   return { Bronce: 'bronce', Oro: 'oro', 'Élite': 'elite' }[categoria] || 'bronce';
 }
 
-/** Arma el código visible para el cliente, ej. CT-WSP-00004. */
-function construirCodigoCotizacion(numero, prefijoCanal) {
-  if (!numero || !prefijoCanal) return '';
-  return `CT-${prefijoCanal}-${numero.padStart(5, '0')}`;
+/**
+ * Arma el código visible para el cliente, ej. CT-COC-00004.
+ * El prefijo es el tipo de mueble (COC, CLO…). Los proyectos antiguos sin tipo
+ * siguen usando su canal (WSP…) para no alterar sus documentos.
+ */
+function construirCodigoCotizacion(numero, prefijo) {
+  if (!numero || !prefijo) return '';
+  return `CT-${prefijo}-${numero.padStart(5, '0')}`;
 }
 
 function debounce(fn, esperaMs) {
@@ -168,10 +173,13 @@ const actualizarCategoriaPreviewDebounced = debounce(actualizarCategoriaPreview,
 function actualizarCotizacionPreview(prefijo) {
   const numInput = document.getElementById(prefijo + 'NumCotizacion');
   const canalSelect = document.getElementById(prefijo + 'Canal');
+  const tipoSelect = document.getElementById(prefijo + 'TipoCodigo');
   const preview = document.getElementById(prefijo + 'CotizacionPreview');
   if (!numInput || !canalSelect || !preview) return;
 
-  const codigo = construirCodigoCotizacion(numInput.value.trim(), canalSelect.value);
+  // Proyecto nuevo: solo el tipo. Proyecto antiguo sin tipo: sigue con su canal.
+  const prefijoCodigo = (tipoSelect && tipoSelect.value) || (prefijo === 'e' ? canalSelect.value : '');
+  const codigo = construirCodigoCotizacion(numInput.value.trim(), prefijoCodigo);
   preview.textContent = codigo ? `Se verá como: ${codigo}` : 'Se verá como: CT-XXX-00000';
 }
 
@@ -185,6 +193,8 @@ document.getElementById('fRut').addEventListener('input', () => actualizarCatego
 document.getElementById('eRut').addEventListener('input', () => actualizarCategoriaPreviewDebounced('e', 0));
 document.getElementById('fNumCotizacion').addEventListener('input', () => actualizarCotizacionPreview('f'));
 document.getElementById('fCanal').addEventListener('change', () => actualizarCotizacionPreview('f'));
+document.getElementById('fTipoCodigo').addEventListener('change', () => actualizarCotizacionPreview('f'));
+document.getElementById('eTipoCodigo').addEventListener('change', () => actualizarCotizacionPreview('e'));
 document.getElementById('eNumCotizacion').addEventListener('input', () => actualizarCotizacionPreview('e'));
 document.getElementById('eCanal').addEventListener('change', () => actualizarCotizacionPreview('e'));
 activarSoloDigitosCotizacion(document.getElementById('fNumCotizacion'));
@@ -213,8 +223,8 @@ poblarSelectRegion('e');
 mejorarSelect('#filtroEstado', { ancho: 'auto' });
 
 [
-  'eDireccionesPrevias', 'eRegion', 'eComuna', 'eResponsable', 'eCanal',
-  'fDireccionesPrevias', 'fRegion', 'fComuna', 'fResponsable', 'fCanal'
+  'eDireccionesPrevias', 'eRegion', 'eComuna', 'eResponsable', 'eCanal', 'eTipoCodigo',
+  'fDireccionesPrevias', 'fRegion', 'fComuna', 'fResponsable', 'fCanal', 'fTipoCodigo'
 ].forEach(id => mejorarSelect('#' + id));
 
 /** Llena el <select> de comuna según la región elegida; lo deja deshabilitado si no hay región. */
@@ -526,6 +536,7 @@ const btnGuardar = document.getElementById('btnGuardarNuevo');
 document.getElementById('btnNuevoProyecto').addEventListener('click', () => {
   formNuevo.reset();
   modalError.classList.remove('visible');
+  poblarSelectTipoProyecto(document.getElementById('fTipoCodigo'));
   poblarSelectResponsable(document.getElementById('fResponsable'));
   document.getElementById('fCategoriaBadge').textContent = 'Bronce';
   document.getElementById('fCategoriaBadge').className = 'badge-categoria bronce';
@@ -553,7 +564,14 @@ formNuevo.addEventListener('submit', async (e) => {
   const telefono = document.getElementById('fTelefono').value.trim();
   const rutLimpio = limpiarRut(document.getElementById('fRut').value);
   const canalOrigen = document.getElementById('fCanal').value;
+  const tipoProyectoCodigo = document.getElementById('fTipoCodigo').value;
   const numCotizacion = document.getElementById('fNumCotizacion').value.trim();
+
+  if (!tipoProyectoCodigo) {
+    modalError.textContent = 'Selecciona el tipo de mueble (código) del proyecto.';
+    modalError.classList.add('visible');
+    return;
+  }
 
   if (!telefonoValido(telefono)) {
     modalError.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
@@ -596,8 +614,9 @@ formNuevo.addEventListener('submit', async (e) => {
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
     fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
     canalOrigen,
+    tipoProyectoCodigo,
     numCotizacion,
-    codigoCotizacion: construirCodigoCotizacion(numCotizacion, canalOrigen),
+    codigoCotizacion: construirCodigoCotizacion(numCotizacion, tipoProyectoCodigo),
     observaciones: document.getElementById('fObservaciones').value.trim().toUpperCase(),
     token: generarToken()
   };
@@ -840,6 +859,7 @@ function renderDetalle(p, historial) {
   document.getElementById('eFechaInicio').value = timestampAValorInput(p.fechaEstimadaInicio || p.fechaEstimadaInstalacion);
   document.getElementById('eFechaFin').value = timestampAValorInput(p.fechaEstimadaFin || p.fechaEstimadaInstalacion);
   document.getElementById('eCanal').value = p.canalOrigen || '';
+  poblarSelectTipoProyecto(document.getElementById('eTipoCodigo'), p.tipoProyectoCodigo || '').then(() => actualizarCotizacionPreview('e'));
   document.getElementById('eNumCotizacion').value = p.numCotizacion || '';
   document.getElementById('eObservaciones').value = p.observaciones || '';
   poblarSelectResponsable(document.getElementById('eResponsable'), p.responsable || '');
@@ -890,6 +910,7 @@ function renderDetalle(p, historial) {
     <li><span class="resumen-label">Responsable</span><span class="resumen-valor">${p.responsable || 'Por asignar'}</span></li>
     ${filaCopiable('Dirección', (p.direccion && typeof p.direccion === 'object') ? (formatearDireccion(p.direccion) || '—') : (p.direccion || '—'))}
     <li><span class="resumen-label">Fecha estimada</span><span class="resumen-valor">${formatearRangoFechas(fechaInicioLegible, fechaFinLegible)}</span></li>
+    <li><span class="resumen-label">Tipo de mueble (código)</span><span class="resumen-valor">${p.tipoProyectoCodigo || '—'}</span></li>
     <li><span class="resumen-label">Canal de origen</span><span class="resumen-valor">${canalLegible}</span></li>
     <li><span class="resumen-label">N° de cotización</span><span class="resumen-valor">${p.codigoCotizacion || '—'}</span></li>
   `;
@@ -978,7 +999,10 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
   const fechaInicioValor = document.getElementById('eFechaInicio').value;
   const fechaFinValor = document.getElementById('eFechaFin').value;
   const canalOrigen = document.getElementById('eCanal').value;
+  const tipoProyectoCodigo = document.getElementById('eTipoCodigo').value;
   const numCotizacion = document.getElementById('eNumCotizacion').value.trim();
+  // Proyectos antiguos sin tipo siguen armando su código con el canal (WSP…)
+  const prefijoCodigo = tipoProyectoCodigo || canalOrigen;
 
   const datos = {
     cliente: document.getElementById('eCliente').value.trim().toUpperCase(),
@@ -993,8 +1017,9 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
     fechaEstimadaInicio: fechaInicioValor ? new Date(fechaInicioValor) : null,
     fechaEstimadaFin: fechaFinValor ? new Date(fechaFinValor) : null,
     canalOrigen,
+    ...(tipoProyectoCodigo ? { tipoProyectoCodigo } : {}),
     numCotizacion,
-    codigoCotizacion: construirCodigoCotizacion(numCotizacion, canalOrigen),
+    codigoCotizacion: construirCodigoCotizacion(numCotizacion, prefijoCodigo),
     observaciones: document.getElementById('eObservaciones').value.trim().toUpperCase()
   };
 
@@ -1023,6 +1048,7 @@ document.getElementById('formEditarProyecto').addEventListener('submit', async (
           numCotizacion: datos.numCotizacion
         };
         if (staffPorNombre) camposLead.vendedorAsignado = staffPorNombre.uid;
+        if (datos.tipoProyectoCodigo) camposLead.tipoProyectoCodigo = datos.tipoProyectoCodigo;
         await actualizarLead(PROYECTO_ACTUAL.leadOrigenId, camposLead);
       } catch (errSync) {
         console.error('No pudimos sincronizar el lead vinculado:', errSync);
