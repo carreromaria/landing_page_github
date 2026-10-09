@@ -490,9 +490,13 @@ function abrirDetalleLead(id) {
   // Acceso directo al módulo Documentación, ya con este cliente cargado
   // (busca por RUT ahí, así que sin RUT en el lead no hay a dónde ir).
   const linkDocumentacionEl = document.getElementById('detalleLinkDocumentacion');
-  if (lead.rut) {
+  if (lead.proyectoVinculado || lead.rut) {
+    // Con proyecto vinculado se abre ese proyecto exacto; si no, se busca por RUT.
+    const destinoDoc = lead.proyectoVinculado
+      ? `codigo=${encodeURIComponent(lead.proyectoVinculado)}`
+      : `rut=${encodeURIComponent(lead.rut)}`;
     linkDocumentacionEl.style.display = '';
-    linkDocumentacionEl.innerHTML = `<a href="documentacion.html?rut=${encodeURIComponent(lead.rut)}">Ver documentos en Documentación ↗</a>`;
+    linkDocumentacionEl.innerHTML = `<a href="documentacion.html?${destinoDoc}">Ver documentos en Documentación ↗</a>`;
   } else {
     linkDocumentacionEl.style.display = 'none';
   }
