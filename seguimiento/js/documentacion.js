@@ -12,7 +12,7 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  buscarProyectoPorRut, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
+  buscarProyectoPorRut, obtenerProyecto, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
   listarCatalogoDescripcionActivo, listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -53,8 +53,14 @@ observarSesionStaff((staff) => {
   // documentacion.html?rut=6.212.718-K precarga el RUT en el buscador y
   // dispara la búsqueda sola. Va acá (después de confirmar la sesión) y no
   // antes, porque buscarProyectoPorRut necesita al staff ya autenticado.
-  const rutUrl = new URLSearchParams(window.location.search).get('rut');
-  if (rutUrl) {
+  // documentacion.html?codigo=LIN-00004 abre ESE proyecto exacto (sirve cuando un
+  // cliente tiene varios proyectos, donde buscar por RUT traería solo el más reciente).
+  const parametrosUrl = new URLSearchParams(window.location.search);
+  const codigoUrl = parametrosUrl.get('codigo');
+  const rutUrl = parametrosUrl.get('rut');
+  if (codigoUrl) {
+    abrirProyectoPorCodigo(codigoUrl);
+  } else if (rutUrl) {
     document.getElementById('inputRutBuscar').value = rutUrl;
     buscarYMostrarProyectoPorRut(limpiarRut(rutUrl));
   }
@@ -194,16 +200,40 @@ async function buscarYMostrarProyectoPorRut(rutLimpio) {
       renderizarDocsGrid();
       return;
     }
-    PROYECTO_ACTUAL = proyecto;
-    mostrarResultadoCliente(proyecto);
-    const p = await prepararProyectoConCotizacion(proyecto);
-    mostrarAvisoCotizacion(p);
-    poblarFormDatos(p.datosEfectivos);
-    document.getElementById('docDatosPanel').style.display = 'block';
-    renderizarDocsGrid();
+    await mostrarProyecto(proyecto);
   } catch (err) {
     console.error(err);
     mostrarToast('No pudimos buscar el proyecto. Intenta de nuevo.', 'error');
+  }
+}
+
+/** Carga en pantalla un proyecto ya encontrado (por RUT o por código). */
+async function mostrarProyecto(proyecto) {
+  PROYECTO_ACTUAL = proyecto;
+  mostrarResultadoCliente(proyecto);
+  const p = await prepararProyectoConCotizacion(proyecto);
+  mostrarAvisoCotizacion(p);
+  poblarFormDatos(p.datosEfectivos);
+  document.getElementById('docDatosPanel').style.display = 'block';
+  renderizarDocsGrid();
+}
+
+/** Acceso directo por código de proyecto (LIN-XXXXX), ej. desde Proyectos o el CRM. */
+async function abrirProyectoPorCodigo(codigo) {
+  document.getElementById('docNoEncontrado').classList.remove('visible');
+  try {
+    const proyecto = await obtenerProyecto(codigo);
+    if (!proyecto) {
+      PROYECTO_ACTUAL = null;
+      document.getElementById('docNoEncontrado').classList.add('visible');
+      renderizarDocsGrid();
+      return;
+    }
+    document.getElementById('inputRutBuscar').value = formatearRutVisible(limpiarRut(proyecto.rut || ''));
+    await mostrarProyecto(proyecto);
+  } catch (err) {
+    console.error(err);
+    mostrarToast('No pudimos abrir el proyecto. Intenta de nuevo.', 'error');
   }
 }
 
