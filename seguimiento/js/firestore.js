@@ -572,18 +572,19 @@ export async function cambiarEstadoOpcionCatalogoDescripcion(id, activo) {
 
 /**
  * Crea una cotización nueva para un Lead, con folio correlativo
- * automático (CT-XXX-00000, donde XXX es el canal de origen del
+ * automático (CT-XXX-00000, donde XXX es el tipo de proyecto del
  * lead) y número de versión también automático. Si el Lead ya tenía
  * una cotización vigente, la marca como "reemplazada" en la misma
  * transacción.
  *
  * @param {string} leadId
- * @param {string} canalOrigen prefijo de 3 letras (ej. "WSP", "INS"), viene de lead.canalOrigen
+ * @param {string} prefijoCodigo 3 letras del tipo de proyecto (ej. "COC", "CLO"), viene de
+ *   lead.tipoProyectoCodigo. Los leads antiguos sin tipo siguen usando su canal (ej. "WSP").
  * @param {{proyecto:string, items:object[], totalGeneral:number, porcentajeAbono:number, abono:number}} datos
  * @param {string} uid
  * @returns {Promise<string>} id de la cotización creada
  */
-export async function crearCotizacion(leadId, canalOrigen, datos, uid, opcion = "A") {
+export async function crearCotizacion(leadId, prefijoCodigo, datos, uid, opcion = "A") {
   const refContador = doc(db, "contadores", "cotizaciones");
 
   // La versión y el reemplazo se calculan DENTRO de la misma opción:
@@ -603,7 +604,7 @@ export async function crearCotizacion(leadId, canalOrigen, datos, uid, opcion = 
     const snapContador = await transaction.get(refContador);
     const ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
     const nuevoNumero = ultimo + 1;
-    const folio = `CT-${canalOrigen}-${String(nuevoNumero).padStart(5, "0")}`;
+    const folio = `CT-${prefijoCodigo}-${String(nuevoNumero).padStart(5, "0")}`;
 
     const refNueva = doc(collection(db, "cotizaciones"));
 
@@ -738,4 +739,112 @@ export function escucharCotizacionesVigentes(callback, onError) {
     (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
     (err) => { console.error(err); onError?.(err); }
   );
+}
+
+// ============================================================
+// ---------- Tipos de proyecto (código de 3 letras) ----------
+// ============================================================
+// Alimentan la parte central del código de los documentos, ej.
+// CV-COC-00004 (COC = cocina). Cada tipo vive en la colección
+// "tiposProyecto" con su código como id. Nunca se borra un tipo que
+// ya se haya usado: se desactiva, así los documentos antiguos no
+// pierden coherencia. MIX y OTR son "protegidos": siempre existen.
+
+export const TIPOS_PROYECTO_BASE = [
+  { codigo: "COC", nombre: "Cocina" },
+  { codigo: "VAN", nombre: "Vanitorio" },
+  { codigo: "CLO", nombre: "Closet" },
+  { codigo: "WAL", nombre: "Walking closet" },
+  { codigo: "CEN", nombre: "Centro de entretenimiento" },
+  { codigo: "OFI", nombre: "Mobiliario corporativo" },
+  { codigo: "LOC", nombre: "Mobiliario comercial" },
+  { codigo: "MIX", nombre: "Varios tipos", protegido: true },
+  { codigo: "OTR", nombre: "Otros", protegido: true }
+];
+
+/**
+ * Lista todos los tipos de proyecto (activos e inactivos). Si la
+ * colección aún está vacía (nadie ha entrado al módulo de
+ * administración), devuelve los tipos base para que los selectores
+ * igual funcionen.
+ */
+export async function listarTiposProyecto() {
+  const snap = await getDocs(collection(db, "tiposProyecto"));
+  if (snap.empty) {
+    return TIPOS_PROYECTO_BASE.map((t, i) => ({ ...t, activo: true, protegido: !!t.protegido, orden: i, virtual: true }));
+  }
+  return snap.docs
+    .map(d => ({ codigo: d.id, ...d.data() }))
+    .sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999) || String(a.nombre).localeCompare(String(b.nombre), "es"));
+}
+
+/** Solo los tipos activos (para los selectores al crear leads y proyectos). */
+export async function listarTiposProyectoActivos() {
+  const tipos = await listarTiposProyecto();
+  return tipos.filter(t => t.activo !== false);
+}
+
+/** Carga los tipos base la primera vez (solo si la colección está vacía). */
+export async function asegurarTiposProyectoBase() {
+  const snap = await getDocs(collection(db, "tiposProyecto"));
+  if (!snap.empty) return false;
+  const batch = writeBatch(db);
+  TIPOS_PROYECTO_BASE.forEach((t, i) => {
+    batch.set(doc(db, "tiposProyecto", t.codigo), {
+      nombre: t.nombre, activo: true, protegido: !!t.protegido, orden: i, creadoEn: serverTimestamp()
+    });
+  });
+  await batch.commit();
+  return true;
+}
+
+/** Crea un tipo nuevo. Falla con Error("EXISTE") si el código ya está tomado. */
+export async function crearTipoProyecto(codigo, nombre) {
+  const ref = doc(db, "tiposProyecto", codigo);
+  if ((await getDoc(ref)).exists()) throw new Error("EXISTE");
+  await setDoc(ref, { nombre, activo: true, protegido: false, orden: Date.now(), creadoEn: serverTimestamp() });
+}
+
+/** Cambia el nombre de un tipo (siempre permitido; no afecta ningún documento). */
+export async function actualizarNombreTipoProyecto(codigo, nombre) {
+  await updateDoc(doc(db, "tiposProyecto", codigo), { nombre });
+}
+
+/** Activa o desactiva un tipo. */
+export async function cambiarEstadoTipoProyecto(codigo, activo) {
+  await updateDoc(doc(db, "tiposProyecto", codigo), { activo });
+}
+
+/** Elimina un tipo. La pantalla solo lo permite si nunca se usó y no es protegido. */
+export async function eliminarTipoProyecto(codigo) {
+  await deleteDoc(doc(db, "tiposProyecto", codigo));
+}
+
+/** Cambia el código de un tipo. La pantalla solo lo permite si nunca se usó. */
+export async function renombrarCodigoTipoProyecto(codigoViejo, codigoNuevo) {
+  const refViejo = doc(db, "tiposProyecto", codigoViejo);
+  const refNuevo = doc(db, "tiposProyecto", codigoNuevo);
+  if ((await getDoc(refNuevo)).exists()) throw new Error("EXISTE");
+  const datos = (await getDoc(refViejo)).data();
+  const batch = writeBatch(db);
+  batch.set(refNuevo, datos);
+  batch.delete(refViejo);
+  await batch.commit();
+}
+
+/** Cuántos leads y proyectos usa cada código: { COC: { leads: 2, proyectos: 1 }, ... } */
+export async function contarUsoTiposProyecto() {
+  const uso = {};
+  const sumar = (codigo, campo) => {
+    if (!codigo) return;
+    uso[codigo] = uso[codigo] || { leads: 0, proyectos: 0 };
+    uso[codigo][campo]++;
+  };
+  const [leads, proyectos] = await Promise.all([
+    getDocs(collection(db, "leads")),
+    getDocs(collection(db, "proyectos"))
+  ]);
+  leads.forEach(d => sumar(d.data().tipoProyectoCodigo, "leads"));
+  proyectos.forEach(d => sumar(d.data().tipoProyectoCodigo, "proyectos"));
+  return uso;
 }
