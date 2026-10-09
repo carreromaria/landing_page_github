@@ -42,6 +42,7 @@
       <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
       <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
       <li><a href="catalogo-servicios.html">🏷️ <span class="texto">Catálogo</span></a></li>
+      <li><a href="tipos-proyecto.html">🧩 <span class="texto">Tipos de proyecto</span></a></li>
       <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
       <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
     </ul>
@@ -278,9 +279,15 @@
             </select>
           </div>
           <div class="campo">
+            <label for="eTipoCodigo">Tipo de mueble (código)</label>
+            <select id="eTipoCodigo">
+              <option value="">Selecciona…</option>
+            </select>
+          </div>
+          <div class="campo">
             <label for="eNumCotizacion">N° de cotización</label>
             <input type="text" id="eNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
-            <span class="cotizacion-preview" id="eCotizacionPreview">Se verá como: COT-00000-00</span>
+            <span class="cotizacion-preview" id="eCotizacionPreview">Se verá como: CT-XXX-00000</span>
           </div>
           <div class="campo campo-full">
             <label for="eObservaciones">Observaciones (visibles para el cliente)</label>
@@ -436,9 +443,15 @@
           </select>
         </div>
         <div class="campo">
+          <label for="fTipoCodigo">Tipo de mueble (código) <span style="color:#c14b32;">*</span></label>
+          <select id="fTipoCodigo" required>
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
           <label for="fNumCotizacion">N° de cotización</label>
           <input type="text" id="fNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
-          <span class="cotizacion-preview" id="fCotizacionPreview">Se verá como: COT-00000-00</span>
+          <span class="cotizacion-preview" id="fCotizacionPreview">Se verá como: CT-XXX-00000</span>
         </div>
         <div class="campo campo-full">
           <label for="fObservaciones">Observaciones iniciales (opcional)</label>
@@ -480,6 +493,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/dashboard.js?v=20260828"></script>
+<script type="module" src="js/dashboard.js?v=20261009a"></script>
 </body>
 </html>
