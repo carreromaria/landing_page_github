@@ -43,6 +43,7 @@
       <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
       <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
       <li><a href="catalogo-servicios.html">🏷️ <span class="texto">Catálogo</span></a></li>
+      <li><a href="tipos-proyecto.html">🧩 <span class="texto">Tipos de proyecto</span></a></li>
       <li><span class="dash-nav-disabled">📦 <span class="texto">Inventario</span><span class="proximamente">Pronto</span></span></li>
       <li><span class="dash-nav-disabled">📊 <span class="texto">Reportes</span><span class="proximamente">Pronto</span></span></li>
     </ul>
@@ -359,6 +360,12 @@
           </select>
         </div>
         <div class="campo">
+          <label for="lTipoCodigo">Tipo de mueble (código) <span style="color:#c14b32;">*</span></label>
+          <select id="lTipoCodigo" required>
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo campo-full">
           <label for="lTipoProyecto">Tipo de proyecto <span style="color:#c14b32;">*</span></label>
           <input type="text" id="lTipoProyecto" placeholder="Ej. Cocina moderna" required>
         </div>
@@ -457,6 +464,12 @@
           </select>
         </div>
         <div class="campo">
+          <label for="eTipoCodigo">Tipo de mueble (código)</label>
+          <select id="eTipoCodigo">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo campo-full">
           <label for="eTipoProyecto">Tipo de proyecto <span style="color:#c14b32;">*</span></label>
           <input type="text" id="eTipoProyecto" required>
         </div>
@@ -520,6 +533,6 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20261006a"></script>
+<script type="module" src="js/crm.js?v=20261009a"></script>
 </body>
 </html>
