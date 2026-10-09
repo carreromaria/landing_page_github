@@ -777,6 +777,8 @@ function renderDetalle(p, historial) {
 
   const enlace = `${window.location.origin}/seguimiento/proyecto.html?codigo=${encodeURIComponent(p.codigo)}&token=${encodeURIComponent(p.token || '')}`;
   document.getElementById('detalleEnlaceCliente').href = enlace;
+  // Acceso directo a los documentos de este proyecto (abre Documentación con él ya cargado)
+  document.getElementById('detalleEnlaceDocumentacion').href = `documentacion.html?codigo=${encodeURIComponent(p.codigo)}`;
 
   const etapaActualNombre = (ETAPAS[p.etapaActualIndex] ?? ETAPAS[0]).nombre;
   const direccionTextoDetalle = (p.direccion && typeof p.direccion === 'object')
