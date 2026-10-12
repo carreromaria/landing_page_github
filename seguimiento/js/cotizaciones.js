@@ -441,7 +441,7 @@ function renderListaCotizaciones() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="cat-codigo">${escapeHtml(c.numero)} <span class="cot-badge-version">v${c.version}</span></td>
-      <td>${escapeHtml(c.clienteNombre || '—')}</td>
+      <td>${escapeHtml(c.clienteNombre || '—')} <a href="crm.html?lead=${encodeURIComponent(c.leadId)}" title="Ver tarjeta en CRM" style="color:#8a6a12; text-decoration:none; font-size:12px;">CRM ↗</a></td>
       <td>${escapeHtml(c.proyecto || '—')}${etiquetaOpcion}</td>
       <td>${formatearMoneda(c.totalGeneral)}</td>
       <td>${formatearMoneda(c.abono)}</td>
@@ -486,6 +486,10 @@ async function inicializarEditor() {
     return;
   }
   editorClienteNombre.textContent = leadActual.nombre || '—';
+  // Enlace directo a la tarjeta de este cliente en el CRM
+  const linkCrmEditor = document.getElementById('editorLinkCrm');
+  linkCrmEditor.href = `crm.html?lead=${encodeURIComponent(leadId)}`;
+  linkCrmEditor.style.display = '';
 
   mejorarSelect('#cotMcPlantilla');
   const plantillaDetectada = plantillaPorTipoProyecto(leadActual.tipoProyecto);
