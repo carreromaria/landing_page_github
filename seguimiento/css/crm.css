@@ -1063,3 +1063,16 @@ html, body{
 #eNombre, #eTipoProyecto, #eCalle, #eDepto, #eSector, #eIndicaciones {
   text-transform: uppercase;
 }
+
+/* ---------- Número del lead (L-00001) ---------- */
+.crm-card-codigo{
+  font-size:11px; font-weight:600; letter-spacing:.06em;
+  color:#8a6a12; margin-bottom:4px;
+}
+.crm-badge-codigo{
+  display:inline-block; margin-right:8px;
+  font-size:12px; font-weight:600; letter-spacing:.06em;
+  color:var(--ink); background:transparent;
+  border:1px solid var(--gold); border-radius:4px;
+  padding:3px 9px;
+}
