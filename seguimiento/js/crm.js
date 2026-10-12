@@ -12,7 +12,7 @@ import {
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
-  obtenerCotizacionVigentePorLead,
+  obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion
 } from './firestore.js';
 import { generarToken } from './utils.js';
@@ -187,6 +187,7 @@ let STAFF_ACTUAL = null;
 let usuariosStaff = [];
 let leadsActuales = [];
 let leadSeleccionadoId = null;
+let primeraCargaLeadsHecha = false;
 let dejarDeEscucharLeads = null;
 
 let serviciosCatalogo = []; // catálogo de servicios activo (código ↔ nombre)
@@ -346,7 +347,16 @@ async function inicializar() {
   }
 
   dejarDeEscucharLeads = escucharLeads(
-    (leads) => { leadsActuales = leads; renderKanban(); },
+    (leads) => {
+      leadsActuales = leads;
+      renderKanban();
+      if (!primeraCargaLeadsHecha) {
+        primeraCargaLeadsHecha = true;
+        // Los leads antiguos reciben su número L-XXXXX la primera vez (por orden de creación)
+        asignarCodigosLeadFaltantes(leads).catch(err => console.error('No pudimos numerar los leads:', err));
+        abrirLeadDesdeUrl();
+      }
+    },
     () => mostrarToast('No se pudieron cargar los leads.', 'error')
   );
 }
@@ -399,7 +409,8 @@ function leadsFiltrados() {
     if (texto) {
       const enNombre = (lead.nombre || '').toLowerCase().includes(texto);
       const enTelefono = (lead.telefono || '').toLowerCase().includes(texto);
-      if (!enNombre && !enTelefono) return false;
+      const enCodigo = (lead.codigoLead || '').toLowerCase().includes(texto);
+      if (!enNombre && !enTelefono && !enCodigo) return false;
     }
     return true;
   });
@@ -451,11 +462,30 @@ function tarjetaHtml(lead) {
 
   return `
     <div class="crm-card ${claseCierre}" data-lead-id="${lead.id}" tabindex="0">
+      ${lead.codigoLead ? `<div class="crm-card-codigo">${escapeHtml(lead.codigoLead)}</div>` : ''}
       <div class="crm-card-nombre">${escapeHtml(lead.nombre)}</div>
       <div class="crm-card-meta">${escapeHtml(lead.tipoProyecto || '—')} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}</div>
       <div class="crm-card-tiempo ${alertaClase}">${tiempoTexto}</div>
     </div>
   `;
+}
+
+// ---------- Enlace directo a una tarjeta ----------
+// crm.html?lead=<id del lead>  (también acepta el número, ej. ?lead=L-00004)
+// lo usan Proyectos, Documentación y Cotizaciones para viajar a la ficha exacta del cliente.
+
+function abrirLeadDesdeUrl() {
+  const parametro = new URLSearchParams(window.location.search).get('lead');
+  if (!parametro) return;
+  const buscado = parametro.trim().toLowerCase();
+  const lead = leadsActuales.find(l => l.id === parametro || (l.codigoLead || '').toLowerCase() === buscado);
+  if (lead) {
+    abrirDetalleLead(lead.id);
+  } else {
+    mostrarToast('No encontramos esa tarjeta en el CRM.', 'error');
+  }
+  // Se limpia la URL para que al recargar no vuelva a abrirse sola
+  history.replaceState(null, '', window.location.pathname);
 }
 
 // ---------- Vista de detalle ----------
@@ -467,6 +497,9 @@ function abrirDetalleLead(id) {
   leadSeleccionadoId = id;
 
   document.getElementById('detalleEtapaBadge').textContent = lead.etapa;
+  const codigoLeadEl = document.getElementById('detalleCodigoLead');
+  codigoLeadEl.textContent = lead.codigoLead || '';
+  codigoLeadEl.style.display = lead.codigoLead ? '' : 'none';
   document.getElementById('detalleNombre').textContent = lead.nombre;
   document.getElementById('detalleMetaProyecto').textContent =
     `${lead.tipoProyecto || '—'} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}`;
