@@ -84,6 +84,19 @@ export async function buscarProyectoPorRut(rut) {
 }
 
 /**
+ * Devuelve TODOS los proyectos de un RUT, el más recientemente actualizado
+ * primero. Se usa en Documentación para que, si un cliente tiene varios
+ * proyectos, se pueda elegir cuál abrir.
+ */
+export async function buscarProyectosPorRut(rut) {
+  if (!rut) return [];
+  const snap = await getDocs(query(collection(db, "proyectos"), where("rut", "==", rut)));
+  const proyectos = snap.docs.map(d => ({ codigo: d.id, ...d.data() }));
+  proyectos.sort((a, b) => (b.actualizadoEn?.toMillis?.() || 0) - (a.actualizadoEn?.toMillis?.() || 0));
+  return proyectos;
+}
+
+/**
  * Devuelve las direcciones distintas usadas en proyectos anteriores con
  * este RUT, de la más reciente a la más antigua. Se usa para ofrecerlas
  * como opciones al crear/editar un proyecto de un cliente que ya tiene
@@ -316,22 +329,70 @@ export async function quitarFotoProyecto(codigo, foto) {
 export async function crearLead(datos, uid) {
   const { notaInicial, ...resto } = datos;
   const ref = doc(collection(db, "leads"));
+  const refContador = doc(db, "contadores", "leads");
 
-  await setDoc(ref, {
-    ...resto,
-    etapa: "Nuevo contacto",
-    notas: notaInicial ? [{
-      texto: notaInicial,
-      autor: resto.creadoPorNombre || "",
-      fecha: new Date().toISOString()
-    }] : [],
-    creadoPor: uid,
-    creadoEn: serverTimestamp(),
-    actualizadoEn: serverTimestamp(),
-    fechaUltimoContacto: serverTimestamp()
+  // El número del lead (L-00001, L-00002…) se asigna junto con la creación,
+  // en una transacción, así nunca se repite ni se salta aunque dos personas
+  // creen un lead al mismo tiempo. Es independiente del LIN-XXXXX del proyecto.
+  await runTransaction(db, async (transaction) => {
+    const snapContador = await transaction.get(refContador);
+    const nuevoNumero = (snapContador.exists() ? snapContador.data().ultimo : 0) + 1;
+    transaction.set(refContador, { ultimo: nuevoNumero });
+    transaction.set(ref, {
+      ...resto,
+      codigoLead: "L-" + String(nuevoNumero).padStart(5, "0"),
+      etapa: "Nuevo contacto",
+      notas: notaInicial ? [{
+        texto: notaInicial,
+        autor: resto.creadoPorNombre || "",
+        fecha: new Date().toISOString()
+      }] : [],
+      creadoPor: uid,
+      creadoEn: serverTimestamp(),
+      actualizadoEn: serverTimestamp(),
+      fechaUltimoContacto: serverTimestamp()
+    });
   });
 
   return ref.id;
+}
+
+/**
+ * Asigna número (L-00001…) a los leads que aún no lo tienen, en orden de
+ * creación (el más antiguo recibe el número más bajo). Es seguro llamarla
+ * varias veces o desde varias sesiones a la vez: dentro de la transacción
+ * se vuelve a revisar cada lead y se salta el que ya tenga número.
+ * Devuelve cuántos leads recibieron número.
+ */
+export async function asignarCodigosLeadFaltantes(leads) {
+  const faltantes = leads
+    .filter(l => !l.codigoLead)
+    .sort((a, b) => (a.creadoEn?.toMillis?.() || 0) - (b.creadoEn?.toMillis?.() || 0));
+  if (!faltantes.length) return 0;
+
+  const refContador = doc(db, "contadores", "leads");
+  let total = 0;
+
+  // De a 400 por transacción (el límite de Firestore es 500 escrituras).
+  for (let i = 0; i < faltantes.length; i += 400) {
+    const lote = faltantes.slice(i, i + 400);
+    total += await runTransaction(db, async (transaction) => {
+      const snapContador = await transaction.get(refContador);
+      let ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
+      const refs = lote.map(l => doc(db, "leads", l.id));
+      const snaps = await Promise.all(refs.map(r => transaction.get(r)));
+      let asignados = 0;
+      snaps.forEach((snap, idx) => {
+        if (!snap.exists() || snap.data().codigoLead) return;
+        ultimo++;
+        asignados++;
+        transaction.update(refs[idx], { codigoLead: "L-" + String(ultimo).padStart(5, "0") });
+      });
+      if (asignados) transaction.set(refContador, { ultimo });
+      return asignados;
+    });
+  }
+  return total;
 }
 
 /**
