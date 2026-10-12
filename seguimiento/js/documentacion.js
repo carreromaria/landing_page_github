@@ -12,10 +12,11 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  buscarProyectoPorRut, obtenerProyecto, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
+  buscarProyectosPorRut, obtenerProyecto, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
   listarCatalogoDescripcionActivo, listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+import { ETAPAS } from './etapas.js';
 // Diseño de los documentos oficiales (CT, DC, encabezado y pie) e impresión:
 // un solo archivo compartido con el módulo Cotizaciones.
 import {
@@ -186,6 +187,7 @@ async function buscarYMostrarProyectoPorRut(rutLimpio) {
   document.getElementById('docClienteResultado').classList.remove('visible');
   document.getElementById('docAvisoCotizacion').style.display = 'none';
   document.getElementById('docDatosPanel').style.display = 'none';
+  ocultarListaProyectos();
 
   if (!rutLimpio) {
     mostrarToast('Escribe un RUT para buscar.', 'error');
@@ -193,14 +195,23 @@ async function buscarYMostrarProyectoPorRut(rutLimpio) {
   }
 
   try {
-    const proyecto = await buscarProyectoPorRut(rutLimpio);
-    if (!proyecto) {
+    const proyectos = await buscarProyectosPorRut(rutLimpio);
+    if (!proyectos.length) {
       PROYECTO_ACTUAL = null;
+      ocultarListaProyectos();
       document.getElementById('docNoEncontrado').classList.add('visible');
       renderizarDocsGrid();
       return;
     }
-    await mostrarProyecto(proyecto);
+    if (proyectos.length === 1) {
+      ocultarListaProyectos();
+      await mostrarProyecto(proyectos[0]);
+      return;
+    }
+    // Varios proyectos con el mismo RUT: se muestran para elegir, sin abrir ninguno solo.
+    PROYECTO_ACTUAL = null;
+    renderizarDocsGrid();
+    mostrarListaProyectos(proyectos);
   } catch (err) {
     console.error(err);
     mostrarToast('No pudimos buscar el proyecto. Intenta de nuevo.', 'error');
@@ -218,9 +229,53 @@ async function mostrarProyecto(proyecto) {
   renderizarDocsGrid();
 }
 
+function ocultarListaProyectos() {
+  const lista = document.getElementById('docProyectosLista');
+  lista.style.display = 'none';
+  lista.innerHTML = '';
+}
+
+/** Tarjetas para elegir entre los proyectos de un mismo cliente. */
+function mostrarListaProyectos(proyectos, codigoActivo = '') {
+  const lista = document.getElementById('docProyectosLista');
+  const tarjetas = proyectos.map(p => {
+    const etapa = (ETAPAS[p.etapaActualIndex] ?? ETAPAS[0])?.nombre || '';
+    const creado = p.creadoEn?.toDate ? p.creadoEn.toDate().toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    const meta = [etapa && `Etapa: ${etapa}`, p.codigoCotizacion && `Cotización ${p.codigoCotizacion}`, creado && `Creado ${creado}`]
+      .filter(Boolean).map(escapeHtml).join('<br>');
+    return `
+      <button type="button" class="doc-proyecto-card${p.codigo === codigoActivo ? ' activo' : ''}" data-codigo="${escapeHtml(p.codigo)}">
+        <span class="codigo">${escapeHtml(p.codigo)}</span>
+        <span class="tipo">${escapeHtml(p.tipoProyecto || 'Sin tipo')}</span>
+        <span class="meta">${meta}</span>
+        <span class="accion">Ver documentación →</span>
+      </button>`;
+  }).join('');
+  lista.innerHTML = `
+    <p class="doc-proyectos-titulo">Este cliente tiene ${proyectos.length} proyectos. Elige de cuál quieres ver la documentación:</p>
+    <div class="doc-proyectos-grid">${tarjetas}</div>`;
+  lista.style.display = 'block';
+
+  lista.querySelectorAll('.doc-proyecto-card').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const elegido = proyectos.find(p => p.codigo === btn.dataset.codigo);
+      if (!elegido) return;
+      lista.querySelectorAll('.doc-proyecto-card').forEach(b => b.classList.toggle('activo', b === btn));
+      try {
+        await mostrarProyecto(elegido);
+        document.getElementById('docClienteResultado').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (err) {
+        console.error(err);
+        mostrarToast('No pudimos abrir el proyecto. Intenta de nuevo.', 'error');
+      }
+    });
+  });
+}
+
 /** Acceso directo por código de proyecto (LIN-XXXXX), ej. desde Proyectos o el CRM. */
 async function abrirProyectoPorCodigo(codigo) {
   document.getElementById('docNoEncontrado').classList.remove('visible');
+  ocultarListaProyectos();
   try {
     const proyecto = await obtenerProyecto(codigo);
     if (!proyecto) {
@@ -542,6 +597,10 @@ function mostrarResultadoCliente(p) {
   document.getElementById('docClienteNombre').textContent = tituloCase(p.cliente) || 'Sin nombre';
   document.getElementById('docClienteMeta').textContent =
     `${p.codigo || '—'} · ${p.tipoProyecto || 'Sin tipo'} · RUT ${formatearRutVisible(p.rut)}`;
+  // Enlace directo a la tarjeta de este cliente en el CRM (si el proyecto nació de un lead)
+  const linkCrm = document.getElementById('docLinkCrm');
+  linkCrm.style.display = p.leadOrigenId ? '' : 'none';
+  linkCrm.href = p.leadOrigenId ? `crm.html?lead=${encodeURIComponent(p.leadOrigenId)}` : '#';
   document.getElementById('docClienteResultado').classList.add('visible');
 }
 
