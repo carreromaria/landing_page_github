@@ -129,6 +129,7 @@
       <div>
         <h1 class="cat-title" id="editorClienteNombre">—</h1>
         <p class="subtitulo" id="editorFolioVersion">Sin cotización aún</p>
+        <a href="#" id="editorLinkCrm" style="display:none; font-size:13px; font-weight:500; color:#8a6a12; text-decoration:none;">Ver tarjeta en CRM ↗</a>
       </div>
     </header>
 
@@ -146,10 +147,6 @@
     </div>
 
     <div class="cot-datos-documento cot-datos-flex">
-      <div class="cot-campo-doc cot-campo-valida">
-        <label for="cotValidaDesde">Válida desde</label>
-        <input type="date" id="cotValidaDesde">
-      </div>
       <div class="cot-campo-doc cot-campo-dias">
         <label for="cotDiasHabilesEntrega">Días hábiles</label>
         <input type="text" id="cotDiasHabilesEntrega" inputmode="numeric" maxlength="3" placeholder="Ej: 20">
@@ -161,6 +158,10 @@
           <span>al</span>
           <input type="date" id="cotFechaEntregaFin">
         </div>
+      </div>
+      <div class="cot-campo-doc cot-campo-valida">
+        <label for="cotValidaDesde">Válida desde</label>
+        <input type="date" id="cotValidaDesde">
       </div>
       <div class="cot-campo-doc cot-campo-pago">
         <div class="cot-pago-titulo">
@@ -471,6 +472,6 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=25"></script>
+<script type="module" src="js/cotizaciones.js?v=26"></script>
 </body>
 </html>
