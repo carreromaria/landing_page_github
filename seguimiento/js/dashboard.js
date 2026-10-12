@@ -779,6 +779,10 @@ function renderDetalle(p, historial) {
   document.getElementById('detalleEnlaceCliente').href = enlace;
   // Acceso directo a los documentos de este proyecto (abre Documentación con él ya cargado)
   document.getElementById('detalleEnlaceDocumentacion').href = `documentacion.html?codigo=${encodeURIComponent(p.codigo)}`;
+  // Viaja directo a la tarjeta de este cliente en el CRM (solo si el proyecto nació de un lead)
+  const enlaceCrm = document.getElementById('detalleEnlaceCrm');
+  enlaceCrm.style.display = p.leadOrigenId ? '' : 'none';
+  enlaceCrm.href = p.leadOrigenId ? `crm.html?lead=${encodeURIComponent(p.leadOrigenId)}` : '#';
 
   const etapaActualNombre = (ETAPAS[p.etapaActualIndex] ?? ETAPAS[0]).nombre;
   const direccionTextoDetalle = (p.direccion && typeof p.direccion === 'object')
