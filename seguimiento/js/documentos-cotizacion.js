@@ -386,7 +386,7 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
   <p class="pdf-dc-intro">
-    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende 0131, calle Los Almendros 22, Local 33, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
   </p>
 
   <div class="pdf-dc-seccion">
