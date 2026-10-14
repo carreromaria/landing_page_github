@@ -174,7 +174,7 @@ export function htmlEncabezado(titulo, folio) {
     </div>
     <div class="ln-datos-empresa">
       <div class="ln-fila-rut"><span>LINENCE SpA.</span><span>RUT: 78.446.739-2</span></div>
-      <div>DIRECCIÓN: Av. Salvador Allende, Los Almendros 22</div>
+      <div>DIRECCIÓN: Av. Salvador Allende 0131, calle Los Almendros 22, Local 33</div>
       <div>CORREO ELECTRÓNICO: contacto@linence.cl</div>
     </div>
     <img class="ln-logo" src="assets/img/logo-encabezado.png" width="162" height="95" alt="LINENCE">
