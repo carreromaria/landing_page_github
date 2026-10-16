@@ -482,6 +482,12 @@ export async function asignarCodigosLeadFaltantes(leads) {
   return total;
 }
 
+/** Lista todos los leads una sola vez (para reportes). */
+export async function listarLeads() {
+  const snap = await getDocs(collection(db, "leads"));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
 /**
  * Escucha en tiempo real todos los leads, más recientemente
  * actualizados primero. callback(leads) se ejecuta de inmediato y
