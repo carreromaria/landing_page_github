@@ -226,6 +226,7 @@ export async function crearProyectoConCodigoAutomatico(datos, uid) {
     return nuevoCodigo;
   });
 
+  await sincronizarVistaClienteSegura(codigo);
   return codigo;
 }
 
@@ -236,6 +237,7 @@ export async function actualizarProyecto(codigo, datos) {
     ...datos,
     actualizadoEn: serverTimestamp()
   });
+  await sincronizarVistaClienteSegura(codigo);
 }
 
 /**
@@ -246,6 +248,10 @@ export async function actualizarProyecto(codigo, datos) {
 export async function eliminarProyecto(codigo) {
   const historialSnap = await getDocs(collection(db, "proyectos", codigo, "historial"));
   const batch = writeBatch(db);
+  // También se borra la copia pública que ve el cliente
+  const snapProyecto = await getDoc(doc(db, "proyectos", codigo));
+  const token = snapProyecto.exists() ? snapProyecto.data().token : null;
+  if (token) batch.delete(doc(db, "vistaCliente", token));
   historialSnap.docs.forEach(d => batch.delete(d.ref));
   batch.delete(doc(db, "proyectos", codigo));
   await batch.commit();
@@ -279,6 +285,7 @@ export async function cambiarEtapaProyecto(codigo, nuevoEstado, entradaHistorial
   });
 
   await batch.commit();
+  await sincronizarVistaClienteSegura(codigo);
 }
 
 // ---------- Fotografías (Fase 9) ----------
@@ -294,6 +301,7 @@ export async function agregarFotoProyecto(codigo, foto) {
     fotos: arrayUnion(foto),
     actualizadoEn: serverTimestamp()
   });
+  await sincronizarVistaClienteSegura(codigo);
 }
 
 /**
@@ -307,6 +315,85 @@ export async function quitarFotoProyecto(codigo, foto) {
     fotos: arrayRemove(foto),
     actualizadoEn: serverTimestamp()
   });
+  await sincronizarVistaClienteSegura(codigo);
+}
+
+// ============================================================
+// ---------- Vista del cliente (copia pública y segura) ----------
+// ============================================================
+// El cliente NO lee la colección "proyectos" (tiene RUT, teléfono, montos…).
+// Lee un documento aparte, "vistaCliente/{token}", con SOLO lo que se le
+// muestra en su página de seguimiento. El id del documento es el token
+// secreto del enlace, así que solo puede abrirlo quien tenga el enlace
+// completo; nadie puede listar ni recorrer la colección.
+// El staff la mantiene al día: se actualiza sola cada vez que cambia el
+// proyecto (datos, etapa, fotos).
+
+/** Lo que ve el cliente en su enlace. Devuelve null si el token no existe. */
+export async function obtenerVistaCliente(token) {
+  const snap = await getDoc(doc(db, "vistaCliente", token));
+  return snap.exists() ? snap.data() : null;
+}
+
+/** Reconstruye la copia pública de un proyecto a partir de los datos reales. */
+export async function sincronizarVistaCliente(codigo) {
+  const refProyecto = doc(db, "proyectos", codigo);
+  const snap = await getDoc(refProyecto);
+  if (!snap.exists()) return;
+  const p = snap.data();
+  if (!p.token) return;
+
+  const historialSnap = await getDocs(query(collection(db, "proyectos", codigo, "historial"), orderBy("fecha", "desc")));
+  const historial = historialSnap.docs.map(d => {
+    const h = d.data();
+    return {
+      etapaNombre: h.etapaNombre || "",
+      estadoNuevo: h.estadoNuevo || "",
+      fecha: h.fecha || new Date(),
+      observacion: h.observacion || ""
+    };
+  });
+  const fotos = (p.fotos || []).map(f => ({
+    url: f.url, tipo: f.tipo || "foto", descripcion: f.descripcion || ""
+  }));
+
+  await setDoc(doc(db, "vistaCliente", p.token), {
+    codigo,
+    cliente: p.cliente || "",
+    tipoProyecto: p.tipoProyecto || "",
+    etapaActualIndex: p.etapaActualIndex ?? 0,
+    estadoEtapaActual: p.estadoEtapaActual || "pendiente",
+    activo: p.activo !== false,
+    fechaEstimadaInicio: p.fechaEstimadaInicio || null,
+    fechaEstimadaFin: p.fechaEstimadaFin || null,
+    fechaEstimadaInstalacion: p.fechaEstimadaInstalacion || null,
+    responsable: p.responsable || "",
+    direccion: p.direccion ?? null,
+    categoria: p.categoria || "",
+    cantidadProyectosCliente: p.cantidadProyectosCliente || 1,
+    codigoCotizacion: p.codigoCotizacion || "",
+    observaciones: p.observaciones || "",
+    fotos,
+    historial,
+    actualizadoEn: serverTimestamp()
+  });
+
+  // Si el token del proyecto cambió, se borra la copia del token anterior
+  if (p.vistaClienteToken && p.vistaClienteToken !== p.token) {
+    await deleteDoc(doc(db, "vistaCliente", p.vistaClienteToken)).catch(() => {});
+  }
+  if (p.vistaClienteToken !== p.token) {
+    await updateDoc(refProyecto, { vistaClienteToken: p.token });
+  }
+}
+
+/** Igual que la anterior, pero un fallo aquí nunca debe romper el guardado del staff. */
+async function sincronizarVistaClienteSegura(codigo) {
+  try {
+    await sincronizarVistaCliente(codigo);
+  } catch (err) {
+    console.error("No pudimos actualizar la vista del cliente:", err);
+  }
 }
 
 // ============================================================
