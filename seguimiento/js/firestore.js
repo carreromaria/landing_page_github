@@ -748,11 +748,23 @@ export async function crearCotizacion(leadId, prefijoCodigo, datos, uid, opcion 
   const mayorVersion = historialOpcion.reduce((max, c) => Math.max(max, Number(c.version) || 1), 0);
   const nuevaVersion = mayorVersion + 1;
 
+  // Una cotización = un número. Las versiones nuevas (V2, V3…) de la MISMA opción
+  // conservan el folio de la primera (CT-COC-00023 V1, V2, V3…) y no gastan número
+  // del contador; así el contador refleja cotizaciones reales y no revisiones.
+  // Solo la primera versión de una opción recibe un número nuevo.
+  const ultimaVersion = historialOpcion.reduce(
+    (mejor, c) => (!mejor || (Number(c.version) || 1) > (Number(mejor.version) || 1)) ? c : mejor, null);
+  const folioExistente = ultimaVersion?.numero || null;
+
   const nuevoId = await runTransaction(db, async (transaction) => {
-    const snapContador = await transaction.get(refContador);
-    const ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
-    const nuevoNumero = ultimo + 1;
-    const folio = `CT-${prefijoCodigo}-${String(nuevoNumero).padStart(5, "0")}`;
+    let folio = folioExistente;
+    if (!folio) {
+      const snapContador = await transaction.get(refContador);
+      const ultimo = snapContador.exists() ? snapContador.data().ultimo : 0;
+      const nuevoNumero = ultimo + 1;
+      folio = `CT-${prefijoCodigo}-${String(nuevoNumero).padStart(5, "0")}`;
+      transaction.set(refContador, { ultimo: nuevoNumero });
+    }
 
     const refNueva = doc(collection(db, "cotizaciones"));
 
@@ -760,7 +772,6 @@ export async function crearCotizacion(leadId, prefijoCodigo, datos, uid, opcion 
       transaction.update(doc(db, "cotizaciones", vigenteAnterior.id), { estado: "reemplazada" });
     }
 
-    transaction.set(refContador, { ultimo: nuevoNumero });
     transaction.set(refNueva, {
       ...datos,
       leadId,
