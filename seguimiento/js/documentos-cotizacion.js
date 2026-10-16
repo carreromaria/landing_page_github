@@ -120,6 +120,17 @@ function formatearDireccion(direccion) {
   return partes.join(', ').toLocaleUpperCase('es-CL') || '—';
 }
 
+/**
+ * Las versiones de una cotización comparten el mismo número (CT-COC-00023). Para que dos
+ * PDF distintos no salgan con el mismo código, toda versión lleva su sufijo:
+ * "CT-COC-00023 · V1", "CT-COC-00023 · V2"… La Descripción va de la mano con cada
+ * cotización, así que usa la misma versión: "DC-COC-00023 · V1", "DC-COC-00023 · V2".
+ */
+export function folioConVersion(folio, version) {
+  const v = Number(version);
+  return v >= 1 ? `${folio} · V${v}` : String(folio || '');
+}
+
 /** "CT-WSP-00002" -> "DC-WSP-00002" */
 export function folioDescripcion(numeroCotizacion) {
   return String(numeroCotizacion || '').replace(/^[A-Z]+-/, 'DC-');
@@ -174,7 +185,7 @@ export function htmlEncabezado(titulo, folio) {
     </div>
     <div class="ln-datos-empresa">
       <div class="ln-fila-rut"><span>LINENCE SpA.</span><span>RUT: 78.446.739-2</span></div>
-      <div>DIRECCIÓN: Av. Salvador Allende 0131, calle Los Almendros 22, Local 33</div>
+      <div>DIRECCIÓN: Av. Salvador Allende, Los Almendros 22</div>
       <div>CORREO ELECTRÓNICO: contacto@linence.cl</div>
     </div>
     <img class="ln-logo" src="assets/img/logo-encabezado.png" width="162" height="95" alt="LINENCE">
@@ -275,7 +286,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     </table>
   </div>`;
 
-  return `${htmlEncabezado('Cotización', cotizacion.numero)}
+  return `${htmlEncabezado('Cotización', folioConVersion(cotizacion.numero, cotizacion.version))}
 
   <table class="pdf-tabla-info">
     <colgroup><col><col style="width:205px;"></colgroup>
@@ -329,7 +340,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     </thead>
     <tbody>${filas}</tbody>
   </table>
-${htmlPie('Cotización', cotizacion.numero, cuadroPie)}`;
+${htmlPie('Cotización', folioConVersion(cotizacion.numero, cotizacion.version), cuadroPie)}`;
 }
 
 // ---------- DC — Descripción de Cotización ----------
@@ -379,14 +390,14 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   // Encabezado solo en la primera hoja y pie solo en la última: el margen superior
   // e inferior de cada hoja lo da @page (ver css/pdf-documentos.css).
   const titulo = 'Descripción de cotización';
-  const folio = folioDescripcion(cotizacion.numero);
+  const folio = folioConVersion(folioDescripcion(cotizacion.numero), cotizacion.version);
 
   return `${htmlEncabezado(titulo, folio)}
 
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
   <p class="pdf-dc-intro">
-    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende 0131, calle Los Almendros 22, Local 33, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
   </p>
 
   <div class="pdf-dc-seccion">
