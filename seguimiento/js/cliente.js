@@ -7,7 +7,7 @@
 // coincide, muestra un estado de error — nunca datos ajenos.
 
 import { ETAPAS, calcularPorcentaje } from './etapas.js';
-import { obtenerProyecto, obtenerHistorial } from './firestore.js';
+import { obtenerVistaCliente } from './firestore.js';
 import { getQueryParams, formatearFecha } from './utils.js';
 import { formatearDireccion } from './regiones-comunas.js';
 
@@ -46,16 +46,23 @@ async function init() {
     return;
   }
 
+  // El token solo puede tener letras y números (así nunca se arma una ruta rara)
+  if (!/^[A-Za-z0-9]{8,64}$/.test(token)) {
+    mostrarError("Este enlace no es válido. Revisa que copiaste la dirección completa que te enviamos.");
+    return;
+  }
+
+  // Se lee la copia pública del proyecto (vistaCliente/{token}), no el proyecto real.
   let proyecto;
   try {
-    proyecto = await obtenerProyecto(codigo);
+    proyecto = await obtenerVistaCliente(token);
   } catch (err) {
     console.error(err);
     mostrarError("No pudimos cargar tu proyecto en este momento. Intenta nuevamente en unos minutos.");
     return;
   }
 
-  if (!proyecto || proyecto.token !== token) {
+  if (!proyecto || proyecto.codigo !== codigo) {
     mostrarError("No encontramos un proyecto con ese enlace. Si crees que esto es un error, escríbenos por WhatsApp.");
     return;
   }
@@ -65,13 +72,8 @@ async function init() {
     return;
   }
 
-  let historial = [];
-  try {
-    historial = await obtenerHistorial(codigo);
-  } catch (err) {
-    console.error("No se pudo cargar el historial:", err);
-    // El proyecto igual se muestra aunque el historial falle
-  }
+  // El historial viaja dentro de la misma copia pública
+  const historial = proyecto.historial || [];
 
   ocultarCarga();
   renderHero(proyecto);
