@@ -778,12 +778,33 @@ const formNuevoLead = document.getElementById('formNuevoLead');
 document.getElementById('btnNuevoLead').addEventListener('click', () => {
   formNuevoLead.reset();
   poblarSelectTipoProyecto(document.getElementById('lTipoCodigo'));
+  duplicadoAvisado = false;
   document.getElementById('modalLeadError').textContent = '';
   document.getElementById('modalLeadError').classList.remove('visible');
   modalNuevoLead.classList.add('visible');
 });
 document.getElementById('btnCancelarNuevoLead').addEventListener('click', () => {
   modalNuevoLead.classList.remove('visible');
+});
+
+// ---------- Aviso de lead duplicado ----------
+// Un mismo cliente puede tener varios proyectos, así que NO se bloquea: se avisa
+// y se pide confirmar volviendo a presionar "Crear lead".
+let duplicadoAvisado = false;
+
+const soloDigitos = (valor) => String(valor || '').replace(/\D/g, '');
+
+function buscarLeadsDuplicados(datos) {
+  const telefono = soloDigitos(datos.telefono).slice(-8); // sin el +56 9
+  return leadsActuales.filter(l => {
+    const mismoRut = datos.rut && l.rut && limpiarRut(l.rut) === datos.rut;
+    const mismoTelefono = telefono.length === 8 && soloDigitos(l.telefono).slice(-8) === telefono;
+    return mismoRut || mismoTelefono;
+  });
+}
+
+['lRut', 'lTelefono'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { duplicadoAvisado = false; });
 });
 
 formNuevoLead.addEventListener('submit', async (e) => {
@@ -826,6 +847,17 @@ formNuevoLead.addEventListener('submit', async (e) => {
 
   if (!telefonoValido(datos.telefono)) {
     errorEl.textContent = 'El teléfono debe tener el formato +56 9 XXXXXXXX (8 dígitos).';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  const duplicados = buscarLeadsDuplicados(datos);
+  if (duplicados.length && !duplicadoAvisado) {
+    duplicadoAvisado = true;
+    const detalle = duplicados.slice(0, 3)
+      .map(l => `${l.codigoLead ? l.codigoLead + ' · ' : ''}${l.nombre} (${l.etapa})`)
+      .join(' — ');
+    errorEl.textContent = `Ya existe${duplicados.length > 1 ? 'n' : ''} ${duplicados.length} lead${duplicados.length > 1 ? 's' : ''} con el mismo RUT o teléfono: ${detalle}. Si es otro proyecto del mismo cliente, vuelve a presionar "Crear lead" para continuar.`;
     errorEl.classList.add('visible');
     return;
   }
