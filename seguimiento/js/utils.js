@@ -27,8 +27,10 @@ export function formatearFecha(valor, conHora = false) {
 /** Genera un token aleatorio largo para enlaces de clientes (usado en el dashboard, Fase 7). */
 export function generarToken() {
   if (window.crypto?.randomUUID) {
-    return window.crypto.randomUUID().replace(/-/g, '').slice(0, 16);
+    // 32 caracteres (antes 16): los enlaces nuevos son mucho más difíciles de adivinar.
+    // Los enlaces ya enviados con token corto siguen funcionando.
+    return window.crypto.randomUUID().replace(/-/g, '');
   }
   // Fallback por si el navegador no soporta randomUUID
-  return Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
 }
