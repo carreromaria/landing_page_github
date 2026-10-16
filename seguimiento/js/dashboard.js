@@ -5,7 +5,7 @@
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
-  escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto,
+  escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto, sincronizarVistaCliente,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
   agregarFotoProyecto, quitarFotoProyecto, eliminarProyecto,
   listarUsuariosStaff, contarProyectosPorRut, buscarProyectoPorRut, buscarDireccionesPorRut,
@@ -472,11 +472,27 @@ function cargarProyectos() {
     (proyectos) => {
       TODOS_LOS_PROYECTOS = proyectos;
       renderLista();
+      migrarVistasCliente(proyectos);
     },
     () => {
       lista.innerHTML = '<div class="dash-vacio">No pudimos cargar los proyectos. Intenta recargar la página.</div>';
     }
   );
+}
+
+// Una sola vez por proyecto: crea la copia pública que ve el cliente (vistaCliente)
+// para los proyectos que todavía no la tienen. Después se mantiene sola.
+const vistasIntentadas = new Set();
+async function migrarVistasCliente(proyectos) {
+  for (const p of proyectos) {
+    if (!p.token || p.vistaClienteToken === p.token || vistasIntentadas.has(p.codigo)) continue;
+    vistasIntentadas.add(p.codigo);
+    try {
+      await sincronizarVistaCliente(p.codigo);
+    } catch (err) {
+      console.error('No pudimos preparar la vista del cliente de', p.codigo, err);
+    }
+  }
 }
 
 function renderLista() {
@@ -865,7 +881,19 @@ function renderDetalle(p, historial) {
   document.getElementById('eFechaInicio').value = timestampAValorInput(p.fechaEstimadaInicio || p.fechaEstimadaInstalacion);
   document.getElementById('eFechaFin').value = timestampAValorInput(p.fechaEstimadaFin || p.fechaEstimadaInstalacion);
   document.getElementById('eCanal').value = p.canalOrigen || '';
-  poblarSelectTipoProyecto(document.getElementById('eTipoCodigo'), p.tipoProyectoCodigo || '').then(() => actualizarCotizacionPreview('e'));
+  const selTipoE = document.getElementById('eTipoCodigo');
+  const notaTipoE = document.getElementById('eTipoCodigoNota');
+  // Una vez que el proyecto tiene código de cotización, el tipo de mueble queda fijo:
+  // cambiarlo dejaría documentos del mismo proyecto con códigos distintos.
+  const tipoBloqueado = !!(p.codigoCotizacion || p.numCotizacion);
+  poblarSelectTipoProyecto(selTipoE, p.tipoProyectoCodigo || '').then(() => {
+    selTipoE.disabled = tipoBloqueado;
+    notaTipoE.style.display = tipoBloqueado ? '' : 'none';
+    notaTipoE.textContent = p.tipoProyectoCodigo
+      ? 'El tipo de mueble ya no se puede cambiar: el proyecto tiene código de cotización y sus documentos ya lo usan.'
+      : 'Este proyecto es anterior al código por tipo de mueble: conserva su código original.';
+    actualizarCotizacionPreview('e');
+  });
   document.getElementById('eNumCotizacion').value = p.numCotizacion || '';
   document.getElementById('eObservaciones').value = p.observaciones || '';
   poblarSelectResponsable(document.getElementById('eResponsable'), p.responsable || '');
