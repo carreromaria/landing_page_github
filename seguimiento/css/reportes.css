@@ -1,0 +1,72 @@
+/* ============================================================
+   LINENCE — Reportes
+   ============================================================ */
+
+.rep-kpis{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+  gap:12px;
+  margin-bottom:26px;
+}
+.rep-kpi{
+  background:#fff;
+  border:1px solid var(--gold-line);
+  border-radius:8px;
+  padding:14px 16px;
+}
+.rep-kpi .valor{ font-size:26px; font-weight:500; line-height:1.1; }
+.rep-kpi .etiqueta{ font-size:12px; opacity:0.7; margin-top:4px; }
+.rep-kpi.destacado{ background:var(--sand-soft); border-color:var(--gold); }
+
+.rep-seccion{
+  background:#fff;
+  border:1px solid var(--gold-line);
+  border-radius:8px;
+  padding:20px 22px;
+  margin-bottom:22px;
+}
+.rep-titulo{ font-size:16px; font-weight:500; margin:0 0 12px; }
+
+.rep-leyenda{ display:flex; flex-wrap:wrap; gap:16px; font-size:12.5px; opacity:0.8; margin-bottom:14px; }
+.rep-dot{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+.rep-dot-leads{ background:var(--gold); }
+.rep-dot-ganados{ background:#141213; }
+
+.rep-canal{
+  display:grid;
+  grid-template-columns:170px 1fr 190px;
+  align-items:center;
+  gap:14px;
+  padding:9px 0;
+  border-top:1px solid rgba(214,165,44,0.18);
+}
+.rep-canal:first-child{ border-top:none; }
+.rep-canal-nombre{ font-size:14px; font-weight:500; }
+.rep-barra{
+  height:22px;
+  background:rgba(214,165,44,0.14);
+  border-radius:4px;
+  overflow:hidden;
+}
+.rep-barra-leads{
+  height:100%;
+  background:var(--gold);
+  border-radius:4px;
+  min-width:4px;
+}
+.rep-barra-ganados{
+  height:100%;
+  background:#141213;
+}
+.rep-canal-cifras{ font-size:12.5px; line-height:1.45; }
+.rep-canal-cifras strong{ font-weight:600; }
+.rep-canal-cifras .conv{ opacity:0.7; }
+
+.rep-lectura{ margin:0; padding-left:18px; font-size:14px; line-height:1.7; }
+
+.rep-nota{ font-size:12px; opacity:0.65; line-height:1.55; margin:0 0 30px; max-width:760px; }
+
+@media (max-width:760px){
+  .rep-canal{ grid-template-columns:1fr; gap:6px; }
+  .rep-seccion{ padding:16px; }
+}
