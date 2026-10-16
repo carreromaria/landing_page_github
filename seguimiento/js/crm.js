@@ -12,7 +12,7 @@ import {
   cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
-  obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes,
+  obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion
 } from './firestore.js';
 import { generarToken } from './utils.js';
@@ -857,7 +857,24 @@ document.getElementById('btnEditarLead').addEventListener('click', () => {
   escribirDireccionEnFormulario('e', lead.direccion);
   document.getElementById('eCanal').value = lead.canalOrigen || '';
   document.getElementById('eTipoProyecto').value = (lead.tipoProyecto || '').toLocaleUpperCase('es-CL');
-  poblarSelectTipoProyecto(document.getElementById('eTipoCodigo'), lead.tipoProyectoCodigo || '');
+  const selTipoE = document.getElementById('eTipoCodigo');
+  const notaTipoE = document.getElementById('eTipoCodigoNota');
+  selTipoE.disabled = false;
+  notaTipoE.style.display = 'none';
+  poblarSelectTipoProyecto(selTipoE, lead.tipoProyectoCodigo || '').then(async () => {
+    // Con una cotización emitida, el tipo de mueble queda fijo: el código de los
+    // documentos (CT-COC-…) ya lo usa y cambiarlo dejaría códigos inconsistentes.
+    try {
+      const cotizaciones = await listarCotizacionesPorLead(lead.id);
+      if (cotizaciones.length) {
+        selTipoE.disabled = true;
+        notaTipoE.textContent = `El tipo de mueble ya no se puede cambiar: este lead tiene la cotización ${cotizaciones[0].numero} emitida.`;
+        notaTipoE.style.display = '';
+      }
+    } catch (err) {
+      console.error('No pudimos revisar las cotizaciones del lead:', err);
+    }
+  });
   document.getElementById('eVendedor').value = lead.vendedorAsignado || '';
   document.getElementById('modalEditarError').textContent = '';
   document.getElementById('modalEditarError').classList.remove('visible');
