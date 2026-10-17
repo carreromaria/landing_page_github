@@ -1013,3 +1013,128 @@ export async function contarUsoTiposProyecto() {
   proyectos.forEach(d => sumar(d.data().tipoProyectoCodigo, "proyectos"));
   return uso;
 }
+
+
+// ============================================================
+// AGENDA Y GESTIÓN DE VENCIMIENTOS
+// ============================================================
+// Colecciones: eventos (+ subcolección historial) y recursos.
+// El motor de reglas (recurrencias, alertas, conflictos) vive en
+// js/agenda-motor.js; aquí solo se lee y se escribe.
+//
+// Importante: cada evento guarda `abierto` (true/false, derivado del
+// estado). Así la campanita puede pedir solo los pendientes con una
+// consulta simple, sin índices compuestos.
+
+/** Firestore no acepta `undefined`: lo quita (deja null y vacíos tal cual). */
+function limpiarUndefined(obj) {
+  const out = {};
+  for (const [k, v] of Object.entries(obj)) if (v !== undefined) out[k] = v;
+  return out;
+}
+
+/** Todos los eventos (para el calendario), en tiempo real. */
+export function escucharEventos(callback, onError) {
+  const q = query(collection(db, "eventos"), orderBy("proximaFecha", "asc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/** Solo los eventos pendientes (abierto == true), en tiempo real. Lo usa la campanita. */
+export function escucharEventosAbiertos(callback, onError) {
+  const q = query(collection(db, "eventos"), where("abierto", "==", true));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+export async function obtenerEvento(id) {
+  const snap = await getDoc(doc(db, "eventos", id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+/**
+ * Crea un evento con código EV-00001, EV-00002… (contador atómico, igual
+ * que proyectos y leads) y deja la primera línea en su historial.
+ * Devuelve { id, codigo }.
+ */
+export async function crearEvento(datos, uid, nombreUsuario) {
+  const ref = doc(collection(db, "eventos"));
+  const refContador = doc(db, "contadores", "eventos");
+  let codigo = "";
+  await runTransaction(db, async (transaction) => {
+    const snapContador = await transaction.get(refContador);
+    const nuevoNumero = (snapContador.exists() ? snapContador.data().ultimo : 0) + 1;
+    codigo = "EV-" + String(nuevoNumero).padStart(5, "0");
+    transaction.set(refContador, { ultimo: nuevoNumero });
+    transaction.set(ref, limpiarUndefined({
+      ...datos,
+      codigo,
+      creadoPor: uid,
+      creadoPorNombre: nombreUsuario || "",
+      creadoEn: serverTimestamp(),
+      actualizadoPor: uid,
+      actualizadoPorNombre: nombreUsuario || "",
+      actualizadoEn: serverTimestamp()
+    }));
+    transaction.set(doc(collection(ref, "historial")), {
+      tipo: "creado",
+      estadoNuevo: datos.estado || "",
+      fechaNueva: datos.proximaFecha || "",
+      por: uid,
+      porNombre: nombreUsuario || "",
+      fecha: serverTimestamp()
+    });
+  });
+  return { id: ref.id, codigo };
+}
+
+/**
+ * Actualiza un evento y, en la misma operación, agrega una línea al historial
+ * (cambio de estado, reprogramación, pago/realización, edición).
+ * @param {object} entrada  { tipo, estadoAnterior?, estadoNuevo?, fechaAnterior?, fechaNueva?,
+ *                            fechaOcurrencia?, nota?, por, porNombre }
+ */
+export async function actualizarEvento(id, datos, entrada) {
+  const ref = doc(db, "eventos", id);
+  const batch = writeBatch(db);
+  batch.update(ref, limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
+  if (entrada) {
+    batch.set(doc(collection(ref, "historial")), limpiarUndefined({ ...entrada, fecha: serverTimestamp() }));
+  }
+  await batch.commit();
+}
+
+/** Historial de un evento en tiempo real, más reciente primero. */
+export function escucharHistorialEvento(id, callback, onError) {
+  const q = query(collection(db, "eventos", id, "historial"), orderBy("fecha", "desc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+// ---------- Recursos reservables (personas, equipos, vehículos, sala, taller) ----------
+// Nunca se eliminan: se desactivan (campo activo), igual que el resto de los catálogos.
+
+export function escucharRecursos(callback, onError) {
+  const q = query(collection(db, "recursos"), orderBy("nombre", "asc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/** @param {{nombre:string, tipo:string}} datos */
+export async function crearRecurso(datos, uid) {
+  const ref = doc(collection(db, "recursos"));
+  await setDoc(ref, { ...datos, activo: true, creadoPor: uid, creadoEn: serverTimestamp() });
+  return ref.id;
+}
+
+export async function actualizarRecurso(id, datos) {
+  await updateDoc(doc(db, "recursos", id), limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
+}
