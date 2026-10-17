@@ -3,18 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Documentación · Panel Interno · LINENCE</title>
+<title>Panel Interno · LINENCE</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="../favicon.png">
 <link rel="shortcut icon" type="image/png" href="../favicon.png">
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<link rel="stylesheet" href="css/poppins-local.css?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/documentacion.css?v=4">
 </head>
 <body>
 
@@ -38,9 +37,10 @@
     <button id="btnCerrarSidebar" class="btn-cerrar-sidebar" aria-label="Cerrar menú">×</button>
     <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-sidebar-desktop">
     <ul class="dash-nav">
-      <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
+      <li><a href="dashboard.html" class="activo">📋 <span class="texto">Proyectos</span></a></li>
       <li><a href="crm.html">👥 <span class="texto">CRM</span></a></li>
-      <li><a href="documentacion.html" class="activo">🗂️ <span class="texto">Documentación </span></a></li>
+      <li><a href="agenda.html">📅 <span class="texto">Agenda</span></a></li>
+      <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
       <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
       <li><a href="catalogo-servicios.html">🏷️ <span class="texto">Catálogo</span></a></li>
       <li><a href="tipos-proyecto.html">🧩 <span class="texto">Tipos de proyecto</span></a></li>
@@ -55,142 +55,449 @@
   </aside>
 
   <main class="dash-main">
-    <h1>Documentación</h1>
-    <p class="subtitulo">Busca un cliente por RUT y genera sus documentos listos para descargar o imprimir.</p>
+    <div class="dash-top-fijo" id="dashTopWrap">
+      <div class="dash-top-encabezado">
+        <h1>Proyectos</h1>
+        <button type="button" class="dash-top-toggle" id="dashTopToggle" aria-expanded="false" aria-label="Mostrar buscador y filtros">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
 
-    <!-- ---- Buscador por RUT ---- -->
-    <form class="doc-buscador" id="formBuscarRut">
-      <input type="text" id="inputRutBuscar" placeholder="Buscar por RUT del cliente. Ej: 16.252.778-9" autocomplete="off">
-      <button type="submit" class="btn-primario">Buscar</button>
-    </form>
+      <div class="dash-top-colapsable" id="dashTopColapsable">
+        <p class="subtitulo">Gestiona el seguimiento de todos los proyectos activos de Linence.</p>
 
-    <div class="doc-no-encontrado" id="docNoEncontrado">
-      No encontramos ningún proyecto con ese RUT. Revisa que esté bien escrito o créalo primero en Proyectos.
+        <div class="dash-toolbar">
+          <input type="search" id="buscador" placeholder="Buscar por código o cliente…">
+          <select id="filtroEstado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="completada">Completada</option>
+          </select>
+          <button class="btn-nuevo-proyecto" id="btnNuevoProyecto">+ Nuevo proyecto</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Si el RUT tiene más de un proyecto, aquí se elige cuál abrir -->
-    <div class="doc-proyectos-lista" id="docProyectosLista" style="display:none;"></div>
+    <script>
+      // Toggle del bloque completo (subtítulo + buscador + filtro +
+      // "+ Nuevo proyecto") en mobile/tablet. En escritorio el CSS lo
+      // deja siempre visible y este botón ni se muestra. Mismo patrón
+      // usado en el CRM.
+      (function(){
+        var toggle = document.getElementById('dashTopToggle');
+        var wrap = document.getElementById('dashTopWrap');
+        if (!toggle || !wrap) return;
+        toggle.addEventListener('click', function(){
+          var abierto = wrap.classList.toggle('abierto');
+          toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        });
+      })();
+    </script>
 
-    <div class="doc-cliente-resultado" id="docClienteResultado">
-      <div class="nombre" id="docClienteNombre">—</div>
-      <div class="meta" id="docClienteMeta">—</div>
-      <a href="#" id="docLinkCrm" class="doc-link-crm" style="display:none;">Ver tarjeta en CRM ↗</a>
+    <div class="tabla-proyectos">
+      <div class="fila-proyecto encabezado">
+        <span>Código</span>
+        <span>Cliente</span>
+        <span class="tipo-col">Tipo</span>
+        <span class="etapa-col">Etapa actual</span>
+        <span>Avance</span>
+        <span class="estado-col"></span>
+      </div>
+      <div id="listaProyectos"></div>
+      <div class="dash-vacio" id="dashVacio" style="display:none;">
+        Aún no hay proyectos creados. Haz clic en "+ Nuevo proyecto" para agregar el primero.
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= VISTA DE DETALLE ================= -->
+  <main class="dash-main" id="vistaDetalle" style="display:none;">
+    <button class="btn-volver" id="btnVolverListado">← Volver al listado</button>
+
+    <div class="detalle-header">
+      <div>
+        <span class="codigo-badge-grande" id="detalleCodigo">—</span>
+        <h1 id="detalleCliente">—</h1>
+        <p class="subtitulo" id="detalleTipo">—</p>
+        <p class="crm-lead-creado-meta" id="detalleLeadCreado" style="display:none;"></p>
+      </div>
+      <a href="#" id="detalleEnlaceCliente" target="_blank" class="btn-secundario">Ver como cliente ↗</a>
+      <a href="#" id="detalleEnlaceDocumentacion" class="btn-secundario">Documentación ↗</a>
+      <a href="#" id="detalleEnlaceCrm" class="btn-secundario" style="display:none;">Ver en CRM ↗</a>
+      <a href="#" id="detalleEnlaceWhatsapp" target="_blank" class="btn-secundario">Compartir por WhatsApp ↗</a>
+      <a href="#" id="detalleEnlaceBienvenida" target="_blank" class="btn-secundario btn-bienvenida">Enviar bienvenida a la plataforma ↗</a>
     </div>
 
-    <!-- ---- Estado de la cotización (viene del módulo Cotizaciones) ---- -->
-    <div id="docAvisoCotizacion" style="display:none; margin:0 0 20px; padding:14px 18px; border:1px solid var(--gold-line); border-radius:10px; background:var(--sand-soft); font-size:14px; line-height:1.5;"></div>
+    <!-- ---- Control de etapa ---- -->
+    <section class="panel-seccion">
+      <h2>Avance del proyecto</h2>
+      <div class="etapa-actual-control">
+        <div>
+          <span class="eyebrow">Etapa actual</span>
+          <div class="etapa-nombre-grande" id="etapaNombreActual">—</div>
+          <span class="badge-estado" id="etapaEstadoBadge">—</span>
+        </div>
+        <div class="etapa-botones-col">
+          <span class="porcentaje-avance-detalle" id="etapaPorcentajeDetalle">— % completado</span>
+          <div class="etapa-botones">
+            <button class="btn-secundario" id="btnRetroceder">← Retroceder etapa</button>
+            <button class="btn-secundario" id="btnIniciarEtapa">Marcar inicio</button>
+            <button class="btn-primario" id="btnCompletarEtapa">Completar y avanzar →</button>
+          </div>
+        </div>
+      </div>
 
-    <!-- ---- Datos de contrato, abono e instalación (lo que Cotizaciones no captura) ---- -->
-    <section class="panel-seccion" id="docDatosPanel" style="display:none;">
-      <button type="button" class="datos-proyecto-toggle" id="datosDocToggle">
-        <h2>Datos de contrato, abono e instalación</h2>
-        <span class="flecha-datos" id="flechaDatosDoc">⌄</span>
+      <div class="campo campo-obs-etapa">
+        <label for="obsEtapaInput">Observación de este cambio (opcional, visible para el cliente)</label>
+        <textarea id="obsEtapaInput" placeholder="Ej. Se recibieron los tableros con 2 días de anticipación."></textarea>
+      </div>
+
+      <ol class="mini-timeline" id="miniTimeline"></ol>
+    </section>
+
+    <!-- ---- Fotografías ---- -->
+    <section class="panel-seccion">
+      <h2>Fotografías del avance</h2>
+      <label class="dropzone" id="dropzone" for="inputFoto">
+        <span class="dropzone-icono">＋</span>
+        <span>Arrastra una fotografía o un video corto aquí, o haz clic para elegir un archivo</span>
+        <span class="dropzone-hint">Fotos: JPG o PNG, máx. 10MB · Videos: máx. 15MB y 20 segundos, sin audio para el cliente</span>
+      </label>
+      <input type="file" id="inputFoto" accept="image/*,video/*" hidden>
+
+      <div class="subida-progreso" id="subidaProgreso" style="display:none;">
+        <div class="barra"><div class="barra-fill" id="barraFill"></div></div>
+        <span id="subidaTexto">Subiendo… 0%</span>
+      </div>
+      <div class="modal-error" id="fotoError"></div>
+
+      <div class="galeria-dashboard" id="galeriaDashboard"></div>
+    </section>
+
+    <!-- ---- Datos generales ---- -->
+    <section class="panel-seccion">
+      <button type="button" class="datos-proyecto-toggle" id="datosProyectoToggle">
+        <h2>Datos del proyecto</h2>
+        <span class="flecha-datos" id="flechaDatos">⌄</span>
       </button>
 
-      <form id="formDatosDoc" style="display:none;">
-        <p class="subtitulo" style="margin-bottom:14px;">Lo que ya viene de la cotización (folio, ítems, total, IVA, abono, forma de pago y fechas de entrega) no se pide aquí. Los campos con valor sugerido se toman del proyecto y de la cotización: cámbialos si no corresponden. Se guardan en el proyecto, así que no se pierden si la cotización cambia de versión.</p>
+      <ul class="resumen-datos" id="resumenDatos"></ul>
 
-        <p class="form-section-title">Contrato</p>
+      <form id="formEditarProyecto" style="display:none;">
         <div class="form-grid">
+          <p class="form-section-title">Datos del cliente</p>
           <div class="campo">
-            <label for="ddFechaContrato">Fecha del contrato</label>
-            <input type="date" id="ddFechaContrato">
+            <label for="eRut">RUT</label>
+            <input type="text" id="eRut" placeholder="12.345.678-9" autocomplete="off">
+            <span class="rut-autocompletado" id="eRutAutocompletado"></span>
           </div>
           <div class="campo">
-            <label for="ddPlazoDias">Plazo de ejecución (días hábiles)</label>
-            <input type="number" id="ddPlazoDias" min="1" placeholder="Ej. 16">
-          </div>
-          <div class="campo">
-            <label for="ddAutorizaImagenes">Uso de imágenes del proyecto</label>
-            <select id="ddAutorizaImagenes">
-              <option value="">Aún sin definir</option>
-              <option value="si">El cliente autoriza</option>
-              <option value="no">El cliente no autoriza</option>
-            </select>
-          </div>
-        </div>
-
-        <p class="form-section-title">Abono recibido</p>
-        <div class="form-grid">
-          <div class="campo">
-            <label for="ddMedioPago">Medio de pago del abono</label>
-            <input type="text" id="ddMedioPago" placeholder="Ej. Transferencia">
-          </div>
-          <div class="campo">
-            <label for="ddBanco">Banco</label>
-            <input type="text" id="ddBanco" placeholder="Ej. Banco Estado">
-          </div>
-          <div class="campo">
-            <label for="ddFechaPago">Fecha del pago del abono</label>
-            <input type="date" id="ddFechaPago">
-          </div>
-        </div>
-
-        <p class="form-section-title">Instalación y entrega</p>
-        <div class="form-grid">
-          <div class="campo">
-            <label for="ddFechaInstalacion">Fecha de instalación</label>
-            <input type="date" id="ddFechaInstalacion">
-          </div>
-          <div class="campo">
-            <label for="ddHoraInicio">Hora de inicio</label>
-            <input type="time" id="ddHoraInicio">
-          </div>
-          <div class="campo">
-            <label for="ddHoraTermino">Hora de término</label>
-            <input type="time" id="ddHoraTermino">
-          </div>
-          <div class="campo">
-            <label for="ddInstalador">Instalador responsable</label>
-            <input type="text" id="ddInstalador" placeholder="Ej. Abraham Quintero">
-          </div>
-          <div class="campo">
-            <label for="ddRelacionCliente">Relación de quien recibe con el cliente</label>
-            <input type="text" id="ddRelacionCliente" placeholder="Ej. Titular del proyecto">
-          </div>
-          <div class="campo">
-            <label for="ddOtrosElementos">Otros elementos entregados (opcional)</label>
-            <input type="text" id="ddOtrosElementos" placeholder="Ej. Kit de mantención">
+            <label for="eTelefono">Teléfono</label>
+            <input type="tel" id="eTelefono" placeholder="+56 9 XXXXXXXX" maxlength="14">
           </div>
           <div class="campo campo-full">
-            <label for="ddObservaciones">Observaciones (opcional)</label>
-            <input type="text" id="ddObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
+            <label for="eCliente">Cliente <span style="color:#c14b32;">*</span></label>
+            <input type="text" id="eCliente" required>
+          </div>
+          <div class="campo campo-full">
+            <label for="eEmail">Correo electrónico</label>
+            <input type="email" id="eEmail">
+          </div>
+          <div class="campo campo-full" id="eDireccionesPreviasWrap" style="display:none;">
+            <label for="eDireccionesPrevias">Direcciones anteriores de este cliente</label>
+            <select id="eDireccionesPrevias">
+              <option value="">Selecciona una dirección o completa una nueva abajo…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eRegion">Región</label>
+            <select id="eRegion">
+              <option value="">Selecciona…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eComuna">Comuna</label>
+            <select id="eComuna" disabled>
+              <option value="">Primero selecciona una región…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eCalle">Calle / Avenida / Pasaje</label>
+            <input type="text" id="eCalle">
+          </div>
+          <div class="campo">
+            <label for="eNumero">Número</label>
+            <input type="text" id="eNumero" inputmode="numeric">
+          </div>
+          <div class="campo">
+            <label for="eDepto">Depto / Oficina / Casa</label>
+            <input type="text" id="eDepto" placeholder="Opcional">
+          </div>
+          <div class="campo">
+            <label for="eSector">Sector / Población / Villa</label>
+            <input type="text" id="eSector" placeholder="Opcional">
+          </div>
+          <div class="campo campo-full">
+            <label for="eIndicaciones">Indicaciones adicionales</label>
+            <textarea id="eIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+          </div>
+
+          <p class="form-section-title">Datos internos de Linence</p>
+          <div class="campo">
+            <label for="eTipoProyecto">Tipo de proyecto <span style="color:#c14b32;">*</span></label>
+            <input type="text" id="eTipoProyecto" required>
+          </div>
+          <div class="campo">
+            <label>Categoría del cliente</label>
+            <div class="categoria-auto" id="eCategoriaPreview">
+              <span class="badge-categoria" id="eCategoriaBadge">Bronce</span>
+              <span class="categoria-auto-nota" id="eCategoriaNota">Se calcula sola según el RUT</span>
+            </div>
+          </div>
+          <div class="campo campo-full">
+            <label for="eResponsable">Responsable</label>
+            <select id="eResponsable">
+              <option value="">Selecciona…</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eFechaInicio">Fecha estimada de instalación — desde</label>
+            <input type="date" id="eFechaInicio">
+          </div>
+          <div class="campo">
+            <label for="eFechaFin">Fecha estimada de instalación — hasta</label>
+            <input type="date" id="eFechaFin">
+          </div>
+          <div class="campo">
+            <label for="eCanal">Canal de origen</label>
+            <select id="eCanal">
+              <option value="">Selecciona…</option>
+              <option value="REF">LANDING PAGE-REF</option>
+              <option value="SWR">SHOWROOM-SWR</option>
+              <option value="WSP">WHATSAPP-WSP</option>
+              <option value="INS">INSTAGRAM-INS</option>
+              <option value="FAC">FACEBOOK-FAC</option>
+              <option value="TIK">TIKTOK-TIK</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="eTipoCodigo">Tipo de mueble (código)</label>
+            <select id="eTipoCodigo">
+              <option value="">Selecciona…</option>
+            </select>
+            <small id="eTipoCodigoNota" style="display:none; margin-top:6px; font-size:12px; line-height:1.4; color:#8a6a12;"></small>
+          </div>
+          <div class="campo">
+            <label for="eNumCotizacion">N° de cotización</label>
+            <input type="text" id="eNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
+            <span class="cotizacion-preview" id="eCotizacionPreview">Se verá como: CT-XXX-00000</span>
+          </div>
+          <div class="campo campo-full">
+            <label for="eObservaciones">Observaciones (visibles para el cliente)</label>
+            <textarea id="eObservaciones"></textarea>
           </div>
         </div>
-
-        <div class="modal-error" id="datosDocError"></div>
+        <div class="modal-error" id="editarError"></div>
         <div class="modal-acciones">
-          <button type="submit" class="btn-primario">Guardar datos</button>
+          <button type="button" class="btn-secundario" id="btnCancelarEdicion">Cancelar</button>
+          <button type="submit" class="btn-primario" id="btnGuardarEdicion">Guardar cambios</button>
         </div>
       </form>
     </section>
 
-    <!-- ---- Grilla de documentos ---- -->
+    <!-- ---- Historial ---- -->
     <section class="panel-seccion">
-      <h2>Documentos del proyecto</h2>
-      <div class="docs-grid" id="docsGrid"></div>
+      <h2>Historial</h2>
+      <ul class="historial-dashboard" id="historialDashboard"></ul>
+    </section>
+
+    <!-- ---- Zona de eliminación (solo admin) ---- -->
+    <section class="panel-seccion panel-peligro" id="zonaPeligro" style="display:none;">
+      <h2>Eliminar proyecto</h2>
+      <p class="peligro-texto">
+        Esto borra el proyecto, su historial y sus fotografías <strong>de forma permanente</strong>.
+        No se puede deshacer. El cliente perderá acceso a su enlace de seguimiento de inmediato.
+      </p>
+
+      <div id="pasoUnoEliminar">
+        <button type="button" class="btn-peligro" id="btnIniciarEliminacion">Eliminar este proyecto</button>
+      </div>
+
+      <div id="pasoDosEliminar" style="display:none;">
+        <label class="campo-eliminar-label">
+          Para confirmar, escribe el código del proyecto (<strong id="codigoConfirmacion"></strong>):
+        </label>
+        <input type="text" id="inputConfirmacionCodigo" class="input-confirmacion" autocomplete="off">
+        <div class="modal-error" id="eliminarError"></div>
+        <div class="modal-acciones">
+          <button type="button" class="btn-secundario" id="btnCancelarEliminacion">Cancelar</button>
+          <button type="button" class="btn-peligro" id="btnConfirmarEliminacion" disabled>Eliminar definitivamente</button>
+        </div>
+      </div>
     </section>
   </main>
 </div>
 
-<!-- ================= MODAL: VISTA PREVIA DOCUMENTO ================= -->
-<div class="modal-overlay" id="modalDocumento">
-  <div class="modal-box modal-box-documento">
-    <div class="doc-modal-acciones">
-      <button type="button" class="btn-secundario" id="btnCerrarModalDoc">Cerrar</button>
-      <button type="button" class="btn-secundario" id="btnImprimirDoc">Imprimir</button>
-      <button type="button" class="btn-primario" id="btnDescargarDoc">Descargar PDF</button>
+<!-- ================= MODAL: NUEVO PROYECTO ================= -->
+<div class="modal-overlay" id="modalNuevo">
+  <div class="modal-box">
+    <h2>Nuevo proyecto</h2>
+    <p class="subtitulo">El código de proyecto se genera automáticamente y en orden.</p>
+
+    <form id="formNuevoProyecto">
+      <div class="form-grid">
+        <div class="campo campo-full">
+          <p class="nota-codigo-automatico">El código del proyecto (LIN-00001, LIN-00002…) se asigna automáticamente al guardar.</p>
+        </div>
+
+        <p class="form-section-title">Datos del cliente</p>
+        <div class="campo">
+          <label for="fRut">RUT</label>
+          <input type="text" id="fRut" placeholder="12.345.678-9" autocomplete="off">
+          <span class="rut-autocompletado" id="fRutAutocompletado"></span>
+        </div>
+        <div class="campo">
+          <label for="fTelefono">Teléfono</label>
+          <input type="tel" id="fTelefono" placeholder="+56 9 XXXXXXXX" maxlength="14">
+        </div>
+        <div class="campo campo-full">
+          <label for="fCliente">Cliente <span style="color:#c14b32;">*</span></label>
+          <input type="text" id="fCliente" required>
+        </div>
+        <div class="campo campo-full">
+          <label for="fEmail">Correo electrónico</label>
+          <input type="email" id="fEmail">
+        </div>
+        <div class="campo campo-full" id="fDireccionesPreviasWrap" style="display:none;">
+          <label for="fDireccionesPrevias">Direcciones anteriores de este cliente</label>
+          <select id="fDireccionesPrevias">
+            <option value="">Selecciona una dirección o completa una nueva abajo…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fRegion">Región</label>
+          <select id="fRegion">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fComuna">Comuna</label>
+          <select id="fComuna" disabled>
+            <option value="">Primero selecciona una región…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fCalle">Calle / Avenida / Pasaje</label>
+          <input type="text" id="fCalle">
+        </div>
+        <div class="campo">
+          <label for="fNumero">Número</label>
+          <input type="text" id="fNumero" inputmode="numeric">
+        </div>
+        <div class="campo">
+          <label for="fDepto">Depto / Oficina / Casa</label>
+          <input type="text" id="fDepto" placeholder="Opcional">
+        </div>
+        <div class="campo">
+          <label for="fSector">Sector / Población / Villa</label>
+          <input type="text" id="fSector" placeholder="Opcional">
+        </div>
+        <div class="campo campo-full">
+          <label for="fIndicaciones">Indicaciones adicionales</label>
+          <textarea id="fIndicaciones" placeholder="Opcional. Ej. Portón negro, casa al fondo del pasaje."></textarea>
+        </div>
+
+        <p class="form-section-title">Datos internos de Linence</p>
+        <div class="campo">
+          <label for="fTipoProyecto">Tipo de proyecto <span style="color:#c14b32;">*</span></label>
+          <input type="text" id="fTipoProyecto" placeholder="Ej. Cocina moderna" required>
+        </div>
+        <div class="campo">
+          <label>Categoría del cliente</label>
+          <div class="categoria-auto" id="fCategoriaPreview">
+            <span class="badge-categoria" id="fCategoriaBadge">Bronce</span>
+            <span class="categoria-auto-nota" id="fCategoriaNota">Se calcula sola según el RUT</span>
+          </div>
+        </div>
+        <div class="campo campo-full">
+          <label for="fResponsable">Responsable</label>
+          <select id="fResponsable">
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fFechaInicio">Fecha estimada de instalación — desde</label>
+          <input type="date" id="fFechaInicio">
+        </div>
+        <div class="campo">
+          <label for="fFechaFin">Fecha estimada de instalación — hasta</label>
+          <input type="date" id="fFechaFin">
+        </div>
+        <div class="campo">
+          <label for="fCanal">Canal de origen</label>
+          <select id="fCanal">
+            <option value="">Selecciona…</option>
+            <option value="REF">LANDING PAGE-REF</option>
+            <option value="SWR">SHOWROOM-SWR</option>
+            <option value="WSP">WHATSAPP-WSP</option>
+            <option value="INS">INSTAGRAM-INS</option>
+            <option value="FAC">FACEBOOK-FAC</option>
+            <option value="TIK">TIKTOK-TIK</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fTipoCodigo">Tipo de mueble (código) <span style="color:#c14b32;">*</span></label>
+          <select id="fTipoCodigo" required>
+            <option value="">Selecciona…</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="fNumCotizacion">N° de cotización</label>
+          <input type="text" id="fNumCotizacion" inputmode="numeric" placeholder="Ej. 00004">
+          <span class="cotizacion-preview" id="fCotizacionPreview">Se verá como: CT-XXX-00000</span>
+        </div>
+        <div class="campo campo-full">
+          <label for="fObservaciones">Observaciones iniciales (opcional)</label>
+          <textarea id="fObservaciones"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-error" id="modalError"></div>
+
+      <div class="modal-acciones">
+        <button type="button" class="btn-secundario" id="btnCancelarNuevo">Cancelar</button>
+        <button type="submit" class="btn-primario" id="btnGuardarNuevo">Crear proyecto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= MODAL: ENLACE GENERADO ================= -->
+<div class="modal-overlay" id="modalExito">
+  <div class="modal-box modal-exito">
+    <div class="icono-ok">✓</div>
+    <h2>Proyecto creado</h2>
+    <p class="subtitulo">Comparte este enlace con el cliente para que pueda seguir su proyecto.</p>
+    <div class="enlace-generado">
+      <input type="text" id="enlaceGeneradoInput" readonly>
+      <button id="btnCopiarEnlace">Copiar</button>
     </div>
-    <div class="doc-hoja-scroll">
-      <div id="hojaDocumentoImprimir"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-primario" id="btnCerrarExito">Listo</button>
     </div>
   </div>
 </div>
 
+<!-- ================= BOTÓN FLOTANTE: VOLVER ARRIBA ================= -->
+<button id="btnVolverArriba" class="btn-volver-arriba" aria-label="Volver arriba" type="button">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="6,11 12,5 18,11"/></svg>
+</button>
+
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=13"></script>
+<script type="module" src="js/dashboard.js?v=20261010a"></script>
+<script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
