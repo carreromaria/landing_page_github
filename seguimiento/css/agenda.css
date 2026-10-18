@@ -212,3 +212,11 @@
   .ag-mas{font-size:10px}
   .ag-cab{font-size:10px;padding:8px 2px}
 }
+
+/* ---------- Proyecto vinculado (Fase 2) ---------- */
+.ag-proy{margin-top:8px;padding:10px 14px;background:var(--sand-soft,#f5efe2);border:1px solid var(--gold-line,#e6d9bd);border-left:3px solid var(--gold);
+  border-radius:8px;font-size:12.5px;line-height:1.6;color:var(--ink)}
+.ag-proy a{color:#8a6a12;font-weight:600;text-decoration:none}
+.ag-proy a:hover{text-decoration:underline}
+.ag-proy-cab{font-weight:500;font-size:13px}
+.ag-proy small{opacity:.65}
