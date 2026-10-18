@@ -382,13 +382,3 @@ export function textoBuscable(ev, nombresRecursos = {}, extra = '') {
 export function normalizarBusqueda(t) {
   return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
-
-// ---------- Proyecto vinculado ----------
-
-/** Dirección del proyecto como texto. Acepta la estructurada {calle, numero…} o el texto antiguo. */
-export function formatoDireccion(d) {
-  if (!d) return '';
-  if (typeof d === 'string') return d.trim();
-  const calle = [d.calle, d.numero].filter(Boolean).join(' ');
-  return [calle, d.depto, d.sector, d.comuna, d.region].filter(Boolean).join(', ');
-}
