@@ -12,8 +12,8 @@
 
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { obtenerUsuarioStaff, escucharEventosAbiertos } from './firestore.js';
-import { alertasPendientes, hoyStr, CATEGORIAS, TIPOS_ACTIVIDAD, formatoFechaCorta } from './agenda-motor.js';
+import { obtenerUsuarioStaff, escucharEventosAbiertos, escucharVehiculos } from './firestore.js';
+import { alertasPendientes, hoyStr, CATEGORIAS, TIPOS_ACTIVIDAD, cuandoCorto, setVehiculos } from './agenda-motor.js';
 
 const ROJO = '#c14b32', NARANJA = '#d98a2b';
 
@@ -21,6 +21,7 @@ let eventos = [];
 let botones = [];
 let panel = null;
 let pararEscucha = null;
+let pararVehiculos = null;
 
 function inyectarEstilos() {
   if (document.getElementById('campanita-estilos')) return;
@@ -125,7 +126,7 @@ function pintarPanel() {
     return `<a class="campanita-item" href="agenda.html?evento=${encodeURIComponent(a.ev.id)}">
       <span class="campanita-punto" style="background:${rojo ? ROJO : NARANJA}"></span>
       <span><div class="t">${icono} ${esc(a.ev.titulo)}</div>
-      <div class="s">${esc(a.texto)} · ${esc(formatoFechaCorta(a.ev.proximaFecha))}${a.ev.horaInicio ? ' · ' + esc(a.ev.horaInicio) : ''}</div></span></a>`;
+      <div class="s">${esc([a.texto, cuandoCorto(a.ev), a.ev.horaInicio].filter(Boolean).join(' · '))}</div></span></a>`;
   }).join('');
   panel.innerHTML = `<header><span>Alertas pendientes (${alertas.length})</span><a href="agenda.html">Abrir agenda →</a></header>
     <div class="campanita-lista">${filas || '<div class="campanita-vacio">No tienes alertas pendientes. ✨</div>'}</div>`;
@@ -149,12 +150,15 @@ function iniciar() {
   crearPanel();
   pararEscucha = escucharEventosAbiertos((lista) => { eventos = lista; actualizarContador(); },
     (err) => console.warn('Campanita: no se pudieron leer las alertas', err));
+  // Los vehículos (kilometraje actual) se necesitan para las alertas de mantención por km.
+  pararVehiculos = escucharVehiculos((lista) => { setVehiculos(lista); actualizarContador(); },
+    (err) => console.warn('Campanita: no se pudieron leer los vehículos', err));
   // Recalcula cada minuto (cambio de día, alertas que "llegan" con el tiempo).
   setInterval(actualizarContador, 60000);
 }
 
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { pararEscucha?.(); return; }
+  if (!user) { pararEscucha?.(); pararVehiculos?.(); return; }
   try {
     const staff = await obtenerUsuarioStaff(user.uid);
     if (staff && staff.activo === true && !panel) {
