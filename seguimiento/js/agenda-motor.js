@@ -370,9 +370,9 @@ export function disponibilidadDelDia(recursos, eventos, fecha) {
 
 // ---------- Búsqueda ----------
 
-export function textoBuscable(ev, nombresRecursos = {}) {
+export function textoBuscable(ev, nombresRecursos = {}, extra = '') {
   return [
-    ev.codigo, ev.titulo, ev.descripcion, ev.notas, ev.responsableNombre,
+    ev.codigo, ev.titulo, ev.descripcion, ev.notas, ev.responsableNombre, ev.proyectoCodigo, extra,
     CATEGORIAS[ev.categoria]?.nombre, TIPOS_ACTIVIDAD[ev.tipo]?.nombre,
     ESTADOS[ev.estado]?.nombre,
     ...(ev.recursoIds || []).map(id => nombresRecursos[id])
@@ -381,4 +381,14 @@ export function textoBuscable(ev, nombresRecursos = {}) {
 }
 export function normalizarBusqueda(t) {
   return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+// ---------- Proyecto vinculado ----------
+
+/** Dirección del proyecto como texto. Acepta la estructurada {calle, numero…} o el texto antiguo. */
+export function formatoDireccion(d) {
+  if (!d) return '';
+  if (typeof d === 'string') return d.trim();
+  const calle = [d.calle, d.numero].filter(Boolean).join(' ');
+  return [calle, d.depto, d.sector, d.comuna, d.region].filter(Boolean).join(', ');
 }
