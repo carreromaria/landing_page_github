@@ -233,3 +233,17 @@
 .ag-familiares{display:grid;gap:8px;margin-bottom:10px}
 .ag-fam-fila{display:grid;grid-template-columns:1.4fr 1fr 1fr 36px;gap:8px;align-items:center}
 .ag-fam-fila input,.ag-fam-fila select{width:100%;height:42px;padding:0 10px;border:1px solid var(--gold-line,#e6d9bd);border-radius:8px;background:#fff;font:400 13px Poppins,sans-serif;color:var(--ink);box-sizing:border-box}
+
+/* ---------- Vehículos (Fase 4) ---------- */
+.ag-veh{margin-bottom:18px;padding:16px 18px;background:#fff;border:1px solid var(--gold-line,#e6d9bd);border-left:4px solid var(--gold);border-radius:12px}
+.ag-veh.inactivo{opacity:.65;border-left-color:var(--ag-gris)}
+.ag-veh-cab{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:12px}
+.ag-veh-pat{font-size:18px;font-weight:600;letter-spacing:.06em;color:var(--ink);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ag-veh-mod{font-size:13px;color:var(--ink);opacity:.7;margin-top:2px}
+.ag-veh-km{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+.ag-veh-km b{font-size:20px;font-weight:600;color:var(--ink)}
+.ag-veh-km small{font-size:11px;opacity:.55}
+.ag-veh-acciones{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.ag-veh-acciones .btn-secundario{padding:7px 12px;font-size:12px}
+.ag-barra.rojo i{background:var(--ag-rojo)} .ag-barra.naranja i{background:var(--ag-naranja)}
+@media (max-width:760px){.ag-veh-km{align-items:flex-start;text-align:left}}
