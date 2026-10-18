@@ -725,6 +725,12 @@ let ultimoHistorialCargado = [];
 let unsubProyectoDetalle = null;
 let unsubHistorialDetalle = null;
 
+// Agenda del proyecto (js/proyecto-agenda.js): módulo aparte que se carga al usarse,
+// así si no estuviera disponible el detalle del proyecto funciona igual.
+function agendaProyecto(accion, codigo) {
+  import('./proyecto-agenda.js').then(m => m[accion]?.(codigo)).catch(err => console.warn('Agenda del proyecto no disponible:', err));
+}
+
 function abrirDetalle(codigo) {
   vistaListado.style.display = 'none';
   vistaDetalle.style.display = 'block';
@@ -735,6 +741,7 @@ function abrirDetalle(codigo) {
   document.getElementById('detalleTipo').textContent = '';
 
   detenerListenersDetalle();
+  agendaProyecto('mostrarAgendaProyecto', codigo);
 
   let historialListo = false;
 
@@ -767,6 +774,7 @@ function detenerListenersDetalle() {
 
 function volverAlListado() {
   detenerListenersDetalle();
+  agendaProyecto('ocultarAgendaProyecto');
   vistaDetalle.style.display = 'none';
   vistaListado.style.display = 'block';
   PROYECTO_ACTUAL = null;
