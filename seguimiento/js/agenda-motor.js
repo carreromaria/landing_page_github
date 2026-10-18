@@ -19,10 +19,16 @@ export const ZONA = 'America/Santiago';
 export const CATEGORIAS = {
   actividad:   { nombre: 'Actividad',   icono: '📆' },
   recordatorio:{ nombre: 'Recordatorio',icono: '🔔' },
-  vencimiento: { nombre: 'Vencimiento', icono: '💳' }
-  // Fases siguientes: cumpleanos, servicio, obligacion, vehiculo…
-  // usan este mismo motor agregando su categoría aquí.
+  vencimiento: { nombre: 'Otro vencimiento', icono: '📅' },
+  servicio:    { nombre: 'Servicio / suscripción', icono: '💡' },
+  obligacion:  { nombre: 'Crédito / obligación', icono: '💳' },
+  cumpleanos:  { nombre: 'Cumpleaños y aniversarios', icono: '🎂' }
+  // Fase 4: vehiculo (mantención por kilometraje) usará este mismo motor.
 };
+
+/** Categorías que registran pagos (monto, comprobante, historial de pagos). */
+export const CATEGORIAS_PAGO = ['servicio', 'obligacion'];
+export const esPago = (ev) => CATEGORIAS_PAGO.includes(ev?.categoria);
 
 export const TIPOS_ACTIVIDAD = {
   visita_cliente:  { nombre: 'Visita a cliente',     icono: '🏠' },
@@ -62,7 +68,10 @@ export const ESTADOS = {
 export const ESTADOS_POR_CATEGORIA = {
   actividad:    ['borrador','programado','confirmacion_pendiente','confirmado','en_ejecucion','realizado','cancelado','reprogramado','no_realizado'],
   recordatorio: ['pendiente','realizado','pospuesto','cancelado'],
-  vencimiento:  ['pendiente','realizado','pospuesto','cancelado']
+  vencimiento:  ['pendiente','realizado','pospuesto','cancelado'],
+  servicio:     ['pendiente','realizado','pospuesto','cancelado'],
+  obligacion:   ['pendiente','realizado','pospuesto','cancelado'],
+  cumpleanos:   ['pendiente','realizado','pospuesto','cancelado']
 };
 
 export function estadoInicial(categoria) {
@@ -84,7 +93,10 @@ export const ANTICIPACIONES = [
 ];
 
 /** Anticipación sugerida al crear, según categoría (editable por el usuario). */
-export const ANTICIPACION_SUGERIDA = { actividad: 1, recordatorio: 1, vencimiento: 5 };
+export const ANTICIPACION_SUGERIDA = { actividad: 1, recordatorio: 1, vencimiento: 5, servicio: 5, obligacion: 7, cumpleanos: 7 };
+
+/** Repetición con la que parte cada categoría al crear (se puede cambiar). */
+export const REPETICION_SUGERIDA = { servicio: 'mensual', obligacion: 'mensual', cumpleanos: 'anual' };
 
 // Opciones rápidas de repetición → regla interna {frecuencia, intervalo}
 export const REPETICIONES = {
@@ -245,11 +257,14 @@ export function fechasEnRango(ev, desde, hasta) {
   if (!estaAbierto(ev.estado) || !esRecurrente(ev)) {
     return (base >= desde && base <= hasta) ? [base] : [];
   }
+  // Un crédito con cuotas se proyecta solo hasta su última cuota pendiente.
+  const limite = ev.categoria === 'obligacion' ? (estadoCuotas(ev)?.restantes ?? Infinity) : Infinity;
   const out = [];
-  let f = base, guard = 0;
-  while (f && f <= hasta && guard++ < 500) {
+  let f = base, guard = 0, n = 1;
+  while (f && f <= hasta && guard++ < 500 && n <= limite) {
     if (f >= desde) out.push(f);
     f = siguienteFecha(f, ev.recurrencia, ev.diaAncla);
+    n++;
   }
   return out;
 }
@@ -289,7 +304,7 @@ export function evaluarEvento(ev, hoy = hoyStr()) {
 
   const prioAlta = ['alta', 'urgente'].includes(ev.prioridad);
   const texto = dias === 0 ? 'Es hoy' : dias === 1 ? 'Es mañana' : `Faltan ${dias} días`;
-  if (dias === 0 && (ev.categoria === 'vencimiento' || prioAlta)) return { nivel: 'urgente', dias, texto };
+  if (dias === 0 && (ev.categoria === 'vencimiento' || esPago(ev) || prioAlta)) return { nivel: 'urgente', dias, texto };
   if (ev.prioridad === 'urgente') return { nivel: 'urgente', dias, texto };
   return { nivel: 'proximo', dias, texto };
 }
@@ -373,6 +388,7 @@ export function disponibilidadDelDia(recursos, eventos, fecha) {
 export function textoBuscable(ev, nombresRecursos = {}, extra = '') {
   return [
     ev.codigo, ev.titulo, ev.descripcion, ev.notas, ev.responsableNombre, ev.proyectoCodigo, extra,
+    ev.datos?.proveedor, ev.datos?.institucion, ev.datos?.persona, ev.datos?.colaboradorNombre, ev.datos?.referencia,
     CATEGORIAS[ev.categoria]?.nombre, TIPOS_ACTIVIDAD[ev.tipo]?.nombre,
     ESTADOS[ev.estado]?.nombre,
     ...(ev.recursoIds || []).map(id => nombresRecursos[id])
@@ -381,4 +397,72 @@ export function textoBuscable(ev, nombresRecursos = {}, extra = '') {
 }
 export function normalizarBusqueda(t) {
   return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+
+// ---------- Catálogos de administración (Fase 3) ----------
+
+export const TIPOS_SERVICIO = ['Agua','Electricidad','Gas','Internet','Telefonía','Arriendo','Hosting','Dominio','Software','Licencia','Alarma','Seguridad','Seguro','Contabilidad','Aseo','Mantención contratada','Otro servicio'];
+export const TIPOS_OBLIGACION = ['Crédito bancario','Crédito automotriz','Crédito de consumo','Crédito hipotecario','Leasing','Préstamo','Tarjeta','Otra obligación'];
+export const PARENTESCOS = { colaborador: 'Colaborador/a', hijo: 'Hijo/a de colaborador', pareja: 'Cónyuge / pareja', familiar: 'Otro familiar', otro: 'Otra persona' };
+export const MONEDAS = ['CLP', 'UF', 'USD'];
+export const METODOS_PAGO = ['Transferencia', 'Débito automático (PAT)', 'Tarjeta de crédito', 'Tarjeta de débito', 'Efectivo', 'Cheque', 'Otro'];
+
+/** $1.250.000 · UF 12,5 · US$ 100 */
+export function formatoMonto(n, moneda = 'CLP') {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  if (moneda === 'UF') return 'UF ' + v.toLocaleString('es-CL', { maximumFractionDigits: 4 });
+  if (moneda === 'USD') return 'US$ ' + v.toLocaleString('es-CL', { maximumFractionDigits: 2 });
+  return '$' + Math.round(v).toLocaleString('es-CL');
+}
+
+/** Monto que corresponde pagar en la próxima ocurrencia: valor del servicio o cuota del crédito. */
+export function montoEvento(ev) {
+  const d = ev?.datos || {};
+  const monto = ev?.categoria === 'obligacion' ? d.montoCuota : d.monto;
+  return Number.isFinite(Number(monto)) && monto !== '' && monto != null ? { monto: Number(monto), moneda: d.moneda || 'CLP' } : null;
+}
+
+/** Cuotas de un crédito: { pagadas, total, siguiente, restantes } o null si no se indicó el total. */
+export function estadoCuotas(ev) {
+  const d = ev?.datos || {};
+  const total = parseInt(d.cuotasTotales, 10);
+  if (!(total > 0)) return null;
+  const pagadas = Math.min(total, Math.max(0, parseInt(d.cuotasPagadas, 10) || 0));
+  return { pagadas, total, siguiente: Math.min(total, pagadas + 1), restantes: total - pagadas };
+}
+
+// ---------- Cumpleaños y aniversarios ----------
+
+/** Próxima vez que cae la fecha base (nacimiento o ingreso) desde "hoy". 29 feb → 28 feb en años no bisiestos. */
+export function proximoAniversario(base, hoy = hoyStr()) {
+  const { y: yh } = partesFecha(hoy);
+  const { m, d } = partesFecha(base);
+  const en = (anio) => armarFecha(anio, m, Math.min(d, diasDelMes(anio, m)));
+  const c = en(yh);
+  return c >= hoy ? c : en(yh + 1);
+}
+/** Años que cumple en la fecha dada (cumpleaños o años de antigüedad). */
+export function aniosEn(base, fecha) { return partesFecha(fecha).y - partesFecha(base).y; }
+
+export function textoCumple(ev) {
+  const d = ev?.datos; if (!d?.fechaBase) return '';
+  const n = aniosEn(d.fechaBase, ev.proximaFecha);
+  if (n <= 0) return '';
+  return d.motivo === 'aniversario' ? `Cumple ${n} ${n === 1 ? 'año' : 'años'} en la empresa` : `Cumple ${n} ${n === 1 ? 'año' : 'años'}`;
+}
+
+/** Título sugerido según categoría y datos del formulario (el usuario puede cambiarlo). */
+export function tituloSugerido(categoria, d = {}) {
+  if (categoria === 'servicio') return [d.servicio, d.proveedor].filter(Boolean).join(' — ');
+  if (categoria === 'obligacion') return [d.tipoObligacion, d.institucion].filter(Boolean).join(' — ');
+  if (categoria === 'cumpleanos') {
+    if (!d.persona) return '';
+    const sufijo = d.parentesco === 'hijo' && d.colaboradorNombre ? ` (hijo/a de ${d.colaboradorNombre})`
+      : d.parentesco === 'pareja' && d.colaboradorNombre ? ` (pareja de ${d.colaboradorNombre})`
+      : d.parentesco === 'familiar' && d.colaboradorNombre ? ` (familiar de ${d.colaboradorNombre})` : '';
+    return (d.motivo === 'aniversario' ? 'Aniversario laboral de ' : 'Cumpleaños de ') + d.persona + sufijo;
+  }
+  return '';
 }
