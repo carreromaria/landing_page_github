@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/agenda.css?v=20261019a">
+<link rel="stylesheet" href="css/agenda.css?v=20261020a">
 </head>
 <body>
 
@@ -79,6 +79,7 @@
         <button type="button" class="ag-tab" data-vista="agenda">📋 Agenda</button>
         <button type="button" class="ag-tab" data-vista="pagos">💳 Pagos</button>
         <button type="button" class="ag-tab" data-vista="cumpleanos">🎂 Cumpleaños</button>
+        <button type="button" class="ag-tab" data-vista="vehiculos">🚗 Vehículos</button>
         <button type="button" class="ag-tab" data-vista="colaboradores" id="tabColaboradores" style="display:none;">👥 Colaboradores</button>
         <button type="button" class="ag-tab" data-vista="recursos">🧰 Recursos</button>
       </nav>
@@ -91,6 +92,7 @@
       <div class="ag-pane" id="paneAgenda" style="display:none;"></div>
       <div class="ag-pane" id="panePagos" style="display:none;"></div>
       <div class="ag-pane" id="paneCumpleanos" style="display:none;"></div>
+      <div class="ag-pane" id="paneVehiculos" style="display:none;"></div>
       <div class="ag-pane" id="paneColaboradores" style="display:none;"></div>
       <div class="ag-pane" id="paneRecursos" style="display:none;"></div>
     </div>
@@ -352,6 +354,132 @@
   </div>
 </div>
 
+<!-- ================= VEHÍCULOS (Fase 4) ================= -->
+<div class="modal-overlay agenda-modal" id="modalVehiculo">
+  <div class="modal-box">
+    <h2 id="vhTitulo">Vehículo</h2>
+    <div class="form-grid">
+      <div class="campo"><label for="vhPatente">Patente</label><input type="text" id="vhPatente" maxlength="10" placeholder="Ej. ABCD12" autocomplete="off" style="text-transform:uppercase"></div>
+      <div class="campo"><label for="vhAnio">Año</label><input type="number" id="vhAnio" min="1950" max="2100" inputmode="numeric"></div>
+      <div class="campo"><label for="vhMarca">Marca</label><input type="text" id="vhMarca" autocomplete="off"></div>
+      <div class="campo"><label for="vhModelo">Modelo</label><input type="text" id="vhModelo" autocomplete="off"></div>
+      <div class="campo"><label for="vhKm" id="vhKmLabel">Kilometraje actual</label><input type="number" id="vhKm" min="0" inputmode="numeric"></div>
+      <div class="campo"><label for="vhVin">VIN / chasis (opcional)</label><input type="text" id="vhVin" autocomplete="off"></div>
+      <div class="campo campo-full"><label for="vhResp">Responsable</label><select id="vhResp"></select></div>
+      <div class="campo campo-full"><label for="vhObs">Observaciones</label><textarea id="vhObs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-error" id="vhError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarVehiculo">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarVehiculo">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay agenda-modal" id="modalKm">
+  <div class="modal-box">
+    <h2>Actualizar kilometraje</h2>
+    <p class="subtitulo" id="kmInfo"></p>
+    <div class="form-grid">
+      <div class="campo"><label for="kmValor">Kilometraje actual</label><input type="number" id="kmValor" min="0" inputmode="numeric"></div>
+      <div class="campo"><label for="kmNota">Nota (opcional)</label><input type="text" id="kmNota" autocomplete="off"></div>
+    </div>
+    <div class="modal-error" id="kmError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarKm">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarKm">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay agenda-modal" id="modalPlan">
+  <div class="modal-box">
+    <h2 id="pvTitulo">Mantención programada</h2>
+    <div class="form-grid">
+      <div class="campo"><label for="pvVehiculo">Vehículo</label><select id="pvVehiculo"></select></div>
+      <div class="campo"><label for="pvClase">Qué vas a programar</label>
+        <select id="pvClase"><option value="mantencion">Mantención</option><option value="documento">Documento con vencimiento</option></select></div>
+      <div class="campo campo-full"><label for="pvTipo" id="pvTipoLabel">Tipo de mantención</label><select id="pvTipo"></select></div>
+
+      <div class="campo campo-full" id="pvModoWrap"><label for="pvModo">Se controla</label><select id="pvModo"></select></div>
+
+      <div class="campo-full" id="pvKmBloque">
+        <div class="form-grid">
+          <div class="campo"><label for="pvUltimoKm">Último km en que se hizo</label><input type="number" id="pvUltimoKm" min="0" inputmode="numeric"></div>
+          <div class="campo"><label for="pvIntervaloKm">Cada cuántos km</label><input type="number" id="pvIntervaloKm" min="1" inputmode="numeric" placeholder="Ej. 5000"></div>
+          <div class="campo"><label for="pvProximoKm">Próximo km</label><input type="number" id="pvProximoKm" min="0" inputmode="numeric"></div>
+          <div class="campo"><label for="pvAvisoKm">Avisar cuántos km antes</label><input type="number" id="pvAvisoKm" min="0" value="500" inputmode="numeric"></div>
+        </div>
+      </div>
+
+      <div class="campo-full" id="pvFechaBloque">
+        <div class="form-grid">
+          <div class="campo"><label for="pvFecha" id="pvFechaLabel">Próxima fecha</label><input type="date" id="pvFecha"></div>
+          <div class="campo" id="pvMesesWrap"><label for="pvIntervaloMeses">Cada cuántos meses</label><input type="number" id="pvIntervaloMeses" min="1" inputmode="numeric" placeholder="Ej. 6"></div>
+          <div class="campo"><label for="pvAntic">Avisar cuántos días antes</label><input type="number" id="pvAntic" min="0" value="30" inputmode="numeric"></div>
+          <div class="campo ag-check-campo" id="pvRenuevaWrap"><label class="ag-check"><input type="checkbox" id="pvRenueva" checked> Se renueva cada año</label></div>
+        </div>
+      </div>
+
+      <div class="campo campo-full"><label for="pvNotas">Notas</label><textarea id="pvNotas" rows="2"></textarea></div>
+    </div>
+    <div class="modal-error" id="pvError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarPlan">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarPlan">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay agenda-modal" id="modalMantencion">
+  <div class="modal-box">
+    <h2>Registrar mantención realizada</h2>
+    <p class="subtitulo" id="mtInfo"></p>
+    <div class="form-grid">
+      <div class="campo"><label for="mtFecha">Fecha</label><input type="date" id="mtFecha"></div>
+      <div class="campo"><label for="mtKm" id="mtKmLabel">Kilometraje al hacerla</label><input type="number" id="mtKm" min="0" inputmode="numeric"></div>
+      <div class="campo"><label for="mtTaller">Taller / proveedor</label><input type="text" id="mtTaller" autocomplete="off"></div>
+      <div class="campo"><label for="mtCosto">Costo (CLP)</label><input type="number" id="mtCosto" min="0" step="any" inputmode="decimal"></div>
+      <div class="campo campo-full"><label for="mtFactura">N° de factura / comprobante (opcional)</label><input type="text" id="mtFactura" autocomplete="off"></div>
+      <div class="campo" id="mtProxKmWrap"><label for="mtProxKm">Próxima mantención (km)</label><input type="number" id="mtProxKm" min="0" inputmode="numeric"></div>
+      <div class="campo" id="mtProxFechaWrap"><label for="mtProxFecha">Próxima mantención (fecha)</label><input type="date" id="mtProxFecha"></div>
+      <div class="campo campo-full"><label for="mtObs">Observaciones</label><textarea id="mtObs" rows="2"></textarea></div>
+    </div>
+    <div class="modal-error" id="mtError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarMantencion">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarMantencion">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay agenda-modal" id="modalGasto">
+  <div class="modal-box">
+    <h2>Registrar gasto del vehículo</h2>
+    <div class="form-grid">
+      <div class="campo"><label for="gsTipo">Tipo de gasto</label><select id="gsTipo"></select></div>
+      <div class="campo"><label for="gsFecha">Fecha</label><input type="date" id="gsFecha"></div>
+      <div class="campo"><label for="gsMonto">Monto (CLP)</label><input type="number" id="gsMonto" min="0" step="any" inputmode="decimal"></div>
+      <div class="campo"><label for="gsKm">Kilometraje (opcional)</label><input type="number" id="gsKm" min="0" inputmode="numeric"></div>
+      <div class="campo campo-full"><label for="gsProveedor">Proveedor / lugar (opcional)</label><input type="text" id="gsProveedor" autocomplete="off"></div>
+      <div class="campo campo-full"><label for="gsDesc">Descripción (opcional)</label><input type="text" id="gsDesc" autocomplete="off"></div>
+    </div>
+    <div class="modal-error" id="gsError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarGasto">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarGasto">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay agenda-modal" id="modalHistVeh">
+  <div class="modal-box">
+    <button type="button" class="ag-cerrar" id="btnCerrarHistVeh" aria-label="Cerrar">×</button>
+    <h2 id="hvTitulo">Historial del vehículo</h2>
+    <div id="hvContenido"></div>
+  </div>
+</div>
+
 <!-- ================= MODAL: COLABORADOR ================= -->
 <div class="modal-overlay agenda-modal" id="modalColaborador">
   <div class="modal-box">
@@ -380,7 +508,7 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/agenda.js?v=20261019a"></script>
+<script type="module" src="js/agenda.js?v=20261020a"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
