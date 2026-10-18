@@ -306,7 +306,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
   // quien llama a htmlCotizacion debe resolverlo antes a un nombre y pasarlo
   // como cliente.vendedorNombre (ver clienteParaPlantilla en cotizaciones.js).
   const vendedor = cliente.vendedorNombre || '—';
-  const condiciones = `Abono ${cotizacion.porcentajeAbono || 0}%, saldo contra entrega`;
+  const condiciones = `Abono ${cotizacion.porcentajeAbono || 0}%, saldo pendiente contra entrega`;
 
   // El cuadro de notas + totales queda anclado al fondo de la última hoja,
   // pegado justo encima del pie institucional (ver htmlPie).
