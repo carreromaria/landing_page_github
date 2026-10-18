@@ -1042,6 +1042,15 @@ export function escucharEventos(callback, onError) {
   );
 }
 
+/** Eventos vinculados a un proyecto (LIN-XXXXX), en tiempo real. Consulta simple, sin índice compuesto. */
+export function escucharEventosDeProyecto(codigoProyecto, callback, onError) {
+  const q = query(collection(db, "eventos"), where("proyectoCodigo", "==", codigoProyecto));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
 /** Solo los eventos pendientes (abierto == true), en tiempo real. Lo usa la campanita. */
 export function escucharEventosAbiertos(callback, onError) {
   const q = query(collection(db, "eventos"), where("abierto", "==", true));
