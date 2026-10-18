@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/agenda.css?v=20261017a">
+<link rel="stylesheet" href="css/agenda.css?v=20261018a">
 </head>
 <body>
 
@@ -169,7 +169,13 @@
           <label class="ag-check"><input type="checkbox" id="evHabil"> Si cae en fin de semana, avisar desde el día hábil anterior</label>
         </div>
 
-        <p class="form-section-title campo-full">Asignación</p>
+        <p class="form-section-title campo-full">Proyecto y asignación</p>
+        <div class="campo campo-full">
+          <label for="evProyecto">Proyecto vinculado (opcional)</label>
+          <input type="text" id="evProyecto" list="evProyectoLista" placeholder="Escribe el código (LIN-00025) o el nombre del cliente…" autocomplete="off">
+          <datalist id="evProyectoLista"></datalist>
+          <div id="evProyectoInfo" class="ag-proy" style="display:none;"></div>
+        </div>
         <div class="campo campo-full">
           <label for="evResp">Responsable</label>
           <select id="evResp"></select>
@@ -297,7 +303,7 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/agenda.js?v=20261017a"></script>
+<script type="module" src="js/agenda.js?v=20261018a"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
