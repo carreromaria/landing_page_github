@@ -24,7 +24,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=19';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=20';
 
 // ---------- Estado ----------
 
@@ -72,6 +72,8 @@ const cotIvaMonto = document.getElementById('cotIvaMonto');
 const cotTotalFinal = document.getElementById('cotTotalFinal');
 const cotPorcentajeAbono = document.getElementById('cotPorcentajeAbono');
 const cotAbono = document.getElementById('cotAbono');
+const cotSaldo = document.getElementById('cotSaldo');
+const cotSaldoEtiqueta = document.getElementById('cotSaldoEtiqueta');
 const cotizacionError = document.getElementById('cotizacionError');
 const btnGuardarCotizacion = document.getElementById('btnGuardarCotizacion');
 const btnGuardarNuevaVersion = document.getElementById('btnGuardarNuevaVersion');
@@ -1270,6 +1272,9 @@ function recalcularCotizacion() {
   const porcentaje = parseInt(cotPorcentajeAbono.value, 10) || 0;
   const abono = Math.round(total * (porcentaje / 100));
   cotAbono.textContent = formatearMoneda(abono);
+  // Saldo = Total − Abono, con el porcentaje restante (100% − % de abono)
+  cotSaldo.textContent = formatearMoneda(Math.max(0, total - abono));
+  cotSaldoEtiqueta.textContent = `Saldo ${Math.max(0, 100 - porcentaje)}%`;
 
   return { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono };
 }
@@ -1558,4 +1563,45 @@ document.getElementById('btnImprimirDC').addEventListener('click', () => {
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
   mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
   imprimirDocumentoPdf(document.getElementById('plantillaDC'), nombreArchivoCotizacion('Descripción de la Cotización'));
+});
+
+// ---------- Cotización y descripción en UN solo PDF ----------
+// Primero la Descripción de Cotización y de último la Cotización: así el
+// cliente la lee sí o sí (antes se enviaban por separado y no la leían).
+
+const modalPdfCombinado = document.getElementById('modalPdfCombinado');
+
+document.getElementById('btnVerCombinado').addEventListener('click', () => {
+  if (!vigenteActual) {
+    cotizacionError.textContent = 'Guarda la cotización primero: los documentos necesitan el folio real.';
+    cotizacionError.classList.add('visible');
+    return;
+  }
+  const cliente = clienteParaPlantilla(leadActual);
+  document.getElementById('plantillaCombDC').innerHTML = htmlDescripcion({
+    cotizacion: vigenteActual,
+    cliente,
+    catalogo: catalogoDescripcionCompleto
+  });
+  document.getElementById('plantillaCombCT').innerHTML = htmlCotizacion({ cotizacion: vigenteActual, cliente });
+  modalPdfCombinado.classList.add('visible');
+});
+
+document.getElementById('btnCerrarModalCombinado').addEventListener('click', () => {
+  modalPdfCombinado.classList.remove('visible');
+});
+modalPdfCombinado.addEventListener('click', (e) => {
+  if (e.target === modalPdfCombinado) modalPdfCombinado.classList.remove('visible');
+});
+
+function imprimirCombinado() {
+  imprimirDocumentosPdf(
+    [document.getElementById('plantillaCombDC'), document.getElementById('plantillaCombCT')],
+    nombreArchivoCotizacion('Cotización y Descripción')
+  );
+}
+document.getElementById('btnImprimirCombinado').addEventListener('click', imprimirCombinado);
+document.getElementById('btnDescargarCombinadoModal').addEventListener('click', () => {
+  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  imprimirCombinado();
 });
