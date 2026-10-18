@@ -11,7 +11,9 @@ import {
   escucharEventos, escucharRecursos, listarUsuariosStaff,
   crearEvento, actualizarEvento, escucharHistorialEvento,
   crearRecurso, actualizarRecurso, escucharProyectos,
-  escucharColaboradores, crearColaborador, actualizarColaborador
+  escucharColaboradores, crearColaborador, actualizarColaborador,
+  escucharVehiculos, crearVehiculo, actualizarVehiculo, registrarKilometraje,
+  escucharMantencionesVehiculo, escucharGastosVehiculo, crearGastoVehiculo, registrarMantencionVehiculo
 } from './firestore.js';
 import { formatearDireccion } from './regiones-comunas.js';
 import * as M from './agenda-motor.js';
@@ -23,7 +25,7 @@ const HORA_INI = 7, HORA_FIN = 20, ALTO_HORA = 48;   // rejilla semanal 07:00–
 const TIPOS_RECURSO = { persona: 'Persona', equipo: 'Equipo de instalación', vehiculo: 'Vehículo', sala: 'Sala de reuniones', taller: 'Taller', otro: 'Otro' };
 
 const S = {
-  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null,
+  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null, vehiculos: [], vehEditando: null, vehKm: null, vehGasto: null, planEditando: null, mantencionId: null, hvId: null, hvMant: [], hvGastos: [], hvPararM: null, hvPararG: null,
   vista: 'resumen',
   mesRef: M.hoyStr().slice(0, 8) + '01',
   semanaRef: M.hoyStr(),
@@ -84,10 +86,15 @@ function resumenDatos(ev) {
     return [mo ? M.formatoMonto(mo.monto, mo.moneda) : '', c ? `cuota ${c.siguiente}/${c.total}` : ''].filter(Boolean).join(' · ');
   }
   if (ev.categoria === 'cumpleanos') return M.textoCumple(ev);
+  if (ev.categoria === 'vehiculo') {
+    const v = M.vehiculoDe(ev), r = M.restanteKm(ev);
+    const km = M.mantencionUsaKm(ev) && r != null ? (r > 0 ? `faltan ${M.formatoKm(r)}` : 'kilometraje alcanzado') : '';
+    return [v?.patente, km].filter(Boolean).join(' · ');
+  }
   return '';
 }
 
-const etiquetaCompletar = (ev) => M.esPago(ev) ? '💳 Registrar pago' : ev.categoria === 'cumpleanos' ? '✓ Marcar como saludado' : '✓ Marcar realizado';
+const etiquetaCompletar = (ev) => M.esMantencion(ev) ? '🔧 Registrar mantención' : ev.categoria === 'vehiculo' ? '✓ Marcar como renovado' : M.esPago(ev) ? '💳 Registrar pago' : ev.categoria === 'cumpleanos' ? '✓ Marcar como saludado' : '✓ Marcar realizado';
 
 function iconoEv(ev) { return M.TIPOS_ACTIVIDAD[ev.tipo]?.icono || M.CATEGORIAS[ev.categoria]?.icono || '📋'; }
 function textoHora(ev) {
@@ -146,7 +153,7 @@ function filaAgenda(ev, fecha) {
     <button type="button" class="ag-mini" data-accion="posponer" data-ev="${esc(ev.id)}" title="Posponer / reprogramar">⏰</button>` : '';
   const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, resumenDatos({ ...ev, proximaFecha: fecha }), ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : '', ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
   return `<div class="ag-fila ${M.colorEvento({ ...ev, proximaFecha: fecha })}" data-ev="${esc(ev.id)}">
-    <div class="ag-fila-hora">${esc(textoHora(ev)) || '—'}</div>
+    <div class="ag-fila-hora">${esc(textoHora(ev)) || (fecha ? '—' : esc(M.cuandoCorto(ev)))}</div>
     <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(ev)} ${esc(ev.titulo)}</div><div class="ag-fila-sub">${sub}</div></div>
     <div class="ag-fila-tags">${badgePrioridad(ev)}${badgeEstado(ev)}</div>
     <div class="ag-fila-acc">${acciones}</div></div>`;
@@ -173,7 +180,7 @@ function renderResumen() {
   const pagosMes = M.ocurrenciasEnRango(abiertos.filter(M.esPago), M.armarFecha(yh, mh, 1), M.armarFecha(yh, mh, M.diasDelMes(yh, mh))).map(o => ({ ...o.ev, proximaFecha: o.fecha }));
 
   const atencion = alertas.slice(0, 8).map(a => `<div class="ag-fila ${a.nivel === 'proximo' ? 'naranja' : 'rojo'}" data-ev="${esc(a.ev.id)}">
-      <div class="ag-fila-hora">${esc(M.formatoFechaCorta(a.ev.proximaFecha))}</div>
+      <div class="ag-fila-hora">${esc(M.cuandoCorto(a.ev))}</div>
       <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(a.ev)} ${esc(a.ev.titulo)}</div><div class="ag-fila-sub">${esc([a.texto, resumenDatos(a.ev)].filter(Boolean).join(' · '))}</div></div>
       <div class="ag-fila-tags">${badgePrioridad(a.ev)}</div></div>`).join('');
 
@@ -190,6 +197,7 @@ function renderResumen() {
       ${tarjeta(semana, '📆 Actividades esta semana', 'neutro', 'semana')}
       ${tarjeta(cumples30, '🎂 Cumpleaños próximos (30 días)', 'neutro', 'cumpleanos')}
       ${tarjeta(sumarPorMoneda(pagosMes), '💳 Por pagar este mes', 'neutro', 'pagos', '', true)}
+      ${tarjeta(alertas.filter(a => a.ev.categoria === 'vehiculo').length, '🚗 Vehículos con alerta', alertas.some(a => a.ev.categoria === 'vehiculo' && a.nivel !== 'proximo') ? 'rojo' : 'neutro', 'vehiculos')}
       ${tarjeta(alertas.length, '⚠️ Alertas pendientes', alertas.some(a => a.nivel !== 'proximo') ? 'rojo' : 'naranja', 'agenda')}
     </div>
     <div class="ag-dos-col">
@@ -333,7 +341,9 @@ function renderAgenda() {
     html = lista.map(ev => filaAgenda(ev, ev.proximaFecha)).join('') || '<p class="ag-vacio">Sin resultados.</p>';
   } else {
     const abiertos = evs.filter(e => M.estaAbierto(e.estado));
-    const vencidos = abiertos.filter(e => e.proximaFecha < hoy).sort((a, b) => a.proximaFecha.localeCompare(b.proximaFecha));
+    const vencidos = abiertos.filter(e => e.proximaFecha && e.proximaFecha < hoy).sort((a, b) => a.proximaFecha.localeCompare(b.proximaFecha));
+    const porKm = S.f.estado === 'vencido' ? [] : M.alertasPendientes(abiertos.filter(e => !e.proximaFecha));
+    if (porKm.length) html += `<h3 class="ag-grupo rojo">🚗 Mantenciones por kilometraje con alerta (${porKm.length})</h3>` + porKm.map(a => filaAgenda(a.ev, null)).join('');
     if (vencidos.length) html += `<h3 class="ag-grupo rojo">🔴 Vencidos (${vencidos.length})</h3>` + vencidos.map(ev => filaAgenda(ev, ev.proximaFecha)).join('');
     if (S.f.estado !== 'vencido') {
       const occ = M.ocurrenciasEnRango(abiertos, hoy, M.sumarDias(hoy, 120));
@@ -422,6 +432,68 @@ function renderCumpleanos() {
     ${html || '<p class="ag-vacio">Aún no hay cumpleaños ni aniversarios. Puedes crearlos aquí o, más rápido, desde la pestaña Colaboradores.</p>'}`;
 }
 
+// ---------- Vista: Vehículos ----------
+
+const veh = (id) => S.vehiculos.find(v => v.id === id) || null;
+const fechaTs = (ts) => { try { return ts?.toDate ? M.formatoFechaDMA(M.hoyStr(ts.toDate())) : ''; } catch { return ''; } };
+
+function filaPlan(ev) {
+  const color = M.colorEvento(ev);
+  const mant = M.esMantencion(ev);
+  let detalle = '', barra = '';
+  if (mant) {
+    const d = ev.datos, r = M.restanteKm(ev), v = M.vehiculoDe(ev);
+    if (M.mantencionUsaKm(ev)) {
+      detalle = `Próxima: ${M.formatoKm(d.proximoKm)}` + (r != null ? (r > 0 ? ` · faltan ${M.formatoKm(r)}` : ' · kilometraje alcanzado') : '');
+      const span = Number(d.proximoKm) - Number(d.ultimoKm);
+      if (v && span > 0 && Number.isFinite(Number(v.kmActual))) {
+        const pct = Math.max(0, Math.min(100, Math.round((Number(v.kmActual) - Number(d.ultimoKm)) / span * 100)));
+        barra = `<div class="ag-barra ${color}"><i style="width:${pct}%"></i></div>`;
+      }
+    }
+    if (ev.proximaFecha && M.modoUsaFecha(d.modo)) detalle += (detalle ? ' · ' : 'Próxima: ') + M.formatoFechaDMA(ev.proximaFecha);
+    if (d.ultimoKm != null) detalle += ` · última a los ${M.formatoKm(d.ultimoKm)}`;
+  } else {
+    detalle = `Vence ${ev.proximaFecha ? M.formatoFechaDMA(ev.proximaFecha) : '—'}${M.esRecurrente(ev) ? ' · se renueva cada año' : ''}`;
+  }
+  return `<div class="ag-fila ${color}" data-ev="${esc(ev.id)}">
+    <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${mant ? '🔧' : '📄'} ${esc(ev.datos?.nombre || ev.titulo)}</div><div class="ag-fila-sub">${esc(detalle)}</div>${barra}</div>
+    <div class="ag-fila-tags">${badgeEstado(ev)}</div>
+    <div class="ag-fila-acc"><button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="${mant ? 'Registrar mantención' : 'Marcar como renovado'}">${mant ? '🔧' : '✓'}</button></div></div>`;
+}
+
+function renderVehiculos() {
+  const hoy = M.hoyStr();
+  const planes = S.eventos.filter(e => e.categoria === 'vehiculo' && M.estaAbierto(e.estado));
+  const conAlerta = M.alertasPendientes(planes, hoy);
+  const tarjetas = S.vehiculos.map(v => {
+    const propios = planes.filter(e => e.vehiculoId === v.id)
+      .sort((a, b) => (M.esMantencion(b) - M.esMantencion(a)) || String(a.titulo).localeCompare(String(b.titulo)));
+    const alertas = conAlerta.filter(a => a.ev.vehiculoId === v.id).length;
+    const modelo = [v.marca, v.modelo, v.anio].filter(Boolean).join(' ');
+    return `<div class="ag-veh ${v.activo === false ? 'inactivo' : ''}">
+      <div class="ag-veh-cab">
+        <div><div class="ag-veh-pat">${esc(v.patente)} ${alertas ? `<span class="ag-badge rojo">${alertas} ${alertas === 1 ? 'alerta' : 'alertas'}</span>` : ''}${v.activo === false ? '<span class="ag-badge gris">Inactivo</span>' : ''}</div>
+          <div class="ag-veh-mod">${esc(modelo)}${v.responsableNombre ? ' · ' + esc(v.responsableNombre) : ''}</div></div>
+        <div class="ag-veh-km"><b>${v.kmActual != null && v.kmActual !== '' ? esc(M.formatoKm(v.kmActual)) : 'Sin kilometraje'}</b>
+          <small>${v.kmActualizadoEn ? 'actualizado ' + esc(fechaTs(v.kmActualizadoEn)) : ''}</small>
+          <button type="button" class="btn-secundario" data-veh-km="${esc(v.id)}">Actualizar km</button></div>
+      </div>
+      <div class="ag-veh-acciones">
+        <button type="button" class="btn-secundario" data-veh-plan="${esc(v.id)}:mantencion">+ Mantención</button>
+        <button type="button" class="btn-secundario" data-veh-plan="${esc(v.id)}:documento">+ Documento</button>
+        <button type="button" class="btn-secundario" data-veh-hist="${esc(v.id)}">Historial y gastos</button>
+        <button type="button" class="btn-secundario" data-veh-editar="${esc(v.id)}">Editar</button>
+        <button type="button" class="btn-secundario" data-veh-estado="${esc(v.id)}">${v.activo === false ? 'Activar' : 'Desactivar'}</button>
+      </div>
+      ${propios.map(filaPlan).join('') || '<p class="ag-vacio">Sin mantenciones ni documentos programados. Agrega el cambio de aceite, la revisión técnica, el SOAP…</p>'}
+    </div>`;
+  }).join('');
+  $('paneVehiculos').innerHTML = `<div class="ag-dia-cab"><h2 class="ag-h2" style="margin:0">Vehículos</h2><button type="button" class="btn-primario" id="btnNuevoVehiculo">+ Nuevo vehículo</button></div>
+    <p class="ag-ayuda">Las mantenciones se controlan principalmente por kilometraje: mantén el kilometraje al día con “Actualizar km” y la agenda avisa cuando se acerca o se alcanza. Los documentos (permiso, SOAP, revisión técnica…) se controlan por fecha.</p>
+    ${tarjetas || '<p class="ag-vacio">Aún no hay vehículos. Crea el primero, por ejemplo la camioneta de Linence.</p>'}`;
+}
+
 // ---------- Vista: Colaboradores (solo administradores) ----------
 
 function renderColaboradores() {
@@ -455,8 +527,8 @@ function renderRecursos() {
 function render() {
   document.querySelectorAll('.ag-tab').forEach(b => b.classList.toggle('activa', b.dataset.vista === S.vista));
   document.querySelectorAll('.ag-pane').forEach(p => p.style.display = (p.id === 'pane' + S.vista[0].toUpperCase() + S.vista.slice(1)) ? '' : 'none');
-  $('agFiltros').style.display = ['recursos', 'colaboradores'].includes(S.vista) ? 'none' : '';
-  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, pagos: renderPagos, cumpleanos: renderCumpleanos, colaboradores: renderColaboradores, recursos: renderRecursos })[S.vista]();
+  $('agFiltros').style.display = ['recursos', 'colaboradores', 'vehiculos'].includes(S.vista) ? 'none' : '';
+  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, pagos: renderPagos, cumpleanos: renderCumpleanos, colaboradores: renderColaboradores, vehiculos: renderVehiculos, recursos: renderRecursos })[S.vista]();
 }
 
 function irA(vista) { S.vista = vista; render(); }
@@ -731,6 +803,9 @@ function lineaHistorial(h) {
   else if (h.estadoNuevo && h.tipo === 'creado') partes.push(esc(M.ESTADOS[h.estadoNuevo]?.nombre || h.estadoNuevo));
   if (h.fechaAnterior && h.fechaNueva) partes.push(`${esc(M.formatoFechaDMA(h.fechaAnterior))} → ${esc(M.formatoFechaDMA(h.fechaNueva))}`);
   if (h.tipo === 'completado') {
+    if (h.kmReal != null) partes.push(esc(M.formatoKm(h.kmReal)));
+    if (h.proveedor) partes.push(esc(h.proveedor));
+    if (h.nuevoProximoKm != null) partes.push('próxima: ' + esc(M.formatoKm(h.nuevoProximoKm)));
     if (h.cuota) partes.push(`cuota ${h.cuota}${h.cuotasTotales ? '/' + h.cuotasTotales : ''}`);
     if (h.monto != null) partes.push(esc(M.formatoMonto(h.monto, h.moneda)));
     if (h.metodoPago) partes.push(esc(h.metodoPago));
@@ -740,7 +815,7 @@ function lineaHistorial(h) {
     if (h.fechaNueva) partes.push(`próxima: ${esc(M.formatoFechaDMA(h.fechaNueva))}`);
   }
   if (h.nota) partes.push(`“${esc(h.nota)}”`);
-  const etiqueta = (h.tipo === 'completado' && (h.monto != null || h.cuota || h.metodoPago)) ? 'Pago registrado' : (ETIQ_HIST[h.tipo] || h.tipo);
+  const etiqueta = (h.tipo === 'completado' && h.kmReal != null) ? 'Mantención registrada' : (h.tipo === 'completado' && (h.monto != null || h.cuota || h.metodoPago)) ? 'Pago registrado' : (ETIQ_HIST[h.tipo] || h.tipo);
   return `<div class="ag-hist"><b>${esc(etiqueta)}</b> <span>${partes.join(' · ')}</span><small>${esc(h.porNombre || '')} · ${esc(fechaHoraTs(h.fecha))}</small></div>`;
 }
 
@@ -771,6 +846,25 @@ function filasDatos(ev) {
       f('Saldo pendiente', d.saldo != null ? esc(M.formatoMonto(d.saldo, d.moneda)) : '') +
       f('Tasa de interés', d.tasa != null ? esc(d.tasa + ' %') : '') + f('Método de pago', esc(d.metodoPago));
   }
+  if (ev.categoria === 'vehiculo') {
+    const v = M.vehiculoDe(ev), r = M.restanteKm(ev);
+    let html = f('Vehículo', esc(M.etiquetaVehiculo(v) || ev.vehiculoId || ''));
+    if (ev.datos?.clase === 'mantencion') {
+      const usaKm = M.mantencionUsaKm(ev);
+      html += f('Mantención', esc(ev.datos.nombre)) + f('Se controla', esc(M.MODOS_MANTENCION[ev.datos.modo] || ''));
+      if (usaKm) {
+        const span = Number(ev.datos.proximoKm) - Number(ev.datos.ultimoKm);
+        const pct = (v && span > 0) ? Math.max(0, Math.min(100, Math.round((Number(v.kmActual) - Number(ev.datos.ultimoKm)) / span * 100))) : null;
+        html += f('Kilometraje actual', v?.kmActual != null ? esc(M.formatoKm(v.kmActual)) : '') + f('Última mantención', ev.datos.ultimoKm != null ? esc(M.formatoKm(ev.datos.ultimoKm)) : '') +
+          f('Próxima mantención', `<b>${esc(M.formatoKm(ev.datos.proximoKm))}</b>${r != null ? (r > 0 ? ` · faltan ${esc(M.formatoKm(r))}` : ' · <b>kilometraje alcanzado</b>') : ''}${pct != null ? `<div class="ag-barra"><i style="width:${pct}%"></i></div>` : ''}`) +
+          f('Cada', esc(M.formatoKm(ev.datos.intervaloKm))) + f('Aviso', ev.datos.avisoKm != null ? `${esc(M.formatoKm(ev.datos.avisoKm))} antes` : '');
+      }
+      if (M.modoUsaFecha(ev.datos.modo)) html += f('Cada', ev.datos.intervaloMeses ? `${esc(ev.datos.intervaloMeses)} meses` : '') + f('Última vez', ev.datos.ultimaFecha ? esc(M.formatoFechaDMA(ev.datos.ultimaFecha)) : '');
+    } else {
+      html += f('Documento', esc(ev.datos?.nombre));
+    }
+    return html;
+  }
   if (ev.categoria === 'cumpleanos') {
     return f('Persona', esc(d.persona)) + f('Relación', esc(M.PARENTESCOS[d.parentesco] || '')) + f('Colaborador asociado', esc(d.colaboradorNombre)) +
       f('Próxima fecha', esc(M.textoCumple(ev))) + f(d.motivo === 'aniversario' ? 'Fecha de ingreso' : 'Fecha de nacimiento', d.fechaBase ? esc(M.formatoFechaDMA(d.fechaBase)) : '') +
@@ -790,7 +884,7 @@ function pintarDetalle(ev) {
     <div class="ag-det-cab"><span class="ag-codigo">${esc(ev.codigo || '')}</span>${badgeEstado(ev)}${badgePrioridad(ev)}</div>
     <h2>${iconoEv(ev)} ${esc(ev.titulo)}</h2>
     ${a ? `<p class="ag-det-alerta ${a.nivel === 'proximo' ? 'naranja' : 'rojo'}">${esc(a.texto)}</p>` : ''}
-    ${fila(M.esPago(ev) ? 'Próximo vencimiento' : 'Cuándo', esc(M.formatoFechaLarga(ev.proximaFecha)) + (textoHora(ev) ? ' · ' + esc(textoHora(ev)) : ''))}
+    ${fila(M.esPago(ev) || ev.categoria === 'vehiculo' ? 'Próximo vencimiento' : 'Cuándo', (ev.proximaFecha ? esc(M.formatoFechaLarga(ev.proximaFecha)) : 'Según kilometraje') + (textoHora(ev) ? ' · ' + esc(textoHora(ev)) : ''))}
     ${filasDatos(ev)}
     ${fila('Categoría', esc(M.CATEGORIAS[ev.categoria]?.nombre || '') + (ev.tipo ? ' · ' + esc(M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre || '') : ''))}
     ${fila('Repetición', esc(M.textoRegla(ev.recurrencia)) + (ev.recurrencia?.hasta ? ` (hasta ${esc(M.formatoFechaDMA(ev.recurrencia.hasta))})` : ''))}
@@ -806,7 +900,7 @@ function pintarDetalle(ev) {
     <div class="ag-det-estado campo"><label for="detEstado">Cambiar estado</label><select id="detEstado">${opcionesEstado}</select></div>
     <div class="ag-det-acciones">
       ${abierto ? `<button type="button" class="btn-primario" data-det="completar">${etiquetaCompletar(ev)}</button>
-      <button type="button" class="btn-secundario" data-det="posponer">⏰ Posponer / reprogramar</button>` : ''}
+      ${ev.proximaFecha ? `<button type="button" class="btn-secundario" data-det="posponer">⏰ Posponer / reprogramar</button>` : ''}` : ''}
       <button type="button" class="btn-secundario" data-det="editar">Editar</button>
       ${abierto ? `<button type="button" class="btn-peligro" data-det="cancelar">Cancelar evento</button>` : ''}
     </div>
@@ -819,6 +913,7 @@ let _accionId = null;
 
 function abrirCompletar(id) {
   const ev = S.eventos.find(e => e.id === id); if (!ev) return;
+  if (M.esMantencion(ev)) return abrirMantencion(id);
   _accionId = id;
   const rec = M.esRecurrente(ev), pago = M.esPago(ev);
   const c = ev.categoria === 'obligacion' ? M.estadoCuotas(ev) : null;
@@ -892,6 +987,7 @@ async function confirmarCompletar() {
 
 function abrirPosponer(id) {
   const ev = S.eventos.find(e => e.id === id); if (!ev) return;
+  if (!ev.proximaFecha) { toast('Esta mantención se controla por kilometraje: actualiza el kilometraje del vehículo o edita la mantención.', 'error'); return; }
   _accionId = id;
   $('pmFecha').value = ev.proximaFecha;
   $('pmHora').value = ev.horaInicio || '';
@@ -969,6 +1065,262 @@ async function guardarRecurso() {
     else await crearRecurso({ nombre, tipo: $('rcTipo').value }, S.staff.uid);
     cerrarModal('modalRecurso'); toast('Recurso guardado');
   } catch (e) { console.error(e); toast('No se pudo guardar el recurso', 'error'); }
+}
+
+// ---------- Vehículos: ficha, kilometraje, planes, mantenciones, gastos ----------
+
+const NUM = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
+const errEn = (id, msg) => { const e = $(id); e.textContent = msg; e.classList.add('visible'); };
+const limpiarErr = (id) => { const e = $(id); e.textContent = ''; e.classList.remove('visible'); };
+
+function abrirVehiculo(id = null) {
+  S.vehEditando = id;
+  const v = veh(id);
+  $('vhTitulo').textContent = v ? 'Editar vehículo' : 'Nuevo vehículo';
+  $('vhPatente').value = v?.patente || ''; $('vhAnio').value = v?.anio ?? ''; $('vhMarca').value = v?.marca || ''; $('vhModelo').value = v?.modelo || '';
+  $('vhKm').value = v?.kmActual ?? ''; $('vhKm').disabled = !!v;
+  $('vhKmLabel').textContent = v ? 'Kilometraje actual (se cambia con “Actualizar km”)' : 'Kilometraje actual';
+  $('vhVin').value = v?.vin || ''; $('vhResp').value = v?.responsableUid || ''; $('vhObs').value = v?.observaciones || '';
+  limpiarErr('vhError');
+  $('modalVehiculo').classList.add('visible');
+}
+
+async function guardarVehiculo() {
+  const patente = $('vhPatente').value.trim().toUpperCase().replace(/\s+/g, '');
+  if (!patente) return errEn('vhError', 'Escribe la patente.');
+  if (S.vehiculos.some(v => v.patente === patente && v.id !== S.vehEditando)) return errEn('vhError', 'Ya existe un vehículo con esa patente.');
+  const u = S.usuarios.find(x => x.uid === $('vhResp').value);
+  const datos = {
+    patente, marca: $('vhMarca').value.trim(), modelo: $('vhModelo').value.trim(), anio: NUM('vhAnio'), vin: $('vhVin').value.trim(),
+    responsableUid: u?.uid || null, responsableNombre: u ? (u.nombre || u.email || '') : '', observaciones: $('vhObs').value.trim()
+  };
+  const btn = $('btnGuardarVehiculo'); btn.disabled = true;
+  try {
+    if (S.vehEditando) await actualizarVehiculo(S.vehEditando, datos);
+    else {
+      const km = NUM('vhKm');
+      await crearVehiculo({ ...datos, kmActual: km }, S.staff.uid, nombreStaff());
+    }
+    cerrarModal('modalVehiculo'); toast('Vehículo guardado');
+  } catch (e) { console.error(e); errEn('vhError', 'No se pudo guardar. Revisa tu conexión.'); }
+  finally { btn.disabled = false; }
+}
+
+async function cambiarEstadoVehiculo(id) {
+  const v = veh(id); if (!v) return;
+  try { await actualizarVehiculo(id, { activo: v.activo === false }); toast(v.activo === false ? 'Vehículo activado' : 'Vehículo desactivado'); }
+  catch (e) { console.error(e); toast('No se pudo cambiar el estado', 'error'); }
+}
+
+// Kilometraje
+function abrirKm(id) {
+  S.vehKm = id; const v = veh(id);
+  $('kmInfo').textContent = `${M.etiquetaVehiculo(v)} · kilometraje registrado: ${v.kmActual != null && v.kmActual !== '' ? M.formatoKm(v.kmActual) : 'ninguno'}`;
+  $('kmValor').value = v.kmActual ?? ''; $('kmNota').value = ''; limpiarErr('kmError');
+  $('modalKm').classList.add('visible'); setTimeout(() => $('kmValor').select(), 50);
+}
+async function guardarKm() {
+  const v = veh(S.vehKm); const km = NUM('kmValor');
+  if (km == null || km < 0) return errEn('kmError', 'Escribe el kilometraje actual.');
+  if (v.kmActual != null && v.kmActual !== '' && km < Number(v.kmActual)) return errEn('kmError', `No puede ser menor al registrado (${M.formatoKm(v.kmActual)}). Si hubo un error de registro, avísame para corregirlo.`);
+  const btn = $('btnGuardarKm'); btn.disabled = true;
+  try { await registrarKilometraje(v.id, km, S.staff.uid, nombreStaff(), $('kmNota').value.trim()); cerrarModal('modalKm'); toast('Kilometraje actualizado: ' + M.formatoKm(km)); }
+  catch (e) { console.error(e); errEn('kmError', 'No se pudo guardar.'); }
+  finally { btn.disabled = false; }
+}
+
+// Plan de mantención / documento
+function llenarTiposPlan(clase, actual) {
+  const lista = clase === 'documento' ? M.TIPOS_DOCUMENTO_VEHICULO : M.TIPOS_MANTENCION;
+  $('pvTipo').innerHTML = lista.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  if (actual && lista.includes(actual)) $('pvTipo').value = actual;
+}
+function actualizarPlanFormulario() {
+  const clase = $('pvClase').value, modo = $('pvModo').value;
+  const mant = clase === 'mantencion';
+  $('pvTipoLabel').textContent = mant ? 'Tipo de mantención' : 'Documento';
+  $('pvModoWrap').style.display = mant ? '' : 'none';
+  $('pvKmBloque').style.display = (mant && M.modoUsaKm(modo)) ? '' : 'none';
+  $('pvFechaBloque').style.display = (!mant || M.modoUsaFecha(modo)) ? '' : 'none';
+  $('pvMesesWrap').style.display = mant ? '' : 'none';
+  $('pvRenuevaWrap').style.display = mant ? 'none' : '';
+  $('pvFechaLabel').textContent = mant ? 'Próxima fecha' : 'Vencimiento';
+}
+function recalcularProximoKm() {
+  if ($('pvProximoKm').dataset.manual === '1') return;
+  const u = NUM('pvUltimoKm'), i = NUM('pvIntervaloKm');
+  $('pvProximoKm').value = (u != null && i > 0) ? u + i : '';
+}
+function abrirPlan(vehiculoId, clase = 'mantencion', ev = null) {
+  S.planEditando = ev?.id || null;
+  const activos = S.vehiculos.filter(v => v.activo !== false || v.id === vehiculoId);
+  $('pvVehiculo').innerHTML = activos.map(v => `<option value="${esc(v.id)}">${esc(M.etiquetaVehiculo(v))}</option>`).join('');
+  $('pvVehiculo').value = vehiculoId || activos[0]?.id || '';
+  $('pvVehiculo').disabled = !!ev;
+  $('pvClase').value = clase; $('pvClase').disabled = !!ev;
+  llenarTiposPlan(clase, ev?.datos?.nombre);
+  const d = ev?.datos || {}, v = veh($('pvVehiculo').value);
+  $('pvModo').value = d.modo || 'km';
+  $('pvUltimoKm').value = d.ultimoKm ?? (v?.kmActual ?? ''); $('pvIntervaloKm').value = d.intervaloKm ?? ''; $('pvProximoKm').value = d.proximoKm ?? '';
+  $('pvProximoKm').dataset.manual = ev ? '1' : '0';
+  $('pvAvisoKm').value = d.avisoKm ?? 500; $('pvIntervaloMeses').value = d.intervaloMeses ?? '';
+  $('pvFecha').value = ev?.proximaFecha || '';
+  $('pvAntic').value = ev ? ev.anticipacionDias : (clase === 'documento' ? 30 : 15);
+  $('pvRenueva').checked = ev ? M.esRecurrente(ev) : true;
+  $('pvNotas').value = ev?.notas || '';
+  limpiarErr('pvError');
+  $('pvTitulo').textContent = ev ? 'Editar programación' : (clase === 'documento' ? 'Nuevo documento del vehículo' : 'Nueva mantención programada');
+  actualizarPlanFormulario();
+  $('modalPlan').classList.add('visible');
+}
+
+async function guardarPlan() {
+  const v = veh($('pvVehiculo').value);
+  if (!v) return errEn('pvError', 'Primero crea un vehículo.');
+  const clase = $('pvClase').value, nombre = $('pvTipo').value, modo = $('pvModo').value;
+  const mant = clase === 'mantencion';
+  const usaKm = mant && M.modoUsaKm(modo), usaFecha = !mant || M.modoUsaFecha(modo);
+  const datos = { clase, nombre };
+  let proximaFecha = null;
+  if (mant) {
+    datos.modo = modo;
+    if (usaKm) {
+      const ultimo = NUM('pvUltimoKm'), inter = NUM('pvIntervaloKm'); let prox = NUM('pvProximoKm');
+      if (ultimo == null) return errEn('pvError', 'Indica el último kilometraje en que se hizo (si nunca, usa el kilometraje actual).');
+      if (!(inter > 0) && prox == null) return errEn('pvError', 'Indica cada cuántos km se repite o el próximo kilometraje.');
+      if (prox == null) prox = ultimo + inter;
+      if (prox <= ultimo) return errEn('pvError', 'El próximo kilometraje debe ser mayor al último.');
+      Object.assign(datos, { ultimoKm: ultimo, intervaloKm: inter > 0 ? inter : null, proximoKm: prox, avisoKm: Math.max(0, NUM('pvAvisoKm') ?? 500) });
+    }
+    if (usaFecha) datos.intervaloMeses = NUM('pvIntervaloMeses');
+    if (S.planEditando) datos.ultimaFecha = S.eventos.find(e => e.id === S.planEditando)?.datos?.ultimaFecha ?? null;
+  }
+  if (usaFecha) {
+    proximaFecha = $('pvFecha').value;
+    if (!proximaFecha) return errEn('pvError', mant ? 'Indica la próxima fecha.' : 'Indica la fecha de vencimiento.');
+  }
+  const d = {
+    titulo: `${nombre} — ${v.patente}`, categoria: 'vehiculo', tipo: null, prioridad: 'media', estado: 'pendiente', abierto: true,
+    proximaFecha, todoElDia: true, horaInicio: null, horaFin: null,
+    recurrencia: (!mant && $('pvRenueva').checked) ? { frecuencia: 'anios', intervalo: 1, hasta: null } : { frecuencia: 'ninguna', intervalo: 1, hasta: null },
+    anticipacionDias: Math.max(0, NUM('pvAntic') ?? 0), avisarHabilAnterior: false,
+    responsableUid: v.responsableUid || null, responsableNombre: v.responsableNombre || '', recursoIds: [],
+    notas: $('pvNotas').value.trim(), vehiculoId: v.id, relacion: { tipo: 'vehiculo', id: v.id }, datos
+  };
+  const btn = $('btnGuardarPlan'); btn.disabled = true;
+  try {
+    if (!S.planEditando) {
+      await crearEvento({ ...d, fecha: proximaFecha || M.hoyStr(), diaAncla: M.partesFecha(proximaFecha || M.hoyStr()).d, descripcion: '', proyectoCodigo: null, adjuntos: [] }, S.staff.uid, nombreStaff());
+      toast(mant ? 'Mantención programada' : 'Documento registrado');
+    } else {
+      const ex = S.eventos.find(e => e.id === S.planEditando);
+      const { estado, abierto, ...resto } = d;               // no se cambia el estado al editar
+      await actualizarEvento(S.planEditando, { ...resto, ...(proximaFecha ? { diaAncla: M.partesFecha(proximaFecha).d } : {}), actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+        { tipo: 'editado', estadoAnterior: ex.estado, estadoNuevo: ex.estado, por: S.staff.uid, porNombre: nombreStaff() });
+      toast('Cambios guardados');
+    }
+    cerrarModal('modalPlan');
+  } catch (e) { console.error(e); errEn('pvError', 'No se pudo guardar. Revisa tu conexión.'); }
+  finally { btn.disabled = false; }
+}
+
+// Registrar mantención realizada
+function actualizarMantencionProx() {
+  const ev = S.eventos.find(e => e.id === S.mantencionId); if (!ev) return;
+  const km = NUM('mtKm'), fecha = $('mtFecha').value || M.hoyStr();
+  const plan = M.planSiguiente(ev, km ?? ev.datos.ultimoKm ?? 0, fecha);
+  if (M.mantencionUsaKm(ev)) $('mtProxKm').value = km != null ? (plan['datos.proximoKm'] ?? '') : '';
+  if (M.modoUsaFecha(ev.datos.modo)) $('mtProxFecha').value = plan.proximaFecha || '';
+}
+function abrirMantencion(id) {
+  const ev = S.eventos.find(e => e.id === id); if (!ev) return;
+  S.mantencionId = id; const v = M.vehiculoDe(ev);
+  const usaKm = M.mantencionUsaKm(ev), usaFecha = M.modoUsaFecha(ev.datos.modo);
+  $('mtInfo').textContent = `${ev.datos.nombre} · ${M.etiquetaVehiculo(v)}` + (usaKm ? ` · programada a los ${M.formatoKm(ev.datos.proximoKm)}` : '');
+  $('mtFecha').value = M.hoyStr();
+  $('mtKm').value = v?.kmActual ?? '';
+  $('mtKmLabel').textContent = usaKm ? 'Kilometraje al hacerla' : 'Kilometraje al hacerla (opcional)';
+  ['mtTaller', 'mtCosto', 'mtFactura', 'mtObs'].forEach(i => { $(i).value = ''; });
+  $('mtProxKmWrap').style.display = usaKm ? '' : 'none';
+  $('mtProxFechaWrap').style.display = usaFecha ? '' : 'none';
+  actualizarMantencionProx(); limpiarErr('mtError');
+  $('modalMantencion').classList.add('visible');
+}
+async function confirmarMantencion() {
+  const ev = S.eventos.find(e => e.id === S.mantencionId); if (!ev) return;
+  const v = M.vehiculoDe(ev);
+  const usaKm = M.mantencionUsaKm(ev), usaFecha = M.modoUsaFecha(ev.datos.modo);
+  const fecha = $('mtFecha').value || M.hoyStr(), km = NUM('mtKm');
+  if (usaKm && km == null) return errEn('mtError', 'Indica el kilometraje al que se hizo.');
+  const proxKm = usaKm ? NUM('mtProxKm') : null, proxFecha = usaFecha ? $('mtProxFecha').value : null;
+  if (usaKm && (proxKm == null || proxKm <= km)) return errEn('mtError', 'El próximo kilometraje debe ser mayor al kilometraje actual de la mantención.');
+  if (usaFecha && !proxFecha) return errEn('mtError', 'Indica la fecha de la próxima mantención.');
+  const costo = NUM('mtCosto'), taller = $('mtTaller').value.trim(), factura = $('mtFactura').value.trim(), obs = $('mtObs').value.trim();
+  const por = { por: S.staff.uid, porNombre: nombreStaff() };
+  const eventoUpdate = {
+    'datos.ultimoKm': km ?? ev.datos.ultimoKm ?? null, 'datos.ultimaFecha': fecha,
+    ...(usaKm ? { 'datos.proximoKm': proxKm } : {}), ...(usaFecha ? { proximaFecha: proxFecha } : {}),
+    estado: 'pendiente', abierto: true, ultimaRealizacion: fecha, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff()
+  };
+  const btn = $('btnGuardarMantencion'); btn.disabled = true;
+  try {
+    await registrarMantencionVehiculo({
+      eventoId: ev.id, eventoUpdate,
+      entradaHistorial: { tipo: 'completado', fechaOcurrencia: ev.proximaFecha || null, fechaReal: fecha, kmReal: km, proveedor: taller || null, monto: costo, moneda: 'CLP', referencia: factura || null, nuevoProximoKm: proxKm, fechaNueva: proxFecha || null, estadoAnterior: ev.estado, estadoNuevo: 'pendiente', nota: obs, ...por },
+      vehiculoId: ev.vehiculoId,
+      mantencion: { eventoId: ev.id, tipo: ev.datos.nombre, fecha, km, taller, costo, factura, proximoKm: proxKm, proximaFecha: proxFecha || null, observaciones: obs, ...por },
+      gasto: costo > 0 ? { tipo: 'Mantención', descripcion: ev.datos.nombre, fecha, monto: costo, moneda: 'CLP', km, proveedor: taller, eventoId: ev.id, creadoPor: S.staff.uid } : null,
+      kmVehiculo: (km != null && km > (Number(v?.kmActual) || 0)) ? km : null,
+      lectura: { ...por, nota: 'Registrado con la mantención: ' + ev.datos.nombre }
+    });
+    cerrarModal('modalMantencion');
+    toast(usaKm ? `Mantención registrada. Próxima: ${M.formatoKm(proxKm)}` : 'Mantención registrada');
+  } catch (e) { console.error(e); errEn('mtError', 'No se pudo guardar. Revisa tu conexión.'); }
+  finally { btn.disabled = false; }
+}
+
+// Gastos
+function abrirGasto(vehiculoId) {
+  S.vehGasto = vehiculoId;
+  $('gsTipo').value = 'Combustible'; $('gsFecha').value = M.hoyStr();
+  ['gsMonto', 'gsKm', 'gsProveedor', 'gsDesc'].forEach(i => { $(i).value = ''; });
+  limpiarErr('gsError');
+  $('modalGasto').classList.add('visible');
+}
+async function guardarGasto() {
+  const v = veh(S.vehGasto); const monto = NUM('gsMonto'), km = NUM('gsKm');
+  if (!(monto > 0)) return errEn('gsError', 'Indica el monto del gasto.');
+  const btn = $('btnGuardarGasto'); btn.disabled = true;
+  try {
+    const kmNuevo = (km != null && km > (Number(v.kmActual) || 0)) ? km : null;
+    await crearGastoVehiculo(v.id, { tipo: $('gsTipo').value, fecha: $('gsFecha').value || M.hoyStr(), monto, moneda: 'CLP', km, proveedor: $('gsProveedor').value.trim(), descripcion: $('gsDesc').value.trim() }, S.staff.uid, nombreStaff(), kmNuevo);
+    cerrarModal('modalGasto'); toast('Gasto registrado' + (kmNuevo ? ' · kilometraje actualizado' : ''));
+  } catch (e) { console.error(e); errEn('gsError', 'No se pudo guardar.'); }
+  finally { btn.disabled = false; }
+}
+
+// Historial y gastos del vehículo
+function pintarHistorialVehiculo() {
+  const filaM = (m) => `<div class="ag-hist"><b>${esc(m.tipo)}</b> <span>${esc(M.formatoFechaDMA(m.fecha))}${m.km != null ? ' · ' + esc(M.formatoKm(m.km)) : ''}${m.taller ? ' · ' + esc(m.taller) : ''}${m.costo ? ' · ' + esc(M.formatoMonto(m.costo)) : ''}${m.factura ? ' · fact. ' + esc(m.factura) : ''}${m.proximoKm != null ? ' · próxima: ' + esc(M.formatoKm(m.proximoKm)) : ''}</span>${m.observaciones ? `<small>${esc(m.observaciones)}</small>` : ''}</div>`;
+  const filaG = (g) => `<div class="ag-hist"><b>${esc(g.tipo)}</b> <span>${esc(M.formatoFechaDMA(g.fecha))} · ${esc(M.formatoMonto(g.monto))}${g.proveedor ? ' · ' + esc(g.proveedor) : ''}${g.descripcion ? ' · ' + esc(g.descripcion) : ''}${g.km != null ? ' · ' + esc(M.formatoKm(g.km)) : ''}</span></div>`;
+  const anio = M.hoyStr().slice(0, 4);
+  const total = S.hvGastos.reduce((a, g) => a + (Number(g.monto) || 0), 0);
+  const totalAnio = S.hvGastos.filter(g => String(g.fecha).startsWith(anio)).reduce((a, g) => a + (Number(g.monto) || 0), 0);
+  $('hvContenido').innerHTML = `
+    <div class="ag-dia-cab"><h3 class="ag-h3" style="margin:0">Gastos · ${esc(M.formatoMonto(totalAnio))} este año · ${esc(M.formatoMonto(total))} en total</h3>
+      <button type="button" class="btn-secundario" id="btnNuevoGasto">+ Registrar gasto</button></div>
+    <div class="ag-hist-lista">${S.hvGastos.map(filaG).join('') || '<p class="ag-vacio">Sin gastos registrados.</p>'}</div>
+    <h3 class="ag-h3">Mantenciones realizadas</h3>
+    <div class="ag-hist-lista">${S.hvMant.map(filaM).join('') || '<p class="ag-vacio">Aún no hay mantenciones registradas.</p>'}</div>`;
+}
+function abrirHistorialVehiculo(id) {
+  S.hvId = id; S.hvMant = []; S.hvGastos = [];
+  $('hvTitulo').textContent = 'Historial · ' + M.etiquetaVehiculo(veh(id));
+  S.hvPararM?.(); S.hvPararG?.();
+  S.hvPararM = escucharMantencionesVehiculo(id, (l) => { S.hvMant = l; pintarHistorialVehiculo(); });
+  S.hvPararG = escucharGastosVehiculo(id, (l) => { S.hvGastos = l; pintarHistorialVehiculo(); });
+  pintarHistorialVehiculo();
+  $('modalHistVeh').classList.add('visible');
 }
 
 // ---------- Colaboradores ----------
@@ -1102,6 +1454,7 @@ async function cambiarEstadoColaborador(id) {
 function cerrarModal(id) {
   $(id).classList.remove('visible');
   if (id === 'modalDetalle') { S.pararHistorial?.(); S.pararHistorial = null; S.detalleId = null; }
+  if (id === 'modalHistVeh') { S.hvPararM?.(); S.hvPararG?.(); S.hvPararM = S.hvPararG = null; S.hvId = null; }
 }
 
 // ---------- Eventos de la página ----------
@@ -1145,6 +1498,12 @@ function enlazar() {
     const ev = t.closest('[data-ev]');
     if (ev) return abrirDetalle(ev.dataset.ev);
     if (t.closest('#btnNuevoRecurso')) return abrirRecurso();
+    if (t.closest('#btnNuevoVehiculo')) return abrirVehiculo();
+    const vk = t.closest('[data-veh-km]'); if (vk) return abrirKm(vk.dataset.vehKm);
+    const ve = t.closest('[data-veh-editar]'); if (ve) return abrirVehiculo(ve.dataset.vehEditar);
+    const vs = t.closest('[data-veh-estado]'); if (vs) return cambiarEstadoVehiculo(vs.dataset.vehEstado);
+    const vh = t.closest('[data-veh-hist]'); if (vh) return abrirHistorialVehiculo(vh.dataset.vehHist);
+    const vp = t.closest('[data-veh-plan]'); if (vp) { const [vid, clase] = vp.dataset.vehPlan.split(':'); return abrirPlan(vid, clase); }
     const nc = t.closest('[data-nueva-cat]'); if (nc) return abrirFormulario(null, { categoria: nc.dataset.nuevaCat });
     if (t.closest('#btnNuevoColaborador')) return abrirColaborador();
     const ce = t.closest('[data-colab-editar]'); if (ce) return abrirColaborador(ce.dataset.colabEditar);
@@ -1167,6 +1526,26 @@ function enlazar() {
     abrirFormulario(null, { fecha: col.dataset.dia, horaInicio: M.desdeMinutos(minutos), horaFin: M.desdeMinutos(minutos + 60) });
   });
   $('agPaneles').addEventListener('change', (e) => { if (e.target.id === 'semRecurso') { S.semRecurso = e.target.value; render(); } });
+
+  // Vehículos
+  $('btnGuardarVehiculo').addEventListener('click', guardarVehiculo);
+  $('btnCancelarVehiculo').addEventListener('click', () => cerrarModal('modalVehiculo'));
+  $('btnGuardarKm').addEventListener('click', guardarKm);
+  $('btnCancelarKm').addEventListener('click', () => cerrarModal('modalKm'));
+  $('btnGuardarPlan').addEventListener('click', guardarPlan);
+  $('btnCancelarPlan').addEventListener('click', () => cerrarModal('modalPlan'));
+  $('pvClase').addEventListener('change', () => { llenarTiposPlan($('pvClase').value); $('pvAntic').value = $('pvClase').value === 'documento' ? 30 : 15; actualizarPlanFormulario(); });
+  $('pvModo').addEventListener('change', actualizarPlanFormulario);
+  $('pvVehiculo').addEventListener('change', () => { if (!S.planEditando) { $('pvUltimoKm').value = veh($('pvVehiculo').value)?.kmActual ?? ''; recalcularProximoKm(); } });
+  ['pvUltimoKm', 'pvIntervaloKm'].forEach(id => $(id).addEventListener('input', recalcularProximoKm));
+  $('pvProximoKm').addEventListener('input', () => { $('pvProximoKm').dataset.manual = '1'; });
+  $('btnGuardarMantencion').addEventListener('click', confirmarMantencion);
+  $('btnCancelarMantencion').addEventListener('click', () => cerrarModal('modalMantencion'));
+  ['mtKm', 'mtFecha'].forEach(id => $(id).addEventListener('input', actualizarMantencionProx));
+  $('btnGuardarGasto').addEventListener('click', guardarGasto);
+  $('btnCancelarGasto').addEventListener('click', () => cerrarModal('modalGasto'));
+  $('btnCerrarHistVeh').addEventListener('click', () => cerrarModal('modalHistVeh'));
+  $('hvContenido').addEventListener('click', (e) => { if (e.target.closest('#btnNuevoGasto')) abrirGasto(S.hvId); });
 
   // Colaboradores
   $('btnAgregarFamiliar').addEventListener('click', () => $('coFamiliares').insertAdjacentHTML('beforeend', filaFamiliar()));
@@ -1195,7 +1574,7 @@ function enlazar() {
   $('detContenido').addEventListener('click', (e) => {
     const b = e.target.closest('[data-det]'); if (!b) return;
     const id = S.detalleId; const a = b.dataset.det;
-    if (a === 'editar') { const ev = S.eventos.find(x => x.id === id); cerrarModal('modalDetalle'); abrirFormulario(ev); }
+    if (a === 'editar') { const ev = S.eventos.find(x => x.id === id); cerrarModal('modalDetalle'); if (ev.categoria === 'vehiculo') abrirPlan(ev.vehiculoId, ev.datos?.clase, ev); else abrirFormulario(ev); }
     else if (a === 'completar') abrirCompletar(id);
     else if (a === 'posponer') abrirPosponer(id);
     else if (a === 'cancelar') cancelarEvento(id);
@@ -1268,7 +1647,7 @@ async function iniciar(staff) {
   const todosEstados = [...new Set(Object.values(M.ESTADOS_POR_CATEGORIA).flat())];
   $('fEstado').innerHTML = '<option value="">Todos los estados</option><option value="vencido">Vencidos</option>' + todosEstados.map(k => `<option value="${k}">${M.ESTADOS[k].nombre}</option>`).join('');
   $('fPrio').innerHTML = '<option value="">Todas las prioridades</option>' + Object.entries(M.PRIORIDADES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
-  $('evCategoria').innerHTML = Object.entries(M.CATEGORIAS).map(([k, v]) => `<option value="${k}">${v.icono} ${v.nombre}</option>`).join('');
+  $('evCategoria').innerHTML = Object.entries(M.CATEGORIAS).filter(([k]) => k !== 'vehiculo').map(([k, v]) => `<option value="${k}">${v.icono} ${v.nombre}</option>`).join('');
   $('evTipo').innerHTML = Object.entries(M.TIPOS_ACTIVIDAD).map(([k, v]) => `<option value="${k}">${v.icono} ${v.nombre}</option>`).join('');
   $('evPrioridad').innerHTML = Object.entries(M.PRIORIDADES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
   $('evRepite').innerHTML = Object.entries(M.REPETICIONES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
@@ -1279,15 +1658,18 @@ async function iniciar(staff) {
   ['svMetodo', 'obMetodo', 'cpMetodo'].forEach(id => { $(id).innerHTML = opts(M.METODOS_PAGO, '—'); });
   $('cuMotivo').innerHTML = '<option value="cumpleanos">Cumpleaños</option><option value="aniversario">Aniversario laboral</option>';
   $('cuParentesco').innerHTML = Object.entries(M.PARENTESCOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
+  $('pvModo').innerHTML = Object.entries(M.MODOS_MANTENCION).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join('');
+  $('gsTipo').innerHTML = M.TIPOS_GASTO_VEHICULO.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
   $('rcTipo').innerHTML = Object.entries(TIPOS_RECURSO).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 
   try { S.usuarios = await listarUsuariosStaff(); } catch (e) { console.warn('No se pudo cargar la lista de responsables', e); }
   const optsResp = S.usuarios.map(u => `<option value="${esc(u.uid)}">${esc(u.nombre || u.email || u.uid)}</option>`).join('');
   $('fResp').innerHTML = '<option value="">Todos los responsables</option>' + optsResp;
   $('evResp').innerHTML = '<option value="">Sin asignar</option>' + optsResp;
+  $('vhResp').innerHTML = '<option value="">Sin asignar</option>' + optsResp;
 
   enlazar();
-  await mejorarSelects(['fCat', 'fEstado', 'fPrio', 'fResp', 'evCategoria', 'evTipo', 'evPrioridad', 'evRepite', 'evUnidad', 'evAntic', 'evResp', 'rcTipo', 'svTipo', 'svMoneda', 'svMetodo', 'obTipo', 'obMoneda', 'obMetodo', 'cuMotivo', 'cuParentesco', 'cpMetodo']);
+  await mejorarSelects(['fCat', 'fEstado', 'fPrio', 'fResp', 'evCategoria', 'evTipo', 'evPrioridad', 'evRepite', 'evUnidad', 'evAntic', 'evResp', 'rcTipo', 'svTipo', 'svMoneda', 'svMetodo', 'obTipo', 'obMoneda', 'obMetodo', 'cuMotivo', 'cuParentesco', 'cpMetodo', 'pvModo', 'gsTipo']);
 
   escucharRecursos((lista) => { S.recursos = lista; refrescarSiAplica(); }, () => toast('No se pudieron leer los recursos', 'error'));
   if (esAdmin()) {
@@ -1298,6 +1680,7 @@ async function iniciar(staff) {
       refrescarSiAplica();
     }, () => toast('No se pudo leer la lista de colaboradores', 'error'));
   }
+  escucharVehiculos((lista) => { S.vehiculos = lista; M.setVehiculos(lista); refrescarSiAplica(); }, () => toast('No se pudieron leer los vehículos. ¿Publicaste las reglas nuevas?', 'error'));
   escucharProyectos((lista) => {
     S.proyectos = lista.filter(p => p.activo !== false);
     S.proyectosPorCodigo = Object.fromEntries(lista.map(p => [p.codigo, p]));
