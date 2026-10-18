@@ -1147,3 +1147,27 @@ export async function crearRecurso(datos, uid) {
 export async function actualizarRecurso(id, datos) {
   await updateDoc(doc(db, "recursos", id), limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
 }
+
+
+// ---------- Colaboradores (cumpleaños y aniversarios laborales) ----------
+// Datos personales: solo los lee y escribe un administrador (ver firestore.rules).
+// Nunca se eliminan: se desactivan (activo:false) y sus recordatorios se cancelan.
+
+export function escucharColaboradores(callback, onError) {
+  const q = query(collection(db, "colaboradores"), orderBy("nombre", "asc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/** @returns {Promise<string>} id del colaborador */
+export async function crearColaborador(datos, uid) {
+  const ref = doc(collection(db, "colaboradores"));
+  await setDoc(ref, limpiarUndefined({ ...datos, activo: true, creadoPor: uid, creadoEn: serverTimestamp() }));
+  return ref.id;
+}
+
+export async function actualizarColaborador(id, datos) {
+  await updateDoc(doc(db, "colaboradores", id), limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
+}
