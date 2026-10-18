@@ -1,23 +1,22 @@
 // ============================================================
 // LINENCE — Agenda dentro del detalle del proyecto
 // ============================================================
-// Agrega, en la vista de detalle de dashboard.html, un bloque con
-// "Programar actividad" y las actividades ya agendadas de ese proyecto.
-// Se carga con una línea en dashboard.html y no toca dashboard.js:
-// detecta qué proyecto se está mirando leyendo el código (#detalleCodigo).
+// dashboard.js llama a mostrarAgendaProyecto(codigo) al abrir un proyecto
+// y a ocultarAgendaProyecto() al volver al listado. Agrega, en la vista de
+// detalle, un bloque con "Programar actividad" y las actividades ya
+// agendadas de ese proyecto.
 //
 // Las actividades se leen de la colección "eventos" (campo proyectoCodigo);
 // aquí no se guarda ni se copia nada del proyecto.
-
-import { auth } from './firebase-config.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { escucharEventosDeProyecto } from './firestore.js';
-import { TIPOS_ACTIVIDAD, ESTADOS, estaAbierto, evaluarEvento, formatoFechaCorta, hoyStr } from './agenda-motor.js';
+//
+// Los módulos de agenda se cargan al usarse (import dinámico) para que, si
+// un archivo no está subido o el navegador guardó una versión vieja, el
+// detalle del proyecto siga funcionando igual.
 
 const ATAJOS = ['visita_cliente', 'toma_medidas', 'reunion_diseno', 'instalacion', 'entrega', 'postventa'];
 const ROJO = '#c14b32', NARANJA = '#d98a2b', VERDE = '#5b8a5a', GRIS = '#8a8a8a';
 
-let seccion = null, lista = null, codigoActual = null, parar = null;
+let seccion = null, lista = null, parar = null, M = null, codigoActual = null;
 
 const esc = (t) => String(t ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -58,56 +57,56 @@ function crearSeccion() {
 function pintarAtajos(codigo) {
   const base = `agenda.html?nuevo=1&proyecto=${encodeURIComponent(codigo)}`;
   seccion.querySelector('#paAtajos').innerHTML =
-    ATAJOS.map(t => `<a href="${base}&tipo=${t}">${TIPOS_ACTIVIDAD[t].icono} ${esc(TIPOS_ACTIVIDAD[t].nombre)}</a>`).join('') +
+    ATAJOS.map(t => `<a href="${base}&tipo=${t}">${M.TIPOS_ACTIVIDAD[t].icono} ${esc(M.TIPOS_ACTIVIDAD[t].nombre)}</a>`).join('') +
     `<a href="${base}">＋ Otra actividad</a>`;
 }
 
 function pintarLista(eventos) {
-  const hoy = hoyStr();
+  const hoy = M.hoyStr();
   const orden = [...eventos].sort((a, b) => {
-    const ab = estaAbierto(a.estado), bb = estaAbierto(b.estado);
+    const ab = M.estaAbierto(a.estado), bb = M.estaAbierto(b.estado);
     if (ab !== bb) return ab ? -1 : 1;                       // pendientes primero
     return ab ? (a.proximaFecha || '').localeCompare(b.proximaFecha || '')
               : (b.proximaFecha || '').localeCompare(a.proximaFecha || '');
   });
   if (!orden.length) { lista.innerHTML = '<p class="pa-vacio">Aún no hay actividades agendadas para este proyecto.</p>'; return; }
   lista.innerHTML = orden.map(ev => {
-    const abierto = estaAbierto(ev.estado);
-    const al = evaluarEvento(ev, hoy);
+    const abierto = M.estaAbierto(ev.estado);
+    const al = M.evaluarEvento(ev, hoy);
     const color = !abierto ? GRIS : al?.nivel === 'vencido' ? ROJO : (ev.estado === 'confirmacion_pendiente' || al?.nivel === 'urgente') ? NARANJA : VERDE;
-    const icono = TIPOS_ACTIVIDAD[ev.tipo]?.icono || '📋';
+    const icono = M.TIPOS_ACTIVIDAD[ev.tipo]?.icono || '📋';
     const hora = ev.todoElDia ? 'Todo el día' : ev.horaInicio ? (ev.horaFin ? `${ev.horaInicio}–${ev.horaFin}` : ev.horaInicio) : '';
-    const estado = al?.nivel === 'vencido' ? 'Vencido' : (ESTADOS[ev.estado]?.nombre || ev.estado);
+    const estado = al?.nivel === 'vencido' ? 'Vencido' : (M.ESTADOS[ev.estado]?.nombre || ev.estado);
     return `<a class="pa-fila" style="border-left-color:${color}${abierto ? '' : ';opacity:.7'}" href="agenda.html?evento=${encodeURIComponent(ev.id)}">
-      <span class="pa-fecha">${esc(formatoFechaCorta(ev.proximaFecha))}<small>${esc(hora)}</small></span>
+      <span class="pa-fecha">${esc(M.formatoFechaCorta(ev.proximaFecha))}<small>${esc(hora)}</small></span>
       <span class="pa-titulo">${icono} ${esc(ev.titulo)}</span>
       <span class="pa-estado" style="color:${color}">${esc(estado)}</span></a>`;
   }).join('');
 }
 
-function revisarProyecto() {
-  const el = document.getElementById('detalleCodigo');
-  const codigo = (el?.textContent || '').trim();
-  const valido = /^LIN-\d+$/i.test(codigo) ? codigo.toUpperCase() : null;
-  if (valido === codigoActual) return;
-  parar?.(); parar = null; codigoActual = valido;
-  if (!valido) { if (lista) lista.innerHTML = ''; return; }
-  pintarAtajos(valido);
-  lista.innerHTML = '<p class="pa-vacio">Cargando…</p>';
-  parar = escucharEventosDeProyecto(valido, pintarLista,
-    () => { lista.innerHTML = '<p class="pa-vacio">No se pudo leer la agenda de este proyecto.</p>'; });
+/** Abre (o actualiza) el bloque de agenda para el proyecto que se está mirando. */
+export async function mostrarAgendaProyecto(codigo) {
+  const cod = String(codigo || '').toUpperCase();
+  if (!/^LIN-\d+$/.test(cod)) return;
+  parar?.(); parar = null; codigoActual = cod;
+  try {
+    const [fs, motor] = await Promise.all([import('./firestore.js'), import('./agenda-motor.js')]);
+    if (codigoActual !== cod) return;                 // se cambió de proyecto mientras cargaba
+    M = motor;
+    inyectarEstilos();
+    if (!seccion && !crearSeccion()) return;
+    pintarAtajos(cod);
+    lista.innerHTML = '<p class="pa-vacio">Cargando…</p>';
+    parar = fs.escucharEventosDeProyecto(cod, pintarLista,
+      () => { lista.innerHTML = '<p class="pa-vacio">No se pudo leer la agenda de este proyecto.</p>'; });
+  } catch (err) {
+    console.warn('Agenda del proyecto no disponible:', err);
+    if (lista) lista.innerHTML = '<p class="pa-vacio">La agenda de este proyecto no está disponible por ahora.</p>';
+  }
 }
 
-function iniciar() {
-  const el = document.getElementById('detalleCodigo');
-  if (!el || !crearSeccion()) return;
-  inyectarEstilos();
-  new MutationObserver(revisarProyecto).observe(el, { childList: true, characterData: true, subtree: true });
-  revisarProyecto();
+/** Deja de escuchar al volver al listado. */
+export function ocultarAgendaProyecto() {
+  parar?.(); parar = null; codigoActual = null;
+  if (lista) lista.innerHTML = '';
 }
-
-onAuthStateChanged(auth, (user) => {
-  if (!user || seccion) return;
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
-  else iniciar();
-});
