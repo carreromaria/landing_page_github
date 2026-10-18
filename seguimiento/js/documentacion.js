@@ -22,7 +22,7 @@ import { ETAPAS } from './etapas.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento
-} from './documentos-cotizacion.js?v=15';
+} from './documentos-cotizacion.js?v=16';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -805,7 +805,7 @@ function generarContratoVenta(p) {
         <h2>Contrato de Venta e Instalación</h2>
         <p class="hoja-subtitulo">Fabricación e Instalación de ${tipoMobiliario}</p>
 
-        <p><strong>PRIMERA</strong>: <u>COMPARECENCIA</u>. Con fecha ${fechaContrato}, en la ciudad de Rancagua-Chile, comparecen, por una parte, LINENCE SpA, RUN N° 78.446.739-2, con domicilio en Av. Salvador Allende, Los Almendros 22, representada por su Gerente General, Maria Carrero Peralta, en adelante "LINENCE". Por otra parte, el cliente, ${nombreCliente}, RUN N° ${rutCliente}, domicilio en ${domicilioCliente}, en adelante "EL CLIENTE".</p>
+        <p><strong>PRIMERA</strong>: <u>COMPARECENCIA</u>. Con fecha ${fechaContrato}, en la ciudad de Rancagua-Chile, comparecen, por una parte, LINENCE SpA, RUN N° 78.446.739-2, con domicilio en Av. Salvador Allende 0131, calle Los Almendros, Local 33, representada por su Gerente General, Maria Carrero Peralta, en adelante "LINENCE". Por otra parte, el cliente, ${nombreCliente}, RUN N° ${rutCliente}, domicilio en ${domicilioCliente}, en adelante "EL CLIENTE".</p>
 
         <p>Ambas partes acuerdan celebrar el presente Contrato de Venta e Instalación de Mobiliario a Medida, el cual se regirá por las siguientes cláusulas.</p>
 
