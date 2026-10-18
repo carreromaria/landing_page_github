@@ -10,7 +10,8 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   escucharEventos, escucharRecursos, listarUsuariosStaff,
   crearEvento, actualizarEvento, escucharHistorialEvento,
-  crearRecurso, actualizarRecurso, escucharProyectos
+  crearRecurso, actualizarRecurso, escucharProyectos,
+  escucharColaboradores, crearColaborador, actualizarColaborador
 } from './firestore.js';
 import { formatearDireccion } from './regiones-comunas.js';
 import * as M from './agenda-motor.js';
@@ -22,7 +23,7 @@ const HORA_INI = 7, HORA_FIN = 20, ALTO_HORA = 48;   // rejilla semanal 07:00–
 const TIPOS_RECURSO = { persona: 'Persona', equipo: 'Equipo de instalación', vehiculo: 'Vehículo', sala: 'Sala de reuniones', taller: 'Taller', otro: 'Otro' };
 
 const S = {
-  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false,
+  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null,
   vista: 'resumen',
   mesRef: M.hoyStr().slice(0, 8) + '01',
   semanaRef: M.hoyStr(),
@@ -71,6 +72,22 @@ function bloqueProyecto(codigo) {
 
 /** Texto del proyecto vinculado para buscar (código + cliente). */
 const textoProyecto = (ev) => ev.proyectoCodigo ? `${ev.proyectoCodigo} ${proyecto(ev.proyectoCodigo)?.cliente || ''}` : '';
+
+/** Número de un campo del formulario (vacío → null). */
+const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
+
+/** Texto corto con los datos propios de la categoría (monto, cuota, edad…). */
+function resumenDatos(ev) {
+  if (M.esPago(ev)) {
+    const mo = M.montoEvento(ev);
+    const c = ev.categoria === 'obligacion' ? M.estadoCuotas(ev) : null;
+    return [mo ? M.formatoMonto(mo.monto, mo.moneda) : '', c ? `cuota ${c.siguiente}/${c.total}` : ''].filter(Boolean).join(' · ');
+  }
+  if (ev.categoria === 'cumpleanos') return M.textoCumple(ev);
+  return '';
+}
+
+const etiquetaCompletar = (ev) => M.esPago(ev) ? '💳 Registrar pago' : ev.categoria === 'cumpleanos' ? '✓ Marcar como saludado' : '✓ Marcar realizado';
 
 function iconoEv(ev) { return M.TIPOS_ACTIVIDAD[ev.tipo]?.icono || M.CATEGORIAS[ev.categoria]?.icono || '📋'; }
 function textoHora(ev) {
@@ -125,9 +142,9 @@ const badgePrioridad = (ev) => ['alta', 'urgente'].includes(ev.prioridad)
 function filaAgenda(ev, fecha) {
   const abierto = M.estaAbierto(ev.estado);
   const acciones = abierto ? `
-    <button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="Marcar como realizado">✓</button>
+    <button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="${M.esPago(ev) ? 'Registrar pago' : 'Marcar como realizado'}">${M.esPago(ev) ? '💳' : '✓'}</button>
     <button type="button" class="ag-mini" data-accion="posponer" data-ev="${esc(ev.id)}" title="Posponer / reprogramar">⏰</button>` : '';
-  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : '', ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
+  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, resumenDatos({ ...ev, proximaFecha: fecha }), ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : '', ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
   return `<div class="ag-fila ${M.colorEvento({ ...ev, proximaFecha: fecha })}" data-ev="${esc(ev.id)}">
     <div class="ag-fila-hora">${esc(textoHora(ev)) || '—'}</div>
     <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(ev)} ${esc(ev.titulo)}</div><div class="ag-fila-sub">${sub}</div></div>
@@ -148,17 +165,21 @@ function renderResumen() {
   const lun = M.lunesDeSemana(hoy);
   const semana = M.ocurrenciasEnRango(abiertos.filter(e => e.categoria === 'actividad'), lun, M.sumarDias(lun, 6)).length;
 
-  const tarjeta = (n, t, cls, vista, estado) =>
-    `<button type="button" class="ag-card ${cls}" data-ir="${vista}" data-estado="${estado || ''}"><span class="n">${n}</span><span class="t">${t}</span></button>`;
+  const tarjeta = (n, t, cls, vista, estado, chico) =>
+    `<button type="button" class="ag-card ${cls}" data-ir="${vista}" data-estado="${estado || ''}"><span class="n ${chico ? 'monto' : ''}">${n}</span><span class="t">${t}</span></button>`;
+
+  const cumples30 = M.ocurrenciasEnRango(abiertos.filter(e => e.categoria === 'cumpleanos'), hoy, M.sumarDias(hoy, 30)).length;
+  const { y: yh, m: mh } = M.partesFecha(hoy);
+  const pagosMes = M.ocurrenciasEnRango(abiertos.filter(M.esPago), M.armarFecha(yh, mh, 1), M.armarFecha(yh, mh, M.diasDelMes(yh, mh))).map(o => ({ ...o.ev, proximaFecha: o.fecha }));
 
   const atencion = alertas.slice(0, 8).map(a => `<div class="ag-fila ${a.nivel === 'proximo' ? 'naranja' : 'rojo'}" data-ev="${esc(a.ev.id)}">
       <div class="ag-fila-hora">${esc(M.formatoFechaCorta(a.ev.proximaFecha))}</div>
-      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(a.ev)} ${esc(a.ev.titulo)}</div><div class="ag-fila-sub">${esc(a.texto)}</div></div>
+      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(a.ev)} ${esc(a.ev.titulo)}</div><div class="ag-fila-sub">${esc([a.texto, resumenDatos(a.ev)].filter(Boolean).join(' · '))}</div></div>
       <div class="ag-fila-tags">${badgePrioridad(a.ev)}</div></div>`).join('');
 
   const prox = M.ocurrenciasEnRango(abiertos, hoy, M.sumarDias(hoy, 45)).slice(0, 8).map(o => `<div class="ag-fila ${M.colorEvento({ ...o.ev, proximaFecha: o.fecha })}" data-ev="${esc(o.ev.id)}">
       <div class="ag-fila-hora">${esc(M.formatoFechaCorta(o.fecha))}<br><small>${esc(textoHora(o.ev))}</small></div>
-      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(o.ev)} ${esc(o.ev.titulo)}</div><div class="ag-fila-sub">${esc(o.ev.responsableNombre || '')}</div></div>
+      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(o.ev)} ${esc(o.ev.titulo)}</div><div class="ag-fila-sub">${esc(resumenDatos({ ...o.ev, proximaFecha: o.fecha }) || o.ev.responsableNombre || '')}</div></div>
       <div class="ag-fila-tags">${badgeEstado(o.ev)}</div></div>`).join('');
 
   $('paneResumen').innerHTML = `
@@ -167,6 +188,8 @@ function renderResumen() {
       ${tarjeta(n7, '🟠 Próximos 7 días', 'naranja', 'agenda')}
       ${tarjeta(n30, '🟡 Próximos 30 días', 'amarillo', 'agenda')}
       ${tarjeta(semana, '📆 Actividades esta semana', 'neutro', 'semana')}
+      ${tarjeta(cumples30, '🎂 Cumpleaños próximos (30 días)', 'neutro', 'cumpleanos')}
+      ${tarjeta(sumarPorMoneda(pagosMes), '💳 Por pagar este mes', 'neutro', 'pagos', '', true)}
       ${tarjeta(alertas.length, '⚠️ Alertas pendientes', alertas.some(a => a.nivel !== 'proximo') ? 'rojo' : 'naranja', 'agenda')}
     </div>
     <div class="ag-dos-col">
@@ -325,6 +348,96 @@ function renderAgenda() {
   $('paneAgenda').innerHTML = `<div class="ag-lista">${html}</div>`;
 }
 
+// ---------- Vista: Pagos y vencimientos ----------
+
+/** Suma de montos por moneda: "$1.250.000 + UF 12". */
+function sumarPorMoneda(lista) {
+  const t = {};
+  for (const ev of lista) { const m = M.montoEvento(ev); if (m) t[m.moneda] = (t[m.moneda] || 0) + m.monto; }
+  return Object.entries(t).map(([mon, v]) => M.formatoMonto(v, mon)).join(' + ') || '$0';
+}
+
+function filaPago(ev) {
+  const color = M.colorEvento(ev);
+  const mo = M.montoEvento(ev);
+  const c = ev.categoria === 'obligacion' ? M.estadoCuotas(ev) : null;
+  const a = M.evaluarEvento(ev, M.hoyStr());
+  const quien = ev.categoria === 'servicio' ? ev.datos?.proveedor : ev.datos?.institucion;
+  const sub = [quien, M.textoRegla(ev.recurrencia), ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
+  const barra = c ? `<div class="ag-barra"><i style="width:${Math.round(c.pagadas / c.total * 100)}%"></i></div><div class="ag-fila-sub">${c.pagadas} de ${c.total} cuotas pagadas · quedan ${c.restantes}</div>` : '';
+  return `<div class="ag-fila ${color}" data-ev="${esc(ev.id)}">
+    <div class="ag-fila-hora">${esc(M.formatoFechaCorta(ev.proximaFecha))}<br><small>${esc(a?.texto || '')}</small></div>
+    <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(ev)} ${esc(ev.titulo)}</div><div class="ag-fila-sub">${sub}</div>${barra}</div>
+    <div class="ag-fila-monto">${mo ? esc(M.formatoMonto(mo.monto, mo.moneda)) : '<small>Monto variable</small>'}</div>
+    <div class="ag-fila-tags">${badgeEstado(ev)}</div>
+    <div class="ag-fila-acc"><button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="Registrar pago">💳</button></div></div>`;
+}
+
+function renderPagos() {
+  const hoy = M.hoyStr();
+  const { y, m } = M.partesFecha(hoy);
+  const ini = M.armarFecha(y, m, 1), fin = M.armarFecha(y, m, M.diasDelMes(y, m));
+  const sigIni = M.sumarDias(fin, 1); const { y: y2, m: m2 } = M.partesFecha(sigIni);
+  const sigFin = M.armarFecha(y2, m2, M.diasDelMes(y2, m2));
+  const abiertos = eventosFiltrados().filter(e => M.esPago(e) && M.estaAbierto(e.estado));
+  const comoEv = (o) => ({ ...o.ev, proximaFecha: o.fecha });
+  const delMes = M.ocurrenciasEnRango(abiertos, ini, fin).map(comoEv);
+  const delSig = M.ocurrenciasEnRango(abiertos, sigIni, sigFin).map(comoEv);
+  const vencidos = abiertos.filter(e => e.proximaFecha < hoy);
+  const lista = abiertos.slice().sort((a, b) => a.proximaFecha.localeCompare(b.proximaFecha));
+  const sinMonto = abiertos.filter(e => !M.montoEvento(e)).length;
+
+  $('panePagos').innerHTML = `
+    <div class="ag-cards ag-cards-pagos">
+      <div class="ag-card rojo static"><span class="n monto">${esc(sumarPorMoneda(vencidos))}</span><span class="t">🔴 Vencido (${vencidos.length})</span></div>
+      <div class="ag-card naranja static"><span class="n monto">${esc(sumarPorMoneda(delMes))}</span><span class="t">🟠 Por pagar este mes (${delMes.length})</span></div>
+      <div class="ag-card neutro static"><span class="n monto">${esc(sumarPorMoneda(delSig))}</span><span class="t">📅 Mes siguiente (${delSig.length})</span></div>
+    </div>
+    ${sinMonto ? `<p class="ag-ayuda">${sinMonto} ${sinMonto === 1 ? 'pago no tiene' : 'pagos no tienen'} monto fijo y no suma${sinMonto === 1 ? '' : 'n'} en los totales.</p>` : ''}
+    <div class="ag-dia-cab" style="margin-top:18px"><h2 class="ag-h2" style="margin:0">Servicios, suscripciones y créditos</h2>
+      <span><button type="button" class="btn-secundario" data-nueva-cat="servicio">+ Servicio</button> <button type="button" class="btn-secundario" data-nueva-cat="obligacion">+ Crédito</button></span></div>
+    ${lista.map(filaPago).join('') || '<p class="ag-vacio">Aún no hay servicios ni créditos registrados. Crea el primero con “+ Servicio” o “+ Crédito”.</p>'}
+    <p class="ag-ayuda">Al registrar un pago, queda en el historial del servicio o crédito y la agenda programa el siguiente vencimiento. Los totales solo suman pagos con monto fijo.</p>`;
+}
+
+// ---------- Vista: Cumpleaños y aniversarios ----------
+
+function renderCumpleanos() {
+  const hoy = M.hoyStr();
+  const evs = eventosFiltrados().filter(e => e.categoria === 'cumpleanos' && M.estaAbierto(e.estado));
+  const vencidos = evs.filter(e => e.proximaFecha < hoy).sort((a, b) => a.proximaFecha.localeCompare(b.proximaFecha));
+  const occ = M.ocurrenciasEnRango(evs, hoy, M.sumarDias(hoy, 364));
+  let html = '';
+  if (vencidos.length) html += `<h3 class="ag-grupo rojo">🔴 Sin saludar (${vencidos.length})</h3>` + vencidos.map(e => filaAgenda(e, e.proximaFecha)).join('');
+  let mesAct = '';
+  for (const o of occ) {
+    const { y, m } = M.partesFecha(o.fecha);
+    const clave = `${M.NOMBRES_MES[m - 1]} ${y}`;
+    if (clave !== mesAct) { html += `<h3 class="ag-grupo">${esc(clave)}</h3>`; mesAct = clave; }
+    html += filaAgenda(o.ev, o.fecha);
+  }
+  $('paneCumpleanos').innerHTML = `
+    <div class="ag-dia-cab"><h2 class="ag-h2" style="margin:0">Próximos 12 meses</h2>
+      <button type="button" class="btn-secundario" data-nueva-cat="cumpleanos">+ Cumpleaños / aniversario</button></div>
+    ${html || '<p class="ag-vacio">Aún no hay cumpleaños ni aniversarios. Puedes crearlos aquí o, más rápido, desde la pestaña Colaboradores.</p>'}`;
+}
+
+// ---------- Vista: Colaboradores (solo administradores) ----------
+
+function renderColaboradores() {
+  const filas = S.colaboradores.map(c => {
+    const fam = (c.familiares || []).length;
+    const datos = [c.cargo, c.fechaNacimiento ? 'Nac. ' + M.formatoFechaDMA(c.fechaNacimiento) : '', c.fechaIngreso ? 'Ingreso ' + M.formatoFechaDMA(c.fechaIngreso) : '', fam ? `${fam} familiar${fam === 1 ? '' : 'es'}` : ''].filter(Boolean).map(esc).join(' · ');
+    return `<div class="ag-fila ${c.activo === false ? 'gris' : 'verde'}">
+      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${esc(c.nombre)}${c.activo === false ? ' · Inactivo' : ''}</div><div class="ag-fila-sub">${datos}</div></div>
+      <div class="ag-fila-acc"><button type="button" class="btn-secundario" data-colab-editar="${esc(c.id)}">Editar</button>
+      <button type="button" class="btn-secundario" data-colab-estado="${esc(c.id)}">${c.activo === false ? 'Activar' : 'Desactivar'}</button></div></div>`;
+  }).join('');
+  $('paneColaboradores').innerHTML = `<div class="ag-dia-cab"><h2 class="ag-h2" style="margin:0">Colaboradores</h2><button type="button" class="btn-primario" id="btnNuevoColaborador">+ Nuevo colaborador</button></div>
+    <p class="ag-ayuda">Al guardar un colaborador, la agenda crea sola su cumpleaños, su aniversario laboral y los cumpleaños de sus familiares, y los mantiene al día si cambias una fecha. Estos datos personales solo los ve un administrador; los recordatorios sí los ve todo el equipo.</p>
+    ${filas || '<p class="ag-vacio">Aún no hay colaboradores registrados.</p>'}`;
+}
+
 // ---------- Vista: Recursos ----------
 
 function renderRecursos() {
@@ -342,8 +455,8 @@ function renderRecursos() {
 function render() {
   document.querySelectorAll('.ag-tab').forEach(b => b.classList.toggle('activa', b.dataset.vista === S.vista));
   document.querySelectorAll('.ag-pane').forEach(p => p.style.display = (p.id === 'pane' + S.vista[0].toUpperCase() + S.vista.slice(1)) ? '' : 'none');
-  $('agFiltros').style.display = S.vista === 'recursos' ? 'none' : '';
-  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, recursos: renderRecursos })[S.vista]();
+  $('agFiltros').style.display = ['recursos', 'colaboradores'].includes(S.vista) ? 'none' : '';
+  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, pagos: renderPagos, cumpleanos: renderCumpleanos, colaboradores: renderColaboradores, recursos: renderRecursos })[S.vista]();
 }
 
 function irA(vista) { S.vista = vista; render(); }
@@ -356,22 +469,34 @@ function llenarEstados(categoria, actual) {
   sel.value = actual || M.estadoInicial(categoria);
 }
 
+const BLOQUES_CATEGORIA = { servicio: 'evBloqueServicio', obligacion: 'evBloqueObligacion', cumpleanos: 'evBloqueCumple' };
+
 function actualizarFormularioSegunCategoria() {
   const cat = $('evCategoria').value;
+  const pago = M.CATEGORIAS_PAGO.includes(cat), cumple = cat === 'cumpleanos';
+  Object.entries(BLOQUES_CATEGORIA).forEach(([c, id]) => { $(id).style.display = c === cat ? '' : 'none'; });
   $('evTipoWrap').style.display = cat === 'actividad' ? '' : 'none';
-  $('evHorarioWrap').style.display = '';
   $('evRecursosWrap').style.display = cat === 'actividad' ? '' : 'none';
+  ['evTodoDiaWrap', 'evHorarioWrap', 'evHoraFinWrap'].forEach(id => { $(id).style.display = (pago || cumple) ? 'none' : ''; });
+  ['evCuandoTitulo', 'evFechaWrap', 'evRepiteWrap'].forEach(id => { $(id).style.display = cumple ? 'none' : ''; });
+  $('evFechaLabel').innerHTML = (pago ? 'Próximo vencimiento' : 'Fecha') + ' <span style="color:#c14b32;">*</span>';
   if (!S.editandoId) {
     llenarEstados(cat);
     $('evAntic').value = String(M.ANTICIPACION_SUGERIDA[cat] ?? 1);
+    $('evRepite').value = M.REPETICION_SUGERIDA[cat] || 'unica';
     actualizarAnticCustom();
   }
+  actualizarRepeticion();
 }
 function actualizarRepeticion() {
   const k = $('evRepite').value;
-  $('evCustomWrap').style.display = k === 'personalizada' ? '' : 'none';
-  $('evUnidadWrap').style.display = k === 'personalizada' ? '' : 'none';
-  $('evHastaWrap').style.display = k === 'unica' ? 'none' : '';
+  const cumple = $('evCategoria').value === 'cumpleanos';
+  $('evCustomWrap').style.display = (!cumple && k === 'personalizada') ? '' : 'none';
+  $('evUnidadWrap').style.display = (!cumple && k === 'personalizada') ? '' : 'none';
+  $('evHastaWrap').style.display = (cumple || k === 'unica') ? 'none' : '';
+}
+function actualizarCumpleEtiqueta() {
+  $('cuFechaLabel').textContent = $('cuMotivo').value === 'aniversario' ? 'Fecha de ingreso a Linence' : 'Fecha de nacimiento';
 }
 function actualizarAnticCustom() { $('evAnticCustomWrap').style.display = $('evAntic').value === 'otro' ? '' : 'none'; }
 function actualizarHorario() {
@@ -418,7 +543,18 @@ function abrirFormulario(ev = null, preset = {}) {
   $('evRecursos').innerHTML = activos.map(r => `<label class="ag-check"><input type="checkbox" value="${esc(r.id)}" ${marcados.has(r.id) ? 'checked' : ''}> ${esc(r.nombre)}</label>`).join('')
     || '<span class="ag-ayuda">No hay recursos creados todavía (pestaña “Recursos”).</span>';
 
-  actualizarFormularioSegunCategoria(); actualizarRepeticion(); actualizarAnticCustom(); actualizarHorario();
+  const d = ev?.datos || {};
+  $('svTipo').value = d.servicio || M.TIPOS_SERVICIO[0]; $('svProveedor').value = d.proveedor || ''; $('svNumCliente').value = d.nroCliente || '';
+  $('svMetodo').value = d.metodoPago || ''; $('svMonto').value = d.monto ?? ''; $('svMoneda').value = d.moneda || 'CLP';
+  $('obTipo').value = d.tipoObligacion || M.TIPOS_OBLIGACION[0]; $('obInstitucion').value = d.institucion || ''; $('obReferencia').value = d.referencia || '';
+  $('obMetodo').value = d.metodoPago || ''; $('obCuotasTotales').value = d.cuotasTotales ?? ''; $('obCuotasPagadas').value = d.cuotasPagadas ?? '';
+  $('obMontoCuota').value = d.montoCuota ?? ''; $('obMoneda').value = d.moneda || 'CLP'; $('obMontoOriginal').value = d.montoOriginal ?? '';
+  $('obSaldo').value = d.saldo ?? ''; $('obTasa').value = d.tasa ?? '';
+  $('cuMotivo').value = d.motivo || 'cumpleanos'; $('cuPersona').value = d.persona || ''; $('cuParentesco').value = d.parentesco || 'colaborador';
+  $('cuColaborador').value = d.colaboradorNombre || ''; $('cuFechaBase').value = d.fechaBase || '';
+  if (ev?.origen) { $('cuPersona').readOnly = true; } else { $('cuPersona').readOnly = false; }
+
+  actualizarFormularioSegunCategoria(); actualizarRepeticion(); actualizarAnticCustom(); actualizarHorario(); actualizarCumpleEtiqueta();
   mostrarInfoProyecto(!ev);
   $('modalEvento').classList.add('visible');
   setTimeout(() => $('evTitulo').focus(), 50);
@@ -430,18 +566,40 @@ function codigoDesdeTexto(t) {
   return m ? m[0].toUpperCase() : null;
 }
 
-/** Muestra los datos traídos del proyecto y sugiere el título si todavía no se escribió uno propio. */
-function mostrarInfoProyecto(sugerirTitulo = true) {
+/** Datos propios de la categoría elegida en el formulario (null si no tiene). */
+function leerDatosCategoria(cat) {
+  if (cat === 'servicio') return { servicio: $('svTipo').value, proveedor: $('svProveedor').value.trim(), nroCliente: $('svNumCliente').value.trim(), monto: num('svMonto'), moneda: $('svMoneda').value || 'CLP', metodoPago: $('svMetodo').value || null };
+  if (cat === 'obligacion') return {
+    tipoObligacion: $('obTipo').value, institucion: $('obInstitucion').value.trim(), referencia: $('obReferencia').value.trim(), metodoPago: $('obMetodo').value || null,
+    cuotasTotales: num('obCuotasTotales'), cuotasPagadas: num('obCuotasPagadas') ?? 0, montoCuota: num('obMontoCuota'), moneda: $('obMoneda').value || 'CLP',
+    montoOriginal: num('obMontoOriginal'), saldo: num('obSaldo'), tasa: num('obTasa')
+  };
+  if (cat === 'cumpleanos') return { motivo: $('cuMotivo').value, persona: $('cuPersona').value.trim(), parentesco: $('cuParentesco').value, colaboradorNombre: $('cuColaborador').value.trim(), fechaBase: $('cuFechaBase').value };
+  return null;
+}
+
+/** Sugiere el título si todavía no se escribió uno propio (nunca pisa lo que el usuario escribió). */
+function sugerirTitulo() {
+  const cat = $('evCategoria').value;
+  let auto = '';
+  if (cat === 'actividad') {
+    const p = proyecto(codigoDesdeTexto($('evProyecto').value));
+    const tipoNombre = M.TIPOS_ACTIVIDAD[$('evTipo').value]?.nombre || '';
+    auto = (p && tipoNombre) ? `${tipoNombre} — ${p.cliente || ''}` : '';
+  } else {
+    auto = M.tituloSugerido(cat, leerDatosCategoria(cat) || {});
+  }
+  const actual = $('evTitulo').value.trim();
+  if (auto && (!actual || actual === S.tituloAuto)) { $('evTitulo').value = auto; S.tituloAuto = auto; }
+}
+
+/** Muestra los datos traídos del proyecto y, si corresponde, sugiere el título. */
+function mostrarInfoProyecto(sugerir = true) {
   const codigo = codigoDesdeTexto($('evProyecto').value);
   const box = $('evProyectoInfo');
   box.style.display = codigo ? '' : 'none';
   box.innerHTML = codigo ? bloqueProyecto(codigo) : '';
-  if (!sugerirTitulo) return;
-  const p = proyecto(codigo);
-  const tipoNombre = $('evCategoria').value === 'actividad' ? (M.TIPOS_ACTIVIDAD[$('evTipo').value]?.nombre || '') : '';
-  const auto = (p && tipoNombre) ? `${tipoNombre} — ${p.cliente || codigo}` : '';
-  const actual = $('evTitulo').value.trim();
-  if (auto && (!actual || actual === S.tituloAuto)) { $('evTitulo').value = auto; S.tituloAuto = auto; }
+  if (sugerir) sugerirTitulo();
 }
 
 function leerFormulario() {
@@ -459,7 +617,7 @@ function leerFormulario() {
   const u = S.usuarios.find(x => x.uid === uid);
   const todo = $('evTodoDia').checked;
   const estado = $('evEstado').value;
-  return {
+  const d = {
     titulo: $('evTitulo').value.trim(),
     categoria: cat,
     tipo: cat === 'actividad' ? $('evTipo').value : null,
@@ -479,6 +637,20 @@ function leerFormulario() {
     proyectoCodigo: codigoDesdeTexto($('evProyecto').value),
     relacion: codigoDesdeTexto($('evProyecto').value) ? { tipo: 'proyecto', id: codigoDesdeTexto($('evProyecto').value), codigo: codigoDesdeTexto($('evProyecto').value) } : null
   };
+  d.datos = leerDatosCategoria(cat);
+  if (cat === 'cumpleanos') {
+    const base = d.datos.fechaBase;
+    const ex = S.editandoId ? S.eventos.find(e => e.id === S.editandoId) : null;
+    d.recurrencia = { frecuencia: 'anios', intervalo: 1, hasta: null };
+    d.todoElDia = true; d.horaInicio = null; d.horaFin = null; d.recursoIds = [];
+    if (base) {
+      d.proximaFecha = (ex && ex.datos?.fechaBase === base && ex.proximaFecha) ? ex.proximaFecha : M.proximoAniversario(base);
+      d.diaAncla = M.partesFecha(base).d;
+    } else d.proximaFecha = '';
+  } else if (M.CATEGORIAS_PAGO.includes(cat)) {
+    d.todoElDia = true; d.horaInicio = null; d.horaFin = null; d.recursoIds = [];
+  }
+  return d;
 }
 
 function errorFormulario(msg) { const e = $('evError'); e.textContent = msg; e.classList.add('visible'); }
@@ -486,7 +658,12 @@ function errorFormulario(msg) { const e = $('evError'); e.textContent = msg; e.c
 async function guardarEvento() {
   const d = leerFormulario();
   if (!d.titulo) return errorFormulario('Escribe un título.');
+  if (d.categoria === 'cumpleanos') {
+    if (!d.datos.persona) return errorFormulario('Escribe el nombre de la persona.');
+    if (!d.datos.fechaBase) return errorFormulario(d.datos.motivo === 'aniversario' ? 'Indica la fecha de ingreso.' : 'Indica la fecha de nacimiento.');
+  }
   if (!d.proximaFecha) return errorFormulario('Elige una fecha.');
+  if (d.categoria === 'obligacion' && d.datos.cuotasTotales != null && d.datos.cuotasPagadas > d.datos.cuotasTotales) return errorFormulario('Las cuotas pagadas no pueden superar el total de cuotas.');
   if ($('evProyecto').value.trim() && !d.proyectoCodigo) return errorFormulario('Elige un proyecto de la lista (por ejemplo LIN-00025) o deja el campo vacío.');
   if (d.proyectoCodigo && S.proyectos.length && !proyecto(d.proyectoCodigo)) return errorFormulario('No encontré ese proyecto. Revisa el código.');
   if (d.horaInicio && d.horaFin && d.horaFin <= d.horaInicio) return errorFormulario('La hora de término debe ser posterior a la de inicio.');
@@ -501,14 +678,14 @@ async function guardarEvento() {
   try {
     const por = { por: S.staff.uid, porNombre: nombreStaff() };
     if (!S.editandoId) {
-      await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: M.partesFecha(d.proximaFecha).d, adjuntos: [] }, S.staff.uid, nombreStaff());
+      await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: d.diaAncla ?? M.partesFecha(d.proximaFecha).d, adjuntos: [] }, S.staff.uid, nombreStaff());
       toast('Evento creado');
     } else {
       const ev = S.eventos.find(e => e.id === S.editandoId);
       const cambioFecha = ev.proximaFecha !== d.proximaFecha;
       const cambioEstado = ev.estado !== d.estado;
       const datos = { ...d, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() };
-      if (cambioFecha) datos.diaAncla = M.partesFecha(d.proximaFecha).d;
+      if (cambioFecha || d.diaAncla) datos.diaAncla = d.diaAncla ?? M.partesFecha(d.proximaFecha).d;
       delete datos.categoria;   // la categoría no cambia al editar
       const entrada = cambioFecha
         ? { tipo: 'reprogramado', fechaAnterior: ev.proximaFecha, fechaNueva: d.proximaFecha, estadoAnterior: ev.estado, estadoNuevo: d.estado, ...por }
@@ -554,12 +731,17 @@ function lineaHistorial(h) {
   else if (h.estadoNuevo && h.tipo === 'creado') partes.push(esc(M.ESTADOS[h.estadoNuevo]?.nombre || h.estadoNuevo));
   if (h.fechaAnterior && h.fechaNueva) partes.push(`${esc(M.formatoFechaDMA(h.fechaAnterior))} → ${esc(M.formatoFechaDMA(h.fechaNueva))}`);
   if (h.tipo === 'completado') {
+    if (h.cuota) partes.push(`cuota ${h.cuota}${h.cuotasTotales ? '/' + h.cuotasTotales : ''}`);
+    if (h.monto != null) partes.push(esc(M.formatoMonto(h.monto, h.moneda)));
+    if (h.metodoPago) partes.push(esc(h.metodoPago));
+    if (h.referencia) partes.push('ref. ' + esc(h.referencia));
     if (h.fechaOcurrencia) partes.push(`ocurrencia del ${esc(M.formatoFechaDMA(h.fechaOcurrencia))}`);
     if (h.fechaReal) partes.push(`realizado el ${esc(M.formatoFechaDMA(h.fechaReal))}`);
     if (h.fechaNueva) partes.push(`próxima: ${esc(M.formatoFechaDMA(h.fechaNueva))}`);
   }
   if (h.nota) partes.push(`“${esc(h.nota)}”`);
-  return `<div class="ag-hist"><b>${esc(ETIQ_HIST[h.tipo] || h.tipo)}</b> <span>${partes.join(' · ')}</span><small>${esc(h.porNombre || '')} · ${esc(fechaHoraTs(h.fecha))}</small></div>`;
+  const etiqueta = (h.tipo === 'completado' && (h.monto != null || h.cuota || h.metodoPago)) ? 'Pago registrado' : (ETIQ_HIST[h.tipo] || h.tipo);
+  return `<div class="ag-hist"><b>${esc(etiqueta)}</b> <span>${partes.join(' · ')}</span><small>${esc(h.porNombre || '')} · ${esc(fechaHoraTs(h.fecha))}</small></div>`;
 }
 
 function abrirDetalle(id) {
@@ -569,6 +751,32 @@ function abrirDetalle(id) {
   $('modalDetalle').classList.add('visible');
   S.pararHistorial?.();
   S.pararHistorial = escucharHistorialEvento(id, (lista) => { $('detHistorial').innerHTML = lista.map(lineaHistorial).join('') || '<p class="ag-vacio">Sin movimientos.</p>'; });
+}
+
+/** Filas del detalle con los datos propios de la categoría. */
+function filasDatos(ev) {
+  const d = ev.datos || {};
+  const f = (k, v) => v ? `<div class="ag-det-fila"><span>${k}</span><div>${v}</div></div>` : '';
+  if (ev.categoria === 'servicio') {
+    const mo = M.montoEvento(ev);
+    return f('Servicio', esc(d.servicio)) + f('Proveedor', esc(d.proveedor)) + f('N° de cliente', esc(d.nroCliente)) +
+      f('Monto', mo ? esc(M.formatoMonto(mo.monto, mo.moneda)) : 'Variable (se indica al pagar)') + f('Método de pago', esc(d.metodoPago));
+  }
+  if (ev.categoria === 'obligacion') {
+    const c = M.estadoCuotas(ev), mo = M.montoEvento(ev);
+    const cuotas = c ? `<b>${c.pagadas} de ${c.total}</b> cuotas pagadas · quedan ${c.restantes}<div class="ag-barra"><i style="width:${Math.round(c.pagadas / c.total * 100)}%"></i></div>` : '';
+    return f('Tipo', esc(d.tipoObligacion)) + f('Institución', esc(d.institucion)) + f('Contrato / referencia', esc(d.referencia)) + f('Cuotas', cuotas) +
+      f('Monto de la cuota', mo ? esc(M.formatoMonto(mo.monto, mo.moneda)) : '') +
+      f('Monto original', d.montoOriginal != null ? esc(M.formatoMonto(d.montoOriginal, d.moneda)) : '') +
+      f('Saldo pendiente', d.saldo != null ? esc(M.formatoMonto(d.saldo, d.moneda)) : '') +
+      f('Tasa de interés', d.tasa != null ? esc(d.tasa + ' %') : '') + f('Método de pago', esc(d.metodoPago));
+  }
+  if (ev.categoria === 'cumpleanos') {
+    return f('Persona', esc(d.persona)) + f('Relación', esc(M.PARENTESCOS[d.parentesco] || '')) + f('Colaborador asociado', esc(d.colaboradorNombre)) +
+      f('Próxima fecha', esc(M.textoCumple(ev))) + f(d.motivo === 'aniversario' ? 'Fecha de ingreso' : 'Fecha de nacimiento', d.fechaBase ? esc(M.formatoFechaDMA(d.fechaBase)) : '') +
+      (ev.origen ? f('Origen', 'Creado desde la ficha de un colaborador (se actualiza solo al editarla)') : '');
+  }
+  return '';
 }
 
 function pintarDetalle(ev) {
@@ -582,7 +790,8 @@ function pintarDetalle(ev) {
     <div class="ag-det-cab"><span class="ag-codigo">${esc(ev.codigo || '')}</span>${badgeEstado(ev)}${badgePrioridad(ev)}</div>
     <h2>${iconoEv(ev)} ${esc(ev.titulo)}</h2>
     ${a ? `<p class="ag-det-alerta ${a.nivel === 'proximo' ? 'naranja' : 'rojo'}">${esc(a.texto)}</p>` : ''}
-    ${fila('Cuándo', esc(M.formatoFechaLarga(ev.proximaFecha)) + (textoHora(ev) ? ' · ' + esc(textoHora(ev)) : ''))}
+    ${fila(M.esPago(ev) ? 'Próximo vencimiento' : 'Cuándo', esc(M.formatoFechaLarga(ev.proximaFecha)) + (textoHora(ev) ? ' · ' + esc(textoHora(ev)) : ''))}
+    ${filasDatos(ev)}
     ${fila('Categoría', esc(M.CATEGORIAS[ev.categoria]?.nombre || '') + (ev.tipo ? ' · ' + esc(M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre || '') : ''))}
     ${fila('Repetición', esc(M.textoRegla(ev.recurrencia)) + (ev.recurrencia?.hasta ? ` (hasta ${esc(M.formatoFechaDMA(ev.recurrencia.hasta))})` : ''))}
     ${fila('Aviso', esc(ant) + (ev.avisarHabilAnterior ? ' · día hábil anterior si cae fin de semana' : ''))}
@@ -591,12 +800,12 @@ function pintarDetalle(ev) {
     ${fila('Recursos', (ev.recursoIds || []).map(id => esc(rec[id] || '—')).join(', '))}
     ${fila('Descripción', esc(ev.descripcion).replace(/\n/g, '<br>'))}
     ${fila('Notas', esc(ev.notas).replace(/\n/g, '<br>'))}
-    ${fila('Última vez realizado', ev.ultimaRealizacion ? esc(M.formatoFechaDMA(ev.ultimaRealizacion)) : '')}
+    ${fila(M.esPago(ev) ? 'Último pago' : 'Última vez realizado', ev.ultimaRealizacion ? esc(M.formatoFechaDMA(ev.ultimaRealizacion)) : '')}
     ${fila('Creado', esc(ev.creadoPorNombre || '') + ' · ' + esc(fechaHoraTs(ev.creadoEn)))}
     ${fila('Última modificación', esc(ev.actualizadoPorNombre || '') + ' · ' + esc(fechaHoraTs(ev.actualizadoEn)))}
     <div class="ag-det-estado campo"><label for="detEstado">Cambiar estado</label><select id="detEstado">${opcionesEstado}</select></div>
     <div class="ag-det-acciones">
-      ${abierto ? `<button type="button" class="btn-primario" data-det="completar">✓ Marcar realizado</button>
+      ${abierto ? `<button type="button" class="btn-primario" data-det="completar">${etiquetaCompletar(ev)}</button>
       <button type="button" class="btn-secundario" data-det="posponer">⏰ Posponer / reprogramar</button>` : ''}
       <button type="button" class="btn-secundario" data-det="editar">Editar</button>
       ${abierto ? `<button type="button" class="btn-peligro" data-det="cancelar">Cancelar evento</button>` : ''}
@@ -611,15 +820,30 @@ let _accionId = null;
 function abrirCompletar(id) {
   const ev = S.eventos.find(e => e.id === id); if (!ev) return;
   _accionId = id;
-  const rec = M.esRecurrente(ev);
-  const sig = rec ? M.siguienteFecha(ev.proximaFecha, ev.recurrencia, ev.diaAncla) : null;
+  const rec = M.esRecurrente(ev), pago = M.esPago(ev);
+  const c = ev.categoria === 'obligacion' ? M.estadoCuotas(ev) : null;
+  const ultima = !!c && c.pagadas + 1 >= c.total;
+  const sig = (rec && !ultima) ? M.siguienteFecha(ev.proximaFecha, ev.recurrencia, ev.diaAncla) : null;
+  const mo = M.montoEvento(ev);
+
+  $('cpTitulo').textContent = pago ? 'Registrar pago' : ev.categoria === 'cumpleanos' ? 'Marcar como saludado' : 'Marcar como realizado';
+  $('btnConfirmarCompletar').textContent = pago ? 'Registrar pago' : 'Confirmar';
+  document.querySelector('label[for="cpFecha"]').textContent = pago ? 'Fecha de pago' : 'Fecha en que se realizó';
   $('cpFecha').value = M.hoyStr();
   $('cpNota').value = '';
+  $('cpPagoWrap').style.display = pago ? '' : 'none';
+  $('cpMonto').value = mo ? mo.monto : '';
+  $('cpMontoLabel').textContent = c ? `Monto pagado (cuota ${c.siguiente} de ${c.total})` : 'Monto pagado';
+  $('cpMetodo').value = ev.datos?.metodoPago || '';
+  $('cpReferencia').value = ''; $('cpSaldo').value = '';
+  $('cpSaldoWrap').style.display = ev.categoria === 'obligacion' ? '' : 'none';
   $('cpProximaWrap').style.display = sig ? '' : 'none';
   $('cpProxima').value = sig || '';
-  $('cpTexto').textContent = rec
-    ? (sig ? 'Esta ocurrencia quedará en el historial y se programa la siguiente.' : 'Era la última ocurrencia de la serie: el evento quedará como realizado.')
-    : 'El evento quedará como realizado y se conserva en el historial.';
+  $('cpTexto').textContent = ultima
+    ? 'Es la última cuota: al registrarla el crédito queda totalmente pagado y se conserva en el historial.'
+    : rec
+      ? (sig ? 'Queda en el historial y la agenda programa el siguiente vencimiento (puedes cambiar la fecha si varía).' : 'Era la última ocurrencia de la serie: el evento quedará como realizado.')
+      : 'El evento quedará como realizado y se conserva en el historial.';
   $('cpError').textContent = ''; $('cpError').classList.remove('visible');
   $('modalCompletar').classList.add('visible');
 }
@@ -631,20 +855,35 @@ async function confirmarCompletar() {
   const sigVisible = $('cpProximaWrap').style.display !== 'none';
   const sig = sigVisible ? $('cpProxima').value : '';
   if (sigVisible && !sig) { const e = $('cpError'); e.textContent = 'Indica la próxima fecha.'; e.classList.add('visible'); return; }
+
+  // Datos del pago (servicios y créditos)
+  const extra = {}, upd = {};
+  const pago = M.esPago(ev);
+  if (pago) {
+    extra.monto = num('cpMonto'); extra.moneda = ev.datos?.moneda || 'CLP';
+    extra.metodoPago = $('cpMetodo').value || null; extra.referencia = $('cpReferencia').value.trim() || null;
+    if (ev.categoria === 'obligacion') {
+      const total = parseInt(ev.datos?.cuotasTotales, 10) || 0;
+      const pagadas = (parseInt(ev.datos?.cuotasPagadas, 10) || 0) + 1;
+      extra.cuota = pagadas; if (total) extra.cuotasTotales = total;
+      upd['datos.cuotasPagadas'] = pagadas;
+      if ($('cpSaldo').value !== '') upd['datos.saldo'] = Number($('cpSaldo').value);
+    }
+  }
   const por = { por: S.staff.uid, porNombre: nombreStaff() };
   const btn = $('btnConfirmarCompletar'); btn.disabled = true;
   try {
     if (sig) {
       const estado = M.estadoReinicio(ev.categoria);
       await actualizarEvento(ev.id,
-        { proximaFecha: sig, estado, abierto: true, ultimaRealizacion: fechaReal, diaAncla: ev.diaAncla || M.partesFecha(ev.proximaFecha).d, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
-        { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, fechaNueva: sig, estadoAnterior: ev.estado, estadoNuevo: estado, nota, ...por });
-      toast('Registrado. Próxima fecha: ' + M.formatoFechaDMA(sig));
+        { ...upd, proximaFecha: sig, estado, abierto: true, ultimaRealizacion: fechaReal, diaAncla: ev.diaAncla || M.partesFecha(ev.proximaFecha).d, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+        { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, fechaNueva: sig, estadoAnterior: ev.estado, estadoNuevo: estado, nota, ...extra, ...por });
+      toast(pago ? 'Pago registrado. Próximo vencimiento: ' + M.formatoFechaDMA(sig) : 'Registrado. Próxima fecha: ' + M.formatoFechaDMA(sig));
     } else {
       await actualizarEvento(ev.id,
-        { estado: 'realizado', abierto: false, ultimaRealizacion: fechaReal, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
-        { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, estadoAnterior: ev.estado, estadoNuevo: 'realizado', nota, ...por });
-      toast('Marcado como realizado');
+        { ...upd, estado: 'realizado', abierto: false, ultimaRealizacion: fechaReal, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+        { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, estadoAnterior: ev.estado, estadoNuevo: 'realizado', nota, ...extra, ...por });
+      toast(pago ? 'Pago registrado' : 'Marcado como realizado');
     }
     cerrarModal('modalCompletar');
   } catch (e) { console.error(e); toast('No se pudo guardar', 'error'); }
@@ -732,6 +971,132 @@ async function guardarRecurso() {
   } catch (e) { console.error(e); toast('No se pudo guardar el recurso', 'error'); }
 }
 
+// ---------- Colaboradores ----------
+
+const PARENTESCOS_FAMILIAR = { hijo: 'Hijo/a', pareja: 'Cónyuge / pareja', familiar: 'Otro familiar' };
+const idCorto = () => Math.random().toString(36).slice(2, 8);
+
+function filaFamiliar(f = {}) {
+  const opciones = Object.entries(PARENTESCOS_FAMILIAR).map(([k, v]) => `<option value="${k}" ${f.parentesco === k ? 'selected' : ''}>${v}</option>`).join('');
+  return `<div class="ag-fam-fila" data-fid="${esc(f.id || idCorto())}">
+    <input type="text" class="fam-nombre" placeholder="Nombre" value="${esc(f.nombre || '')}" autocomplete="off">
+    <select class="fam-parentesco">${opciones}</select>
+    <input type="date" class="fam-fecha" value="${esc(f.fechaNacimiento || '')}" aria-label="Fecha de nacimiento">
+    <button type="button" class="ag-mini fam-quitar" aria-label="Quitar familiar">×</button></div>`;
+}
+
+function abrirColaborador(id = null) {
+  S.colabEditando = id;
+  const c = S.colaboradores.find(x => x.id === id);
+  $('coModalTitulo').textContent = c ? 'Editar colaborador' : 'Nuevo colaborador';
+  $('coNombre').value = c?.nombre || ''; $('coCargo').value = c?.cargo || '';
+  $('coNacimiento').value = c?.fechaNacimiento || ''; $('coIngreso').value = c?.fechaIngreso || '';
+  $('coAviso').value = Number.isFinite(c?.avisoDias) ? c.avisoDias : 7;
+  $('coFamiliares').innerHTML = (c?.familiares || []).map(filaFamiliar).join('');
+  $('coError').textContent = ''; $('coError').classList.remove('visible');
+  $('modalColaborador').classList.add('visible');
+}
+
+function leerFamiliares() {
+  return [...$('coFamiliares').querySelectorAll('.ag-fam-fila')].map(r => ({
+    id: r.dataset.fid, nombre: r.querySelector('.fam-nombre').value.trim(),
+    parentesco: r.querySelector('.fam-parentesco').value, fechaNacimiento: r.querySelector('.fam-fecha').value || null
+  })).filter(f => f.nombre || f.fechaNacimiento);
+}
+
+/**
+ * Deja la agenda al día con la ficha del colaborador: crea los recordatorios que faltan
+ * (cumpleaños, aniversario laboral, cumpleaños de familiares), actualiza los que cambiaron
+ * y cancela los que ya no corresponden. Cada recordatorio guarda `origen` para reconocerlo.
+ */
+async function sincronizarEventosColaborador(c) {
+  const por = { por: S.staff.uid, porNombre: nombreStaff() };
+  const aviso = Number.isFinite(c.avisoDias) ? c.avisoDias : 7;
+  const deseados = [];
+  if (c.activo !== false) {
+    if (c.fechaNacimiento) deseados.push({ clave: 'nacimiento', motivo: 'cumpleanos', persona: c.nombre, parentesco: 'colaborador', base: c.fechaNacimiento });
+    if (c.fechaIngreso) deseados.push({ clave: 'ingreso', motivo: 'aniversario', persona: c.nombre, parentesco: 'colaborador', base: c.fechaIngreso });
+    (c.familiares || []).forEach(f => {
+      if (f.nombre && f.fechaNacimiento) deseados.push({ clave: 'familiar-' + f.id, motivo: 'cumpleanos', persona: f.nombre, parentesco: f.parentesco || 'familiar', base: f.fechaNacimiento });
+    });
+  }
+  const propios = S.eventos.filter(e => e.origen?.tipo === 'colaborador' && e.origen.id === c.id && M.estaAbierto(e.estado));
+  const r = { creados: 0, actualizados: 0, cancelados: 0 };
+
+  for (const d of deseados) {
+    const datos = { motivo: d.motivo, persona: d.persona, parentesco: d.parentesco, colaboradorNombre: c.nombre, fechaBase: d.base };
+    const titulo = M.tituloSugerido('cumpleanos', datos);
+    const ex = propios.find(e => e.origen.clave === d.clave);
+    if (!ex) {
+      const prox = M.proximoAniversario(d.base);
+      await crearEvento({
+        titulo, categoria: 'cumpleanos', tipo: null, prioridad: 'media', estado: 'pendiente', abierto: true,
+        fecha: prox, proximaFecha: prox, diaAncla: M.partesFecha(d.base).d, todoElDia: true, horaInicio: null, horaFin: null,
+        recurrencia: { frecuencia: 'anios', intervalo: 1, hasta: null }, anticipacionDias: aviso, avisarHabilAnterior: false,
+        responsableUid: null, responsableNombre: '', recursoIds: [], descripcion: '', notas: '', proyectoCodigo: null, relacion: null, adjuntos: [],
+        datos, origen: { tipo: 'colaborador', id: c.id, clave: d.clave }
+      }, S.staff.uid, nombreStaff());
+      r.creados++;
+    } else if (ex.titulo !== titulo || ex.datos?.fechaBase !== d.base || ex.anticipacionDias !== aviso) {
+      const cambioBase = ex.datos?.fechaBase !== d.base;
+      await actualizarEvento(ex.id, {
+        titulo, datos, anticipacionDias: aviso,
+        ...(cambioBase ? { proximaFecha: M.proximoAniversario(d.base), diaAncla: M.partesFecha(d.base).d } : {}),
+        actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff()
+      }, { tipo: 'editado', nota: 'Actualizado desde la ficha del colaborador', ...por });
+      r.actualizados++;
+    }
+  }
+  const claves = new Set(deseados.map(d => d.clave));
+  for (const ex of propios) {
+    if (claves.has(ex.origen.clave)) continue;
+    await actualizarEvento(ex.id, { estado: 'cancelado', abierto: false, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+      { tipo: 'cancelado', estadoAnterior: ex.estado, estadoNuevo: 'cancelado', nota: 'Ya no corresponde según la ficha del colaborador', ...por });
+    r.cancelados++;
+  }
+  return r;
+}
+
+function resumenSync(r) {
+  const partes = [];
+  if (r.creados) partes.push(`${r.creados} recordatorio${r.creados === 1 ? '' : 's'} creado${r.creados === 1 ? '' : 's'}`);
+  if (r.actualizados) partes.push(`${r.actualizados} actualizado${r.actualizados === 1 ? '' : 's'}`);
+  if (r.cancelados) partes.push(`${r.cancelados} cancelado${r.cancelados === 1 ? '' : 's'}`);
+  return partes.length ? ' · ' + partes.join(', ') : '';
+}
+
+async function guardarColaborador() {
+  const err = (m) => { const e = $('coError'); e.textContent = m; e.classList.add('visible'); };
+  const nombre = $('coNombre').value.trim();
+  if (!nombre) return err('Escribe el nombre del colaborador.');
+  const familiares = leerFamiliares();
+  if (familiares.some(f => !f.nombre || !f.fechaNacimiento)) return err('Cada familiar necesita nombre y fecha de nacimiento (o quítalo de la lista).');
+  const datos = {
+    nombre, cargo: $('coCargo').value.trim(), fechaNacimiento: $('coNacimiento').value || null, fechaIngreso: $('coIngreso').value || null,
+    avisoDias: Math.max(0, parseInt($('coAviso').value, 10) || 0), familiares
+  };
+  const btn = $('btnGuardarColaborador'); btn.disabled = true;
+  try {
+    let id = S.colabEditando;
+    const previo = S.colaboradores.find(x => x.id === id);
+    if (id) await actualizarColaborador(id, datos); else id = await crearColaborador(datos, S.staff.uid);
+    const r = await sincronizarEventosColaborador({ id, ...datos, activo: previo ? previo.activo !== false : true });
+    cerrarModal('modalColaborador');
+    toast('Colaborador guardado' + resumenSync(r));
+  } catch (e) { console.error(e); err('No se pudo guardar. Revisa tu conexión (y que tu usuario sea administrador).'); }
+  finally { btn.disabled = false; }
+}
+
+async function cambiarEstadoColaborador(id) {
+  const c = S.colaboradores.find(x => x.id === id); if (!c) return;
+  const activo = c.activo === false;     // el nuevo estado
+  try {
+    await actualizarColaborador(id, { activo });
+    const r = await sincronizarEventosColaborador({ ...c, activo });
+    toast((activo ? 'Colaborador activado' : 'Colaborador desactivado') + resumenSync(r));
+  } catch (e) { console.error(e); toast('No se pudo cambiar el estado', 'error'); }
+}
+
 // ---------- Modales ----------
 
 function cerrarModal(id) {
@@ -780,6 +1145,10 @@ function enlazar() {
     const ev = t.closest('[data-ev]');
     if (ev) return abrirDetalle(ev.dataset.ev);
     if (t.closest('#btnNuevoRecurso')) return abrirRecurso();
+    const nc = t.closest('[data-nueva-cat]'); if (nc) return abrirFormulario(null, { categoria: nc.dataset.nuevaCat });
+    if (t.closest('#btnNuevoColaborador')) return abrirColaborador();
+    const ce = t.closest('[data-colab-editar]'); if (ce) return abrirColaborador(ce.dataset.colabEditar);
+    const cs = t.closest('[data-colab-estado]'); if (cs) return cambiarEstadoColaborador(cs.dataset.colabEstado);
     const re = t.closest('[data-rec-editar]'); if (re) return abrirRecurso(re.dataset.recEditar);
     const rs = t.closest('[data-rec-estado]');
     if (rs) { const r = S.recursos.find(x => x.id === rs.dataset.recEstado); return actualizarRecurso(r.id, { activo: r.activo === false }).then(() => toast(r.activo === false ? 'Recurso activado' : 'Recurso desactivado')).catch(() => toast('No se pudo cambiar', 'error')); }
@@ -798,6 +1167,18 @@ function enlazar() {
     abrirFormulario(null, { fecha: col.dataset.dia, horaInicio: M.desdeMinutos(minutos), horaFin: M.desdeMinutos(minutos + 60) });
   });
   $('agPaneles').addEventListener('change', (e) => { if (e.target.id === 'semRecurso') { S.semRecurso = e.target.value; render(); } });
+
+  // Colaboradores
+  $('btnAgregarFamiliar').addEventListener('click', () => $('coFamiliares').insertAdjacentHTML('beforeend', filaFamiliar()));
+  $('coFamiliares').addEventListener('click', (e) => e.target.closest('.fam-quitar')?.closest('.ag-fam-fila')?.remove());
+  $('btnGuardarColaborador').addEventListener('click', guardarColaborador);
+  $('btnCancelarColaborador').addEventListener('click', () => cerrarModal('modalColaborador'));
+
+  // Título sugerido según lo que se va escribiendo (servicios, créditos, cumpleaños)
+  ['svTipo', 'svProveedor', 'obTipo', 'obInstitucion', 'cuPersona', 'cuParentesco', 'cuColaborador', 'cuMotivo'].forEach(id => {
+    $(id).addEventListener('input', sugerirTitulo); $(id).addEventListener('change', sugerirTitulo);
+  });
+  $('cuMotivo').addEventListener('change', actualizarCumpleEtiqueta);
 
   // Formulario
   $('evCategoria').addEventListener('change', () => { actualizarFormularioSegunCategoria(); mostrarInfoProyecto(); });
@@ -892,6 +1273,12 @@ async function iniciar(staff) {
   $('evPrioridad').innerHTML = Object.entries(M.PRIORIDADES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
   $('evRepite').innerHTML = Object.entries(M.REPETICIONES).map(([k, v]) => `<option value="${k}">${v.nombre}</option>`).join('');
   $('evAntic').innerHTML = M.ANTICIPACIONES.map(a => `<option value="${a.v}">${a.t}</option>`).join('') + '<option value="otro">Personalizado…</option>';
+  const opts = (arr, vacio) => (vacio ? `<option value="">${vacio}</option>` : '') + arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  $('svTipo').innerHTML = opts(M.TIPOS_SERVICIO); $('obTipo').innerHTML = opts(M.TIPOS_OBLIGACION);
+  ['svMoneda', 'obMoneda'].forEach(id => { $(id).innerHTML = opts(M.MONEDAS); });
+  ['svMetodo', 'obMetodo', 'cpMetodo'].forEach(id => { $(id).innerHTML = opts(M.METODOS_PAGO, '—'); });
+  $('cuMotivo').innerHTML = '<option value="cumpleanos">Cumpleaños</option><option value="aniversario">Aniversario laboral</option>';
+  $('cuParentesco').innerHTML = Object.entries(M.PARENTESCOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
   $('rcTipo').innerHTML = Object.entries(TIPOS_RECURSO).map(([k, v]) => `<option value="${k}">${v}</option>`).join('');
 
   try { S.usuarios = await listarUsuariosStaff(); } catch (e) { console.warn('No se pudo cargar la lista de responsables', e); }
@@ -900,9 +1287,17 @@ async function iniciar(staff) {
   $('evResp').innerHTML = '<option value="">Sin asignar</option>' + optsResp;
 
   enlazar();
-  await mejorarSelects(['fCat', 'fEstado', 'fPrio', 'fResp', 'evCategoria', 'evTipo', 'evPrioridad', 'evRepite', 'evUnidad', 'evAntic', 'evResp', 'rcTipo']);
+  await mejorarSelects(['fCat', 'fEstado', 'fPrio', 'fResp', 'evCategoria', 'evTipo', 'evPrioridad', 'evRepite', 'evUnidad', 'evAntic', 'evResp', 'rcTipo', 'svTipo', 'svMoneda', 'svMetodo', 'obTipo', 'obMoneda', 'obMetodo', 'cuMotivo', 'cuParentesco', 'cpMetodo']);
 
   escucharRecursos((lista) => { S.recursos = lista; refrescarSiAplica(); }, () => toast('No se pudieron leer los recursos', 'error'));
+  if (esAdmin()) {
+    $('tabColaboradores').style.display = '';
+    escucharColaboradores((lista) => {
+      S.colaboradores = lista;
+      $('cuColaboradorLista').innerHTML = lista.filter(c => c.activo !== false).map(c => `<option value="${esc(c.nombre)}"></option>`).join('');
+      refrescarSiAplica();
+    }, () => toast('No se pudo leer la lista de colaboradores', 'error'));
+  }
   escucharProyectos((lista) => {
     S.proyectos = lista.filter(p => p.activo !== false);
     S.proyectosPorCodigo = Object.fromEntries(lista.map(p => [p.codigo, p]));
