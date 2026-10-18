@@ -883,3 +883,6 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 
 /* "Gestionar opciones" en negro, para diferenciarlo de los "+ Agregar" dorados */
 .cot-btn-agregar-opcion#btnGestionarOpciones { color: #141213; }
+
+/* Cotización y descripción en un solo PDF: los dos documentos se ven uno bajo el otro */
+.cot-pdf-modal-scroll .pdf-doc + .pdf-doc { margin-top: 24px; }
