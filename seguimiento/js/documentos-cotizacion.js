@@ -185,7 +185,7 @@ export function htmlEncabezado(titulo, folio) {
     </div>
     <div class="ln-datos-empresa">
       <div class="ln-fila-rut"><span>LINENCE SpA.</span><span>RUT: 78.446.739-2</span></div>
-      <div>DIRECCIÓN: Av. Salvador Allende, Los Almendros 22</div>
+      <div>DIRECCIÓN: Av. Salvador Allende 0131, calle Los Almendros, Local 33</div>
       <div>CORREO ELECTRÓNICO: contacto@linence.cl</div>
     </div>
     <img class="ln-logo" src="assets/img/logo-encabezado.png" width="162" height="95" alt="LINENCE">
@@ -223,6 +223,49 @@ export function htmlPie(titulo = '', folio = '', contenidoFijo = '') {
     <span class="ln-pie-titulo">${escapeHtml(String(titulo ?? '').toUpperCase())}</span>
   </div>
 `;
+}
+
+// ---------- Nota – Alcance del servicio (según tipo de proyecto) ----------
+// Va dentro del bloque anclado al fondo de la Cotización, justo ENCIMA del
+// recuadro negro de vigencia y montos. La clave es el código de tipo de
+// proyecto (COC, CLO, VAN...). Mismo esquema de redacción en todos los textos.
+const NOTA_ALCANCE_TITULO = 'NOTA – ALCANCE DEL SERVICIO:';
+const NOTA_ALCANCE_FINAL = 'Todo servicio adicional que no esté expresamente indicado en la cotización deberá ser evaluado y cotizado por separado.';
+const NOTAS_ALCANCE = {
+  COC: 'El valor cotizado contempla la fabricación e instalación de los muebles de cocina especificados en la cotización. No incluye el retiro ni desmontaje de mobiliario existente, instalación de encimera, lavaplatos, horno u otros artefactos y accesorios, trabajos de gasfitería, conexiones eléctricas y agua, reparaciones de muros ni obras de remodelación.',
+  CLO: 'El valor cotizado contempla la fabricación e instalación del clóset especificado en la cotización. No incluye el retiro de mobiliario existente, reparaciones o modificaciones de muros y pisos, trabajos de albañilería, instalaciones eléctricas ni modificaciones estructurales del espacio.',
+  VAN: 'El valor cotizado contempla la fabricación e instalación del vanitorio especificado en la cotización. No incluye el retiro del mobiliario existente, la instalación de lavamanos, grifería, sifón u otros accesorios, conexiones o modificaciones de gasfitería, electricidad y agua, reparaciones de muros ni trabajos de remodelación.',
+  CEN: 'El valor cotizado contempla la fabricación e instalación del centro de entretenimiento especificado en la cotización. No incluye el retiro de mobiliario existente, instalaciones eléctricas, canalización de cables, reparaciones o modificaciones de muros ni trabajos de remodelación.',
+  WAL: 'El valor cotizado contempla la fabricación e instalación del walking closet especificado en la cotización. No incluye el retiro de mobiliario existente, reparaciones o modificaciones de muros y pisos, trabajos de albañilería, instalaciones eléctricas ni iluminación, ni modificaciones estructurales del espacio.',
+  OFI: 'El valor cotizado contempla la fabricación e instalación del mobiliario corporativo especificado en la cotización. No incluye el retiro de mobiliario existente, instalaciones eléctricas, canalización de cables ni conexiones de datos, reparaciones o modificaciones de muros ni trabajos de remodelación.',
+  LOC: 'El valor cotizado contempla la fabricación e instalación del mobiliario comercial especificado en la cotización. No incluye el retiro de mobiliario existente, instalaciones eléctricas ni de iluminación, letreros, equipamiento o artefactos, reparaciones o modificaciones de muros y pisos ni trabajos de remodelación.',
+  MIX: 'El valor cotizado contempla la fabricación e instalación de los muebles especificados en la cotización. No incluye el retiro de mobiliario existente, instalación de artefactos y accesorios, conexiones eléctricas, de gasfitería ni de agua, reparaciones o modificaciones de muros y pisos ni trabajos de remodelación.',
+};
+NOTAS_ALCANCE.OTR = NOTAS_ALCANCE.MIX;
+
+/** Código de tipo de proyecto: del lead; si falta, del folio (CT-COC-00023); si falta, del texto libre. */
+function codigoTipoProyecto(cotizacion, cliente) {
+  const directo = String(cliente?.tipoProyectoCodigo || '').toUpperCase();
+  if (NOTAS_ALCANCE[directo]) return directo;
+  const m = String(cotizacion?.numero || '').match(/^[A-Z]+-([A-Z]+)-\d+/);
+  if (m && NOTAS_ALCANCE[m[1]]) return m[1];
+  const t = String(cliente?.tipoProyecto || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/walk/.test(t)) return 'WAL';
+  if (/cocina/.test(t)) return 'COC';
+  if (/closet|vestidor/.test(t)) return 'CLO';
+  if (/bano|vanitorio|vanity/.test(t)) return 'VAN';
+  if (/entretenimiento|\btv\b|rack/.test(t)) return 'CEN';
+  if (/oficina|escritorio|corporativ/.test(t)) return 'OFI';
+  return 'OTR';
+}
+
+function htmlNotaAlcance(cotizacion, cliente) {
+  const texto = NOTAS_ALCANCE[codigoTipoProyecto(cotizacion, cliente)] || NOTAS_ALCANCE.OTR;
+  return `<div class="pdf-nota-alcance">
+      <p class="pdf-nota-alcance-titulo">${NOTA_ALCANCE_TITULO}</p>
+      <p>${texto}</p>
+      <p>${NOTA_ALCANCE_FINAL}</p>
+    </div>`;
 }
 
 // ---------- CT — Cotización ----------
@@ -267,23 +310,32 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   // El cuadro de notas + totales queda anclado al fondo de la última hoja,
   // pegado justo encima del pie institucional (ver htmlPie).
+  const porcentajeAbono = Number(cotizacion.porcentajeAbono) || 0;
+  const abonoMonto = Number(cotizacion.abono) || 0;
+  const saldoMonto = Math.max(0, total - abonoMonto);
+  const saldoPorcentaje = Math.max(0, 100 - porcentajeAbono);
+
   const cuadroPie = `
   <div class="pdf-pie">
-    <div class="pdf-pie-notas">
-      <p>Esta cotización de su proyecto es válida por 7 días, hasta ${validaHasta}</p>
-      <p>Vendedor: ${escapeHtml(vendedor)}</p>
-      <p>Condiciones: ${escapeHtml(condiciones)}</p>
-      <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
-      <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
+    ${htmlNotaAlcance(cotizacion, cliente)}
+    <div class="pdf-pie-fila">
+      <div class="pdf-pie-notas">
+        <p>Esta cotización de su proyecto es válida por 7 días, hasta ${validaHasta}</p>
+        <p>Vendedor: ${escapeHtml(vendedor)}</p>
+        <p>Condiciones: ${escapeHtml(condiciones)}</p>
+        <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
+        <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
+      </div>
+      <table class="pdf-tabla-totales">
+        <tr><th>MONTO</th><td>${formatearMoneda(monto)}</td></tr>
+        <tr><th>DESCUENTO</th><td>${formatearMoneda(descuento)}</td></tr>
+        <tr><th>NETO</th><td>${formatearMoneda(neto)}</td></tr>
+        <tr><th>I.V.A. 19%</th><td>${iva}</td></tr>
+        <tr><th>TOTAL</th><td>${formatearMoneda(total)}</td></tr>
+        <tr><th>Abono ${porcentajeAbono}%</th><td>${formatearMoneda(abonoMonto)}</td></tr>
+        <tr><th>Saldo ${saldoPorcentaje}%</th><td>${formatearMoneda(saldoMonto)}</td></tr>
+      </table>
     </div>
-    <table class="pdf-tabla-totales">
-      <tr><th>MONTO</th><td>${formatearMoneda(monto)}</td></tr>
-      <tr><th>DESCUENTO</th><td>${formatearMoneda(descuento)}</td></tr>
-      <tr><th>NETO</th><td>${formatearMoneda(neto)}</td></tr>
-      <tr><th>I.V.A. 19%</th><td>${iva}</td></tr>
-      <tr><th>TOTAL</th><td>${formatearMoneda(total)}</td></tr>
-      <tr><th>Abono ${cotizacion.porcentajeAbono || 0}%</th><td>${formatearMoneda(cotizacion.abono)}</td></tr>
-    </table>
   </div>`;
 
   return `${htmlEncabezado('Cotización', folioConVersion(cotizacion.numero, cotizacion.version))}
@@ -397,7 +449,7 @@ export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
   <p class="pdf-dc-heading">DESCRIPCIÓN DE FABRICACIÓN E INSTALACIÓN DE MOBILIARIO A MEDIDA</p>
 
   <p class="pdf-dc-intro">
-    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende, Los Almendros 22, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
+    Con fecha ${fecha}, en la ciudad de Rancagua-Chile, se presenta la siguiente descripción de cotización de servicios entre: EL PRESTADOR: LINENCE SpA. Mobiliario a Medida, representada para estos efectos por doña Maria Carrero Peralta, RUT: 26.429.618-8, con domicilio comercial en Av. Salvador Allende 0131, calle Los Almendros, Local 33, en adelante "LINENCE SpA". EL CLIENTE: ${escapeHtml((cliente.nombre || '—').toLocaleUpperCase('es-CL'))}, RUT: ${escapeHtml(cliente.rut || '—')}, con domicilio en ${escapeHtml(formatearDireccion(cliente.direccion))}, en adelante "El Cliente". Ambas partes acuerdan la descripción de la cotización de forma voluntaria a continuación:
   </p>
 
   <div class="pdf-dc-seccion">
@@ -564,9 +616,24 @@ function estructurarCopiaParaImprimir(copia) {
  */
 export async function imprimirDocumentoPdf(origen, nombreArchivo) {
   if (!origen) return;
+  return imprimirDocumentosPdf([origen], nombreArchivo);
+}
+
+/**
+ * Igual que imprimirDocumentoPdf, pero junta VARIOS documentos en un solo PDF,
+ * en el orden recibido (ej. Descripción primero y Cotización al final). Cada
+ * documento conserva su encabezado (primera hoja) y su pie (última hoja) y
+ * empieza en una hoja nueva. Los orígenes deben estar visibles en pantalla
+ * (se miden uno por uno, igual que en la impresión de un solo documento).
+ * @param {HTMLElement[]} origenes documentos visibles, en el orden de impresión
+ * @param {string} [nombreArchivo] nombre sugerido al "Guardar como PDF"
+ */
+export async function imprimirDocumentosPdf(origenes, nombreArchivo) {
+  const lista = (origenes || []).filter(Boolean);
+  if (!lista.length) return;
   // Poppins tiene que estar cargada antes de medir (y de imprimir)
   try { await document.fonts.ready; } catch (e) { /* sin soporte: se sigue igual */ }
-  prepararAlturasParaImprimir(origen); // se mide con el original, que sí está visible
+  lista.forEach(o => prepararAlturasParaImprimir(o)); // se mide con los originales, que sí están visibles
 
   let zona = document.getElementById('zonaImpresionPdf');
   if (!zona) {
@@ -574,11 +641,21 @@ export async function imprimirDocumentoPdf(origen, nombreArchivo) {
     zona.id = 'zonaImpresionPdf';
     document.body.appendChild(zona);
   }
-  const copia = origen.cloneNode(true); // conserva las variables de altura medidas
-  copia.removeAttribute('id');
-  estructurarCopiaParaImprimir(copia);
   zona.innerHTML = '';
-  zona.appendChild(copia);
+  lista.forEach((origen, i) => {
+    const copia = origen.cloneNode(true); // conserva las variables de altura medidas
+    copia.removeAttribute('id');
+    if (i > 0) {
+      // Cada documento parte en una hoja nueva. La marca de agua es position:fixed
+      // (el navegador la repite en TODAS las hojas): se deja solo la del primero
+      // para que no se superponga una segunda copia.
+      copia.style.breakBefore = 'page';
+      copia.style.pageBreakBefore = 'always';
+      copia.querySelectorAll('.ln-marca-agua').forEach(el => el.remove());
+    }
+    estructurarCopiaParaImprimir(copia);
+    zona.appendChild(copia);
+  });
   document.body.classList.add('imprimiendo-pdf-doc');
 
   // Chrome propone como nombre del PDF el título de la página: se cambia
