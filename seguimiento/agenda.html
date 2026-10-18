@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/agenda.css?v=20261018b">
+<link rel="stylesheet" href="css/agenda.css?v=20261019a">
 </head>
 <body>
 
@@ -77,6 +77,9 @@
         <button type="button" class="ag-tab" data-vista="semana">🗓️ Semana</button>
         <button type="button" class="ag-tab" data-vista="mes">📆 Mes</button>
         <button type="button" class="ag-tab" data-vista="agenda">📋 Agenda</button>
+        <button type="button" class="ag-tab" data-vista="pagos">💳 Pagos</button>
+        <button type="button" class="ag-tab" data-vista="cumpleanos">🎂 Cumpleaños</button>
+        <button type="button" class="ag-tab" data-vista="colaboradores" id="tabColaboradores" style="display:none;">👥 Colaboradores</button>
         <button type="button" class="ag-tab" data-vista="recursos">🧰 Recursos</button>
       </nav>
     </div>
@@ -86,6 +89,9 @@
       <div class="ag-pane" id="paneMes" style="display:none;"></div>
       <div class="ag-pane" id="paneSemana" style="display:none;"></div>
       <div class="ag-pane" id="paneAgenda" style="display:none;"></div>
+      <div class="ag-pane" id="panePagos" style="display:none;"></div>
+      <div class="ag-pane" id="paneCumpleanos" style="display:none;"></div>
+      <div class="ag-pane" id="paneColaboradores" style="display:none;"></div>
       <div class="ag-pane" id="paneRecursos" style="display:none;"></div>
     </div>
   </main>
@@ -118,25 +124,63 @@
           <select id="evEstado" class="ag-select-nativo"></select>
         </div>
 
-        <p class="form-section-title campo-full">Cuándo</p>
-        <div class="campo">
-          <label for="evFecha">Fecha <span style="color:#c14b32;">*</span></label>
+        <div class="campo-full ag-bloque-form" id="evBloqueServicio" style="display:none;">
+          <p class="form-section-title">Datos del servicio</p>
+          <div class="form-grid">
+            <div class="campo"><label for="svTipo">Servicio</label><select id="svTipo"></select></div>
+            <div class="campo"><label for="svProveedor">Proveedor</label><input type="text" id="svProveedor" placeholder="Ej. Entel" autocomplete="off"></div>
+            <div class="campo"><label for="svNumCliente">N° de cliente / contrato</label><input type="text" id="svNumCliente" autocomplete="off"></div>
+            <div class="campo"><label for="svMetodo">Método de pago</label><select id="svMetodo"></select></div>
+            <div class="campo"><label for="svMonto">Monto habitual (opcional)</label><input type="number" id="svMonto" min="0" step="any" inputmode="decimal" placeholder="Si varía cada mes, déjalo vacío"></div>
+            <div class="campo"><label for="svMoneda">Moneda</label><select id="svMoneda"></select></div>
+          </div>
+        </div>
+        <div class="campo-full ag-bloque-form" id="evBloqueObligacion" style="display:none;">
+          <p class="form-section-title">Datos del crédito u obligación</p>
+          <div class="form-grid">
+            <div class="campo"><label for="obTipo">Tipo</label><select id="obTipo"></select></div>
+            <div class="campo"><label for="obInstitucion">Institución financiera</label><input type="text" id="obInstitucion" autocomplete="off"></div>
+            <div class="campo"><label for="obReferencia">N° de contrato / referencia</label><input type="text" id="obReferencia" autocomplete="off"></div>
+            <div class="campo"><label for="obMetodo">Método de pago</label><select id="obMetodo"></select></div>
+            <div class="campo"><label for="obCuotasTotales">Total de cuotas</label><input type="number" id="obCuotasTotales" min="0" inputmode="numeric"></div>
+            <div class="campo"><label for="obCuotasPagadas">Cuotas ya pagadas</label><input type="number" id="obCuotasPagadas" min="0" inputmode="numeric" placeholder="0"></div>
+            <div class="campo"><label for="obMontoCuota">Monto de la cuota</label><input type="number" id="obMontoCuota" min="0" step="any" inputmode="decimal"></div>
+            <div class="campo"><label for="obMoneda">Moneda</label><select id="obMoneda"></select></div>
+            <div class="campo"><label for="obMontoOriginal">Monto original (opcional)</label><input type="number" id="obMontoOriginal" min="0" step="any" inputmode="decimal"></div>
+            <div class="campo"><label for="obSaldo">Saldo pendiente (opcional)</label><input type="number" id="obSaldo" min="0" step="any" inputmode="decimal"></div>
+            <div class="campo"><label for="obTasa">Tasa de interés % (opcional)</label><input type="number" id="obTasa" min="0" step="any" inputmode="decimal"></div>
+          </div>
+        </div>
+        <div class="campo-full ag-bloque-form" id="evBloqueCumple" style="display:none;">
+          <p class="form-section-title">Datos de la persona</p>
+          <div class="form-grid">
+            <div class="campo"><label for="cuMotivo">Motivo</label><select id="cuMotivo"></select></div>
+            <div class="campo"><label for="cuPersona">Nombre</label><input type="text" id="cuPersona" autocomplete="off"></div>
+            <div class="campo"><label for="cuParentesco">Relación</label><select id="cuParentesco"></select></div>
+            <div class="campo"><label for="cuColaborador">Colaborador asociado</label><input type="text" id="cuColaborador" list="cuColaboradorLista" placeholder="Si es hijo/a o familiar" autocomplete="off"><datalist id="cuColaboradorLista"></datalist></div>
+            <div class="campo campo-full"><label for="cuFechaBase" id="cuFechaLabel">Fecha de nacimiento</label><input type="date" id="cuFechaBase"></div>
+          </div>
+        </div>
+
+        <p class="form-section-title campo-full" id="evCuandoTitulo">Cuándo</p>
+        <div class="campo" id="evFechaWrap">
+          <label for="evFecha" id="evFechaLabel">Fecha <span style="color:#c14b32;">*</span></label>
           <input type="date" id="evFecha">
         </div>
-        <div class="campo ag-check-campo">
+        <div class="campo ag-check-campo" id="evTodoDiaWrap">
           <label class="ag-check"><input type="checkbox" id="evTodoDia"> Todo el día</label>
         </div>
         <div class="campo" id="evHorarioWrap">
           <label for="evHoraIni">Hora de inicio</label>
           <input type="time" id="evHoraIni">
         </div>
-        <div class="campo">
+        <div class="campo" id="evHoraFinWrap">
           <label for="evHoraFin">Hora de término</label>
           <input type="time" id="evHoraFin">
         </div>
 
         <p class="form-section-title campo-full">Repetición y aviso</p>
-        <div class="campo">
+        <div class="campo" id="evRepiteWrap">
           <label for="evRepite">Repetir</label>
           <select id="evRepite"></select>
         </div>
@@ -215,7 +259,7 @@
 <!-- ================= MODAL: MARCAR REALIZADO ================= -->
 <div class="modal-overlay agenda-modal" id="modalCompletar">
   <div class="modal-box">
-    <h2>Marcar como realizado</h2>
+    <h2 id="cpTitulo">Marcar como realizado</h2>
     <p class="subtitulo" id="cpTexto"></p>
     <div class="form-grid">
       <div class="campo">
@@ -225,6 +269,14 @@
       <div class="campo" id="cpProximaWrap">
         <label for="cpProxima">Próxima fecha</label>
         <input type="date" id="cpProxima">
+      </div>
+      <div class="campo-full" id="cpPagoWrap" style="display:none;">
+        <div class="form-grid">
+          <div class="campo"><label for="cpMonto" id="cpMontoLabel">Monto pagado</label><input type="number" id="cpMonto" min="0" step="any" inputmode="decimal"></div>
+          <div class="campo"><label for="cpMetodo">Método de pago</label><select id="cpMetodo"></select></div>
+          <div class="campo campo-full"><label for="cpReferencia">N° de comprobante / referencia (opcional)</label><input type="text" id="cpReferencia" autocomplete="off"></div>
+          <div class="campo campo-full" id="cpSaldoWrap"><label for="cpSaldo">Saldo pendiente después del pago (opcional)</label><input type="number" id="cpSaldo" min="0" step="any" inputmode="decimal"></div>
+        </div>
       </div>
       <div class="campo campo-full">
         <label for="cpNota">Observaciones (opcional)</label>
@@ -300,10 +352,35 @@
   </div>
 </div>
 
+<!-- ================= MODAL: COLABORADOR ================= -->
+<div class="modal-overlay agenda-modal" id="modalColaborador">
+  <div class="modal-box">
+    <h2 id="coModalTitulo">Colaborador</h2>
+    <p class="subtitulo">Al guardar, la agenda crea sola los recordatorios de cumpleaños y de aniversario laboral, y los mantiene al día.</p>
+    <div class="form-grid">
+      <div class="campo"><label for="coNombre">Nombre</label><input type="text" id="coNombre" autocomplete="off"></div>
+      <div class="campo"><label for="coCargo">Cargo (opcional)</label><input type="text" id="coCargo" autocomplete="off"></div>
+      <div class="campo"><label for="coNacimiento">Fecha de nacimiento</label><input type="date" id="coNacimiento"></div>
+      <div class="campo"><label for="coIngreso">Fecha de ingreso a Linence</label><input type="date" id="coIngreso"></div>
+      <div class="campo"><label for="coAviso">Avisar con cuántos días de anticipación</label><input type="number" id="coAviso" min="0" value="7" inputmode="numeric"></div>
+      <div class="campo campo-full">
+        <label>Familiares (hijos, pareja…)</label>
+        <div id="coFamiliares" class="ag-familiares"></div>
+        <button type="button" class="btn-secundario" id="btnAgregarFamiliar">+ Agregar familiar</button>
+      </div>
+    </div>
+    <div class="modal-error" id="coError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarColaborador">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarColaborador">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/agenda.js?v=20261018b"></script>
+<script type="module" src="js/agenda.js?v=20261019a"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
