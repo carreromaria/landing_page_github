@@ -12,6 +12,7 @@ import {
   crearEvento, actualizarEvento, escucharHistorialEvento,
   crearRecurso, actualizarRecurso, escucharProyectos
 } from './firestore.js';
+import { formatearDireccion } from './regiones-comunas.js';
 import * as M from './agenda-motor.js';
 
 const $ = (id) => document.getElementById(id);
@@ -58,7 +59,7 @@ function bloqueProyecto(codigo) {
   const p = proyecto(codigo);
   const enlace = `<a href="dashboard.html?codigo=${encodeURIComponent(codigo)}">${esc(codigo)}</a>`;
   if (!p) return `<div class="ag-proy"><div class="ag-proy-cab">${enlace}</div><small>No se encontró el proyecto (¿se cargó la lista?).</small></div>`;
-  const dir = M.formatoDireccion(p.direccion);
+  const dir = (p.direccion && typeof p.direccion === 'object') ? formatearDireccion(p.direccion) : (p.direccion || '');
   const tel = telefonoProyecto(p);
   return `<div class="ag-proy">
     <div class="ag-proy-cab">${enlace} · ${esc(p.cliente || '')}</div>
@@ -840,12 +841,8 @@ function enlazar() {
     document.querySelectorAll('.agenda-modal.visible').forEach(m => { if (m.id === 'modalConflicto') resolverConflicto(false); else cerrarModal(m.id); });
   });
 
-  // Menú lateral en teléfono. Se alternan varias clases habituales además de la propia,
-  // para convivir con el CSS del panel (dashboard.css) sin depender de dashboard.js.
-  const alternar = (abrir) => {
-    document.body.classList.toggle('agenda-menu-abierto', abrir);
-    ['dashSidebar', 'sidebarOverlay'].forEach(id => ['abierto', 'open', 'visible', 'activo'].forEach(c => $(id)?.classList.toggle(c, abrir)));
-  };
+  // Menú lateral en teléfono: mismo mecanismo que dashboard.js (clase "abierto").
+  const alternar = (abrir) => ['dashSidebar', 'sidebarOverlay'].forEach(id => $(id)?.classList.toggle('abierto', abrir));
   $('btnAbrirSidebar')?.addEventListener('click', () => alternar(true));
   $('btnCerrarSidebar')?.addEventListener('click', () => alternar(false));
   $('sidebarOverlay')?.addEventListener('click', () => alternar(false));
@@ -882,7 +879,7 @@ function refrescarSiAplica() {
 async function iniciar(staff) {
   S.staff = staff;
   $('staffNombre').textContent = staff.nombre || staff.email || '—';
-  $('staffRol').textContent = staff.rol || '—';
+  $('staffRol').textContent = staff.rol === 'admin' ? 'Administrador' : 'Staff';
   $('btnCerrarSesion').addEventListener('click', async () => { await cerrarSesion(); location.href = 'login.html'; });
 
   // Estructura estática (listas de opciones)
@@ -922,10 +919,7 @@ async function iniciar(staff) {
 function mostrarLayout() {
   $('dashCargando').style.display = 'none';
   $('dashLayout').style.display = 'flex';
-  const top = $('dashTopbarMobile');
-  const mq = window.matchMedia('(max-width: 900px)');
-  const ajustar = () => { top.style.display = mq.matches ? 'flex' : 'none'; };
-  ajustar(); mq.addEventListener?.('change', ajustar);
+  $('dashTopbarMobile').style.display = '';   // como en dashboard.js: lo muestra el CSS solo en móvil
 }
 
 observarSesionStaff((staff) => {
