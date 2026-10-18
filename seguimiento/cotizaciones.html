@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/pdf-documentos.css?v=5">
-<link rel="stylesheet" href="css/cotizaciones.css?v=18">
+<link rel="stylesheet" href="css/pdf-documentos.css?v=6">
+<link rel="stylesheet" href="css/cotizaciones.css?v=19">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=2">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
@@ -233,12 +233,17 @@
         <span>Abono</span>
         <span id="cotAbono">$0</span>
       </div>
+      <div class="crm-cotizacion-total-row crm-cotizacion-abono-final">
+        <span id="cotSaldoEtiqueta">Saldo</span>
+        <span id="cotSaldo">$0</span>
+      </div>
     </div>
 
     <!-- Ver PDF / Ver Descripción: arriba, junto a los montos; abajo quedan solo las acciones de guardar -->
     <div class="cot-acciones-vista">
       <button type="button" class="btn-secundario" id="btnDescargarPDF">👁 Ver PDF</button>
       <button type="button" class="btn-secundario" id="btnVerDescripcion">👁 Ver Descripción</button>
+      <button type="button" class="btn-secundario" id="btnVerCombinado">👁 Cotización y descripción</button>
     </div>
 
     <div class="cot-desc-resumen" style="display:block; padding:0; border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden; margin-top:16px;">
@@ -471,9 +476,25 @@
   </div>
 </div>
 
+<!-- ================= MODAL: COTIZACIÓN Y DESCRIPCIÓN EN UN SOLO PDF ================= -->
+<!-- Primero la Descripción y al final la Cotización, para que el cliente la lea sí o sí. -->
+<div class="cot-pdf-modal-overlay" id="modalPdfCombinado">
+  <div class="cot-pdf-modal">
+    <div class="cot-pdf-modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCerrarModalCombinado">Cerrar</button>
+      <button type="button" class="btn-secundario" id="btnImprimirCombinado">Imprimir</button>
+      <button type="button" class="btn-primario" id="btnDescargarCombinadoModal">Descargar PDF</button>
+    </div>
+    <div class="cot-pdf-modal-scroll">
+      <div id="plantillaCombDC" class="pdf-doc"><!-- Descripción: se arma con js/documentos-cotizacion.js --></div>
+      <div id="plantillaCombCT" class="pdf-doc"><!-- Cotización: se arma con js/documentos-cotizacion.js --></div>
+    </div>
+  </div>
+</div>
+
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=26"></script>
+<script type="module" src="js/cotizaciones.js?v=27"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
