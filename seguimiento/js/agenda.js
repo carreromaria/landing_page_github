@@ -10,7 +10,7 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   escucharEventos, escucharRecursos, listarUsuariosStaff,
   crearEvento, actualizarEvento, escucharHistorialEvento,
-  crearRecurso, actualizarRecurso
+  crearRecurso, actualizarRecurso, escucharProyectos
 } from './firestore.js';
 import * as M from './agenda-motor.js';
 
@@ -21,7 +21,7 @@ const HORA_INI = 7, HORA_FIN = 20, ALTO_HORA = 48;   // rejilla semanal 07:00–
 const TIPOS_RECURSO = { persona: 'Persona', equipo: 'Equipo de instalación', vehiculo: 'Vehículo', sala: 'Sala de reuniones', taller: 'Taller', otro: 'Otro' };
 
 const S = {
-  staff: null, eventos: [], recursos: [], usuarios: [],
+  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false,
   vista: 'resumen',
   mesRef: M.hoyStr().slice(0, 8) + '01',
   semanaRef: M.hoyStr(),
@@ -46,6 +46,30 @@ function toast(msg, tipo = 'ok') {
 const nombresRecursos = () => Object.fromEntries(S.recursos.map(r => [r.id, r.nombre]));
 const nombreStaff = () => S.staff?.nombre || S.staff?.email || 'Usuario';
 const esAdmin = () => S.staff?.rol === 'admin';
+
+// ---------- Proyecto vinculado (se lee en vivo, nunca se copia) ----------
+
+const proyecto = (codigo) => (codigo ? S.proyectosPorCodigo[codigo] || null : null);
+const telefonoProyecto = (p) => p?.telefono || p?.fono || p?.celular || '';
+const etiquetaProyecto = (codigo) => { const p = proyecto(codigo); return p ? `${codigo} — ${p.cliente || ''}` : codigo; };
+
+function bloqueProyecto(codigo) {
+  if (!codigo) return '';
+  const p = proyecto(codigo);
+  const enlace = `<a href="dashboard.html?codigo=${encodeURIComponent(codigo)}">${esc(codigo)}</a>`;
+  if (!p) return `<div class="ag-proy"><div class="ag-proy-cab">${enlace}</div><small>No se encontró el proyecto (¿se cargó la lista?).</small></div>`;
+  const dir = M.formatoDireccion(p.direccion);
+  const tel = telefonoProyecto(p);
+  return `<div class="ag-proy">
+    <div class="ag-proy-cab">${enlace} · ${esc(p.cliente || '')}</div>
+    ${p.tipoProyecto ? `<div>${esc(p.tipoProyecto)}</div>` : ''}
+    ${tel ? `<div>📞 <a href="tel:${esc(tel)}">${esc(tel)}</a></div>` : ''}
+    ${dir ? `<div>📍 ${esc(dir)}</div>` : ''}
+    ${!tel && !dir ? '<small>El proyecto aún no tiene teléfono ni dirección registrados.</small>' : ''}</div>`;
+}
+
+/** Texto del proyecto vinculado para buscar (código + cliente). */
+const textoProyecto = (ev) => ev.proyectoCodigo ? `${ev.proyectoCodigo} ${proyecto(ev.proyectoCodigo)?.cliente || ''}` : '';
 
 function iconoEv(ev) { return M.TIPOS_ACTIVIDAD[ev.tipo]?.icono || M.CATEGORIAS[ev.categoria]?.icono || '📋'; }
 function textoHora(ev) {
@@ -75,7 +99,7 @@ function eventosFiltrados() {
     if (resp && ev.responsableUid !== resp) return false;
     if (estado === 'vencido') { if (M.evaluarEvento(ev, hoy)?.nivel !== 'vencido') return false; }
     else if (estado && ev.estado !== estado) return false;
-    if (qn && !M.textoBuscable(ev, nombres).includes(qn)) return false;
+    if (qn && !M.textoBuscable(ev, nombres, textoProyecto(ev)).includes(qn)) return false;
     return true;
   });
 }
@@ -102,7 +126,7 @@ function filaAgenda(ev, fecha) {
   const acciones = abierto ? `
     <button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="Marcar como realizado">✓</button>
     <button type="button" class="ag-mini" data-accion="posponer" data-ev="${esc(ev.id)}" title="Posponer / reprogramar">⏰</button>` : '';
-  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
+  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : '', ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
   return `<div class="ag-fila ${M.colorEvento({ ...ev, proximaFecha: fecha })}" data-ev="${esc(ev.id)}">
     <div class="ag-fila-hora">${esc(textoHora(ev)) || '—'}</div>
     <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(ev)} ${esc(ev.titulo)}</div><div class="ag-fila-sub">${sub}</div></div>
@@ -364,7 +388,7 @@ function abrirFormulario(ev = null, preset = {}) {
   const cat = ev?.categoria || preset.categoria || 'actividad';
   $('evCategoria').value = cat;
   $('evTipo').value = ev?.tipo || preset.tipo || 'visita_cliente';
-  $('evTitulo').value = ev?.titulo || '';
+  $('evTitulo').value = ev?.titulo || preset.titulo || '';
   $('evPrioridad').value = ev?.prioridad || 'media';
   llenarEstados(cat, ev?.estado);
   $('evFecha').value = ev?.proximaFecha || preset.fecha || M.hoyStr();
@@ -382,6 +406,8 @@ function abrirFormulario(ev = null, preset = {}) {
   $('evAntic').value = estandar ? String(ant) : 'otro';
   $('evAnticCustom').value = estandar ? '' : ant;
   $('evHabil').checked = !!ev?.avisarHabilAnterior;
+  $('evProyecto').value = ev?.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : (preset.proyectoCodigo ? etiquetaProyecto(preset.proyectoCodigo) : '');
+  S.tituloAuto = '';
   $('evResp').value = ev?.responsableUid ?? (ev ? '' : (S.staff?.uid || ''));
   $('evDescripcion').value = ev?.descripcion || '';
   $('evNotas').value = ev?.notas || '';
@@ -392,8 +418,29 @@ function abrirFormulario(ev = null, preset = {}) {
     || '<span class="ag-ayuda">No hay recursos creados todavía (pestaña “Recursos”).</span>';
 
   actualizarFormularioSegunCategoria(); actualizarRepeticion(); actualizarAnticCustom(); actualizarHorario();
+  mostrarInfoProyecto(!ev);
   $('modalEvento').classList.add('visible');
   setTimeout(() => $('evTitulo').focus(), 50);
+}
+
+/** Del texto del campo ("LIN-00025 — Juan Pérez" o solo el código) obtiene el código del proyecto. */
+function codigoDesdeTexto(t) {
+  const m = String(t || '').match(/LIN-\d+/i);
+  return m ? m[0].toUpperCase() : null;
+}
+
+/** Muestra los datos traídos del proyecto y sugiere el título si todavía no se escribió uno propio. */
+function mostrarInfoProyecto(sugerirTitulo = true) {
+  const codigo = codigoDesdeTexto($('evProyecto').value);
+  const box = $('evProyectoInfo');
+  box.style.display = codigo ? '' : 'none';
+  box.innerHTML = codigo ? bloqueProyecto(codigo) : '';
+  if (!sugerirTitulo) return;
+  const p = proyecto(codigo);
+  const tipoNombre = $('evCategoria').value === 'actividad' ? (M.TIPOS_ACTIVIDAD[$('evTipo').value]?.nombre || '') : '';
+  const auto = (p && tipoNombre) ? `${tipoNombre} — ${p.cliente || codigo}` : '';
+  const actual = $('evTitulo').value.trim();
+  if (auto && (!actual || actual === S.tituloAuto)) { $('evTitulo').value = auto; S.tituloAuto = auto; }
 }
 
 function leerFormulario() {
@@ -427,7 +474,9 @@ function leerFormulario() {
     responsableNombre: u ? (u.nombre || u.email || '') : '',
     recursoIds: cat === 'actividad' ? [...$('evRecursos').querySelectorAll('input:checked')].map(i => i.value) : [],
     descripcion: $('evDescripcion').value.trim(),
-    notas: $('evNotas').value.trim()
+    notas: $('evNotas').value.trim(),
+    proyectoCodigo: codigoDesdeTexto($('evProyecto').value),
+    relacion: codigoDesdeTexto($('evProyecto').value) ? { tipo: 'proyecto', id: codigoDesdeTexto($('evProyecto').value), codigo: codigoDesdeTexto($('evProyecto').value) } : null
   };
 }
 
@@ -437,6 +486,8 @@ async function guardarEvento() {
   const d = leerFormulario();
   if (!d.titulo) return errorFormulario('Escribe un título.');
   if (!d.proximaFecha) return errorFormulario('Elige una fecha.');
+  if ($('evProyecto').value.trim() && !d.proyectoCodigo) return errorFormulario('Elige un proyecto de la lista (por ejemplo LIN-00025) o deja el campo vacío.');
+  if (d.proyectoCodigo && S.proyectos.length && !proyecto(d.proyectoCodigo)) return errorFormulario('No encontré ese proyecto. Revisa el código.');
   if (d.horaInicio && d.horaFin && d.horaFin <= d.horaInicio) return errorFormulario('La hora de término debe ser posterior a la de inicio.');
   if (d.recurrencia.hasta && d.recurrencia.hasta < d.proximaFecha) return errorFormulario('La fecha límite de la repetición no puede ser anterior a la fecha del evento.');
 
@@ -449,7 +500,7 @@ async function guardarEvento() {
   try {
     const por = { por: S.staff.uid, porNombre: nombreStaff() };
     if (!S.editandoId) {
-      await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: M.partesFecha(d.proximaFecha).d, relacion: null, adjuntos: [] }, S.staff.uid, nombreStaff());
+      await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: M.partesFecha(d.proximaFecha).d, adjuntos: [] }, S.staff.uid, nombreStaff());
       toast('Evento creado');
     } else {
       const ev = S.eventos.find(e => e.id === S.editandoId);
@@ -534,6 +585,7 @@ function pintarDetalle(ev) {
     ${fila('Categoría', esc(M.CATEGORIAS[ev.categoria]?.nombre || '') + (ev.tipo ? ' · ' + esc(M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre || '') : ''))}
     ${fila('Repetición', esc(M.textoRegla(ev.recurrencia)) + (ev.recurrencia?.hasta ? ` (hasta ${esc(M.formatoFechaDMA(ev.recurrencia.hasta))})` : ''))}
     ${fila('Aviso', esc(ant) + (ev.avisarHabilAnterior ? ' · día hábil anterior si cae fin de semana' : ''))}
+    ${fila('Proyecto / cliente', bloqueProyecto(ev.proyectoCodigo))}
     ${fila('Responsable', esc(ev.responsableNombre))}
     ${fila('Recursos', (ev.recursoIds || []).map(id => esc(rec[id] || '—')).join(', '))}
     ${fila('Descripción', esc(ev.descripcion).replace(/\n/g, '<br>'))}
@@ -747,7 +799,10 @@ function enlazar() {
   $('agPaneles').addEventListener('change', (e) => { if (e.target.id === 'semRecurso') { S.semRecurso = e.target.value; render(); } });
 
   // Formulario
-  $('evCategoria').addEventListener('change', actualizarFormularioSegunCategoria);
+  $('evCategoria').addEventListener('change', () => { actualizarFormularioSegunCategoria(); mostrarInfoProyecto(); });
+  $('evTipo').addEventListener('change', () => mostrarInfoProyecto());
+  $('evProyecto').addEventListener('input', () => mostrarInfoProyecto());
+  $('evProyecto').addEventListener('change', () => mostrarInfoProyecto());
   $('evRepite').addEventListener('change', actualizarRepeticion);
   $('evAntic').addEventListener('change', actualizarAnticCustom);
   $('evTodoDia').addEventListener('change', actualizarHorario);
@@ -803,7 +858,16 @@ function intentarDeepLink() {
   const p = new URLSearchParams(location.search);
   const id = p.get('evento');
   if (id && S.eventos.some(e => e.id === id)) { S.deepLinkHecho = true; abrirDetalle(id); }
-  else if (p.get('nuevo') === '1') { S.deepLinkHecho = true; abrirFormulario(null, { fecha: p.get('fecha') || undefined }); }
+}
+
+/** agenda.html?nuevo=1&proyecto=LIN-00025&tipo=instalacion → formulario ya con el proyecto elegido. */
+function deepLinkNuevo() {
+  if (S.deepLinkNuevoHecho) return;
+  const p = new URLSearchParams(location.search);
+  if (p.get('nuevo') !== '1') return;
+  S.deepLinkNuevoHecho = true;
+  const tipo = M.TIPOS_ACTIVIDAD[p.get('tipo')] ? p.get('tipo') : undefined;
+  abrirFormulario(null, { fecha: p.get('fecha') || undefined, proyectoCodigo: codigoDesdeTexto(p.get('proyecto')) || undefined, tipo, categoria: 'actividad' });
 }
 
 function refrescarSiAplica() {
@@ -842,6 +906,15 @@ async function iniciar(staff) {
   await mejorarSelects(['fCat', 'fEstado', 'fPrio', 'fResp', 'evCategoria', 'evTipo', 'evPrioridad', 'evRepite', 'evUnidad', 'evAntic', 'evResp', 'rcTipo']);
 
   escucharRecursos((lista) => { S.recursos = lista; refrescarSiAplica(); }, () => toast('No se pudieron leer los recursos', 'error'));
+  escucharProyectos((lista) => {
+    S.proyectos = lista.filter(p => p.activo !== false);
+    S.proyectosPorCodigo = Object.fromEntries(lista.map(p => [p.codigo, p]));
+    $('evProyectoLista').innerHTML = S.proyectos
+      .sort((a, b) => String(b.codigo).localeCompare(String(a.codigo)))
+      .map(p => `<option value="${esc(p.codigo)} — ${esc(p.cliente || '')}"></option>`).join('');
+    refrescarSiAplica();
+    deepLinkNuevo();
+  }, () => { toast('No se pudieron leer los proyectos', 'error'); deepLinkNuevo(); });
   escucharEventos((lista) => { S.eventos = lista; refrescarSiAplica(); intentarDeepLink(); }, () => toast('No se pudo leer la agenda. Revisa que las reglas de Firestore incluyan "eventos".', 'error'));
   render();
 }
