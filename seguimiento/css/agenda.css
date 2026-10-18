@@ -185,9 +185,6 @@
 @media (max-width:900px){
   .ag-filtros{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ag-link{grid-column:1/-1;text-align:left}
-  /* Menú lateral abierto desde el botón hamburguesa (teléfono / tablet) */
-  body.agenda-menu-abierto .dash-sidebar{transform:none !important;left:0 !important;display:flex !important;visibility:visible !important;opacity:1 !important}
-  body.agenda-menu-abierto .sidebar-overlay{display:block !important;opacity:1 !important;visibility:visible !important}
 }
 @media (max-width:760px){
   /* La rejilla semanal se reemplaza por una lista por día: no se pierde información */
