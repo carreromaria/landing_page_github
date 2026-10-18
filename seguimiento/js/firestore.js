@@ -1035,8 +1035,9 @@ function limpiarUndefined(obj) {
 
 /** Todos los eventos (para el calendario), en tiempo real. */
 export function escucharEventos(callback, onError) {
-  const q = query(collection(db, "eventos"), orderBy("proximaFecha", "asc"));
-  return onSnapshot(q,
+  // Sin orderBy: las mantenciones solo por kilometraje no tienen fecha y quedarían fuera de una consulta ordenada.
+  // La agenda ordena en pantalla.
+  return onSnapshot(collection(db, "eventos"),
     (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
     (err) => { console.error(err); onError?.(err); }
   );
@@ -1170,4 +1171,89 @@ export async function crearColaborador(datos, uid) {
 
 export async function actualizarColaborador(id, datos) {
   await updateDoc(doc(db, "colaboradores", id), limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
+}
+
+
+// ---------- Vehículos (Fase 4) ----------
+// vehiculos/{id}                 ficha: marca, modelo, año, patente, VIN, kmActual, responsable, activo
+// vehiculos/{id}/lecturas        historial de kilometraje
+// vehiculos/{id}/mantenciones    mantenciones realizadas (tipo, fecha, km, taller, costo, factura, próxima)
+// vehiculos/{id}/gastos          gastos (combustible, peajes, reparaciones…) — base para reportes futuros
+// Las mantenciones programadas y los documentos son eventos (categoria "vehiculo", campo vehiculoId).
+// Nada se elimina: los vehículos se desactivan.
+
+export function escucharVehiculos(callback, onError) {
+  const q = query(collection(db, "vehiculos"), orderBy("patente", "asc"));
+  return onSnapshot(q,
+    (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+/** Crea el vehículo y deja la primera lectura de kilometraje. @returns {Promise<string>} id */
+export async function crearVehiculo(datos, uid, nombreUsuario) {
+  const ref = doc(collection(db, "vehiculos"));
+  const batch = writeBatch(db);
+  batch.set(ref, limpiarUndefined({ ...datos, activo: true, creadoPor: uid, creadoEn: serverTimestamp(), kmActualizadoEn: serverTimestamp() }));
+  if (Number.isFinite(Number(datos.kmActual))) {
+    batch.set(doc(collection(ref, "lecturas")), { km: Number(datos.kmActual), fecha: serverTimestamp(), por: uid, porNombre: nombreUsuario || "", nota: "Kilometraje inicial" });
+  }
+  await batch.commit();
+  return ref.id;
+}
+
+export async function actualizarVehiculo(id, datos) {
+  await updateDoc(doc(db, "vehiculos", id), limpiarUndefined({ ...datos, actualizadoEn: serverTimestamp() }));
+}
+
+/** Actualiza el kilometraje actual y guarda la lectura en el historial. */
+export async function registrarKilometraje(vehiculoId, km, uid, nombreUsuario, nota = "") {
+  const ref = doc(db, "vehiculos", vehiculoId);
+  const batch = writeBatch(db);
+  batch.update(ref, { kmActual: Number(km), kmActualizadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() });
+  batch.set(doc(collection(ref, "lecturas")), { km: Number(km), fecha: serverTimestamp(), por: uid, porNombre: nombreUsuario || "", nota });
+  await batch.commit();
+}
+
+export function escucharMantencionesVehiculo(vehiculoId, callback, onError) {
+  const q = query(collection(db, "vehiculos", vehiculoId, "mantenciones"), orderBy("fecha", "desc"));
+  return onSnapshot(q, (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))), (err) => { console.error(err); onError?.(err); });
+}
+export function escucharGastosVehiculo(vehiculoId, callback, onError) {
+  const q = query(collection(db, "vehiculos", vehiculoId, "gastos"), orderBy("fecha", "desc"));
+  return onSnapshot(q, (snap) => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))), (err) => { console.error(err); onError?.(err); });
+}
+
+/** Registra un gasto; si trae kilometraje mayor al actual, también actualiza el vehículo. */
+export async function crearGastoVehiculo(vehiculoId, gasto, uid, nombreUsuario, kmNuevo = null) {
+  const ref = doc(db, "vehiculos", vehiculoId);
+  const batch = writeBatch(db);
+  batch.set(doc(collection(ref, "gastos")), limpiarUndefined({ ...gasto, creadoPor: uid, creadoPorNombre: nombreUsuario || "", creadoEn: serverTimestamp() }));
+  if (kmNuevo != null) {
+    batch.update(ref, { kmActual: Number(kmNuevo), kmActualizadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() });
+    batch.set(doc(collection(ref, "lecturas")), { km: Number(kmNuevo), fecha: serverTimestamp(), por: uid, porNombre: nombreUsuario || "", nota: "Registrado con un gasto" });
+  }
+  await batch.commit();
+}
+
+/**
+ * Registra una mantención realizada, todo junto (o no se guarda nada):
+ *  - actualiza la mantención programada (nuevo último km / próximo km / próxima fecha) y su historial,
+ *  - guarda la mantención en el historial del vehículo,
+ *  - si hubo costo, lo anota como gasto,
+ *  - si el kilometraje realizado es mayor al actual, actualiza el vehículo y su historial de km.
+ */
+export async function registrarMantencionVehiculo({ eventoId, eventoUpdate, entradaHistorial, vehiculoId, mantencion, gasto, kmVehiculo, lectura }) {
+  const evRef = doc(db, "eventos", eventoId);
+  const vRef = doc(db, "vehiculos", vehiculoId);
+  const batch = writeBatch(db);
+  batch.update(evRef, limpiarUndefined({ ...eventoUpdate, actualizadoEn: serverTimestamp() }));
+  batch.set(doc(collection(evRef, "historial")), limpiarUndefined({ ...entradaHistorial, fecha: serverTimestamp() }));
+  batch.set(doc(collection(vRef, "mantenciones")), limpiarUndefined({ ...mantencion, creadoEn: serverTimestamp() }));
+  if (gasto) batch.set(doc(collection(vRef, "gastos")), limpiarUndefined({ ...gasto, creadoEn: serverTimestamp() }));
+  if (kmVehiculo != null) {
+    batch.update(vRef, { kmActual: Number(kmVehiculo), kmActualizadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() });
+    batch.set(doc(collection(vRef, "lecturas")), limpiarUndefined({ ...lectura, km: Number(kmVehiculo), fecha: serverTimestamp() }));
+  }
+  await batch.commit();
 }
