@@ -22,8 +22,8 @@ export const CATEGORIAS = {
   vencimiento: { nombre: 'Otro vencimiento', icono: '📅' },
   servicio:    { nombre: 'Servicio / suscripción', icono: '💡' },
   obligacion:  { nombre: 'Crédito / obligación', icono: '💳' },
-  cumpleanos:  { nombre: 'Cumpleaños y aniversarios', icono: '🎂' }
-  // Fase 4: vehiculo (mantención por kilometraje) usará este mismo motor.
+  cumpleanos:  { nombre: 'Cumpleaños y aniversarios', icono: '🎂' },
+  vehiculo:    { nombre: 'Vehículo', icono: '🚗' }
 };
 
 /** Categorías que registran pagos (monto, comprobante, historial de pagos). */
@@ -71,7 +71,8 @@ export const ESTADOS_POR_CATEGORIA = {
   vencimiento:  ['pendiente','realizado','pospuesto','cancelado'],
   servicio:     ['pendiente','realizado','pospuesto','cancelado'],
   obligacion:   ['pendiente','realizado','pospuesto','cancelado'],
-  cumpleanos:   ['pendiente','realizado','pospuesto','cancelado']
+  cumpleanos:   ['pendiente','realizado','pospuesto','cancelado'],
+  vehiculo:     ['pendiente','realizado','pospuesto','cancelado']
 };
 
 export function estadoInicial(categoria) {
@@ -93,7 +94,7 @@ export const ANTICIPACIONES = [
 ];
 
 /** Anticipación sugerida al crear, según categoría (editable por el usuario). */
-export const ANTICIPACION_SUGERIDA = { actividad: 1, recordatorio: 1, vencimiento: 5, servicio: 5, obligacion: 7, cumpleanos: 7 };
+export const ANTICIPACION_SUGERIDA = { actividad: 1, recordatorio: 1, vencimiento: 5, servicio: 5, obligacion: 7, cumpleanos: 7, vehiculo: 30 };
 
 /** Repetición con la que parte cada categoría al crear (se puede cambiar). */
 export const REPETICION_SUGERIDA = { servicio: 'mensual', obligacion: 'mensual', cumpleanos: 'anual' };
@@ -291,7 +292,7 @@ export function ocurrenciasEnRango(eventos, desde, hasta) {
  * - urgente (rojo): vence hoy y es un vencimiento/pago, o tiene prioridad alta/urgente.
  * - proximo (naranja): dentro de la ventana de anticipación.
  */
-export function evaluarEvento(ev, hoy = hoyStr()) {
+function evaluarPorFecha(ev, hoy = hoyStr()) {
   if (!estaAbierto(ev.estado) || !ev.proximaFecha) return null;
   const dias = diasEntre(hoy, ev.proximaFecha);
   if (dias < 0) {
@@ -317,7 +318,7 @@ export function alertasPendientes(eventos, hoy = hoyStr()) {
     if (a) out.push({ ev, ...a });
   }
   const peso = { vencido: 0, urgente: 1, proximo: 2 };
-  out.sort((a, b) => peso[a.nivel] - peso[b.nivel] || a.ev.proximaFecha.localeCompare(b.ev.proximaFecha));
+  out.sort((a, b) => peso[a.nivel] - peso[b.nivel] || (a.ev.proximaFecha || '9999-12-31').localeCompare(b.ev.proximaFecha || '9999-12-31'));
   return out;
 }
 
@@ -465,4 +466,93 @@ export function tituloSugerido(categoria, d = {}) {
     return (d.motivo === 'aniversario' ? 'Aniversario laboral de ' : 'Cumpleaños de ') + d.persona + sufijo;
   }
   return '';
+}
+
+
+// ============================================================
+// VEHÍCULOS (Fase 4)
+// ============================================================
+// Las mantenciones se rigen principalmente por kilometraje: el motor compara el
+// "próximo km" de cada mantención con el kilometraje actual del vehículo.
+// Los documentos (permiso, SOAP, revisión técnica…) son vencimientos por fecha
+// y usan la regla de fechas de siempre.
+
+export const TIPOS_MANTENCION = ['Cambio de aceite','Filtro de aceite','Filtro de aire','Filtro de combustible','Filtro de habitáculo','Revisión de frenos','Cambio de pastillas','Revisión de batería','Rotación de neumáticos','Cambio de neumáticos','Alineación','Balanceo','Suspensión','Fluidos','Refrigeración','Bujías','Mantención general','Otra mantención'];
+export const TIPOS_DOCUMENTO_VEHICULO = ['Permiso de circulación','SOAP','Revisión técnica','Seguro automotriz','GPS','Otro documento'];
+export const TIPOS_GASTO_VEHICULO = ['Combustible','Peajes','Estacionamiento','Mantención','Reparación','Neumáticos','Seguro','Permiso de circulación','SOAP','Crédito','Leasing','Otro'];
+export const MODOS_MANTENCION = {
+  km: 'Por kilometraje',
+  fecha: 'Por fecha',
+  km_o_fecha: 'Kilometraje o fecha (lo que ocurra primero)',
+  km_y_fecha: 'Kilometraje y fecha (cuando se cumplan ambos)'
+};
+
+export const formatoKm = (n) => Number.isFinite(Number(n)) && n !== '' && n != null ? Number(n).toLocaleString('es-CL') + ' km' : '';
+
+// Contexto: vehículos cargados (la agenda y la campanita lo actualizan al leer la colección).
+let _vehiculos = {};
+export function setVehiculos(lista) { _vehiculos = Object.fromEntries((lista || []).map(v => [v.id, v])); }
+export const vehiculoDe = (ev) => _vehiculos[ev?.vehiculoId] || null;
+export const etiquetaVehiculo = (v) => v ? [v.patente, [v.marca, v.modelo].filter(Boolean).join(' ')].filter(Boolean).join(' · ') : '';
+
+export const esMantencion = (ev) => ev?.categoria === 'vehiculo' && ev.datos?.clase === 'mantencion';
+export const modoUsaKm = (modo) => ['km', 'km_o_fecha', 'km_y_fecha'].includes(modo);
+export const modoUsaFecha = (modo) => ['fecha', 'km_o_fecha', 'km_y_fecha'].includes(modo);
+export const mantencionUsaKm = (ev) => esMantencion(ev) && modoUsaKm(ev.datos.modo);
+
+/** Km que faltan para la mantención (negativo si ya se pasó). null si faltan datos. */
+export function restanteKm(ev) {
+  const v = vehiculoDe(ev);
+  const actual = Number(v?.kmActual), prox = Number(ev?.datos?.proximoKm);
+  if (!v || !Number.isFinite(actual) || v.kmActual === '' || v.kmActual == null || !Number.isFinite(prox) || ev.datos.proximoKm == null) return null;
+  return prox - actual;
+}
+
+function evaluarPorKm(ev) {
+  const r = restanteKm(ev);
+  if (r == null) return null;
+  const aviso = Number(ev.datos.avisoKm) || 0;
+  if (r <= 0) return { nivel: 'vencido', dias: null, km: r, texto: r === 0 ? 'Kilometraje alcanzado' : `Kilometraje superado por ${formatoKm(-r)}` };
+  if (r <= aviso) return { nivel: 'proximo', dias: null, km: r, texto: `Se aproxima: faltan ${formatoKm(r)}` };
+  return null;
+}
+
+const SEV = { proximo: 1, urgente: 2, vencido: 3 };
+const peor = (a, b) => !a ? b : !b ? a : (SEV[a.nivel] >= SEV[b.nivel] ? a : b);
+const mejor = (a, b) => (SEV[a.nivel] <= SEV[b.nivel] ? a : b);
+
+/**
+ * Evaluación de alertas de cualquier evento. Las mantenciones por kilometraje
+ * se miden contra el kilometraje actual del vehículo; el resto, por fecha.
+ */
+export function evaluarEvento(ev, hoy = hoyStr()) {
+  if (!estaAbierto(ev.estado)) return null;
+  if (mantencionUsaKm(ev)) {
+    const modo = ev.datos.modo;
+    const k = evaluarPorKm(ev);
+    if (modo === 'km') return k;
+    const f = evaluarPorFecha(ev, hoy);
+    if (modo === 'km_o_fecha') return peor(k, f);
+    return (k && f) ? mejor(k, f) : null;           // km_y_fecha: solo avisa cuando ambas condiciones avisan
+  }
+  return evaluarPorFecha(ev, hoy);
+}
+
+/** Texto corto de "cuándo" para filas y alertas: la fecha, o el km objetivo si es solo por kilometraje. */
+export function cuandoCorto(ev) {
+  if (ev?.proximaFecha) return formatoFechaCorta(ev.proximaFecha);
+  if (ev?.datos?.proximoKm != null) return formatoKm(ev.datos.proximoKm);
+  return '';
+}
+
+/**
+ * Qué cambia en la mantención al registrarla: nuevo último km/fecha y próximo km/fecha
+ * (kilometraje real + intervalo; fecha real + meses). Devuelve campos listos para actualizar.
+ */
+export function planSiguiente(ev, kmReal, fechaReal) {
+  const d = ev.datos || {};
+  const out = { 'datos.ultimoKm': kmReal, 'datos.ultimaFecha': fechaReal };
+  if (modoUsaKm(d.modo) && Number(d.intervaloKm) > 0) out['datos.proximoKm'] = Number(kmReal) + Number(d.intervaloKm);
+  if (modoUsaFecha(d.modo) && Number(d.intervaloMeses) > 0) out.proximaFecha = sumarMeses(fechaReal, Number(d.intervaloMeses), null);
+  return out;
 }
