@@ -19,7 +19,6 @@ import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
-import { crearAgendaActividades } from './components/agenda-actividades.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -192,7 +191,8 @@ let leadSeleccionadoId = null;
 // Agenda del cliente: visita, toma de medidas y reunión de diseño se agendan aquí, antes de que exista el proyecto.
 // El bloque lo dibuja el componente compartido (el mismo que usa Proyectos); las actividades quedan en la
 // colección "eventos" con el id del lead y, si el lead ya tiene proyecto vinculado, se ven también allí.
-const agendaCliente = crearAgendaActividades({
+// Se carga al usarse (import dinámico): si el archivo del componente no estuviera subido, el CRM funciona igual.
+const configAgendaCliente = {
   id: 'agendaCliente',
   titulo: 'Agenda del cliente',
   tipos: ['visita_cliente', 'toma_medidas', 'reunion_diseno'],
@@ -207,7 +207,24 @@ const agendaCliente = crearAgendaActividades({
   },
   urlNueva: (clave, tipo) => `agenda.html?nuevo=1&lead=${encodeURIComponent(clave.leadId)}${tipo ? `&tipo=${tipo}` : ''}`,
   suscribir: (fs, clave, alDatos, alError) => fs.escucharEventosDeLead(clave.leadId, clave.proyectoCodigo, alDatos, alError)
-});
+};
+const agendaCliente = {
+  instancia: null,
+  claveActual: null,
+  mostrar(clave) {
+    this.claveActual = clave;
+    import('./components/agenda-actividades.js')
+      .then(m => {
+        this.instancia ||= m.crearAgendaActividades(configAgendaCliente);
+        if (this.claveActual === clave) this.instancia.mostrar(clave);   // por si se cerró la ficha mientras cargaba
+      })
+      .catch(err => console.warn('Agenda del cliente no disponible:', err));
+  },
+  ocultar() {
+    this.claveActual = null;
+    this.instancia?.ocultar();
+  }
+};
 let primeraCargaLeadsHecha = false;
 let dejarDeEscucharLeads = null;
 
