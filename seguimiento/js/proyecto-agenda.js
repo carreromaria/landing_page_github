@@ -6,7 +6,7 @@
 // lista de actividades) lo dibuja el componente compartido
 // js/components/agenda-actividades.js; aquí solo se dice qué mostrar.
 //
-// Las actividades se leen de la colección "eventos" (campo proyectoCodigo);
+// Las actividades se leen de la colección "eventos" (campo proyectoCodigo, y leadId del cliente vinculado);
 // aquí no se guarda ni se copia nada del proyecto.
 
 import { crearAgendaActividades } from './components/agenda-actividades.js';
@@ -27,7 +27,9 @@ const agenda = crearAgendaActividades({
   },
   urlNueva: (codigo, tipo) =>
     `agenda.html?nuevo=1&proyecto=${encodeURIComponent(codigo)}${tipo ? `&tipo=${tipo}` : ''}`,
-  suscribir: (fs, codigo, alDatos, alError) => fs.escucharEventosDeProyecto(codigo, alDatos, alError)
+  // Muestra también las actividades que se agendaron antes, desde el CRM, para el cliente vinculado a este proyecto
+  suscribir: (fs, codigo, alDatos, alError) =>
+    (fs.escucharEventosDeProyectoYLead || fs.escucharEventosDeProyecto)(codigo, alDatos, alError)
 });
 
 /** Abre (o actualiza) el bloque de agenda para el proyecto que se está mirando. */
