@@ -1052,6 +1052,77 @@ export function escucharEventosDeProyecto(codigoProyecto, callback, onError) {
   );
 }
 
+/** Junta varias consultas de eventos en una sola lista (sin repetidos), en tiempo real. */
+function escucharConsultasEventos(consultas, callback, onError) {
+  const resultados = consultas.map(() => null);
+  const emitir = () => {
+    if (resultados.some(r => r === null)) return;
+    const unicos = new Map();
+    resultados.forEach(lista => lista.forEach(ev => unicos.set(ev.id, ev)));
+    callback([...unicos.values()]);
+  };
+  const paradores = consultas.map((q, i) => onSnapshot(q,
+    (snap) => { resultados[i] = snap.docs.map(d => ({ id: d.id, ...d.data() })); emitir(); },
+    (err) => { console.error(err); onError?.(err); }
+  ));
+  return () => paradores.forEach(parar => parar());
+}
+
+/**
+ * Eventos de un cliente (lead) en tiempo real: los agendados desde el CRM
+ * (campo leadId) y, si el lead ya está vinculado a un proyecto, también los
+ * del proyecto (proyectoCodigo). Consultas simples, sin índice compuesto.
+ */
+export function escucharEventosDeLead(leadId, codigoProyecto, callback, onError) {
+  const consultas = [query(collection(db, "eventos"), where("leadId", "==", leadId))];
+  if (codigoProyecto) consultas.push(query(collection(db, "eventos"), where("proyectoCodigo", "==", codigoProyecto)));
+  return escucharConsultasEventos(consultas, callback, onError);
+}
+
+/**
+ * Eventos de un proyecto en tiempo real: los suyos (proyectoCodigo) más los
+ * que se agendaron en el CRM para el lead vinculado (leads con
+ * proyectoVinculado == código). Si no se pudieran leer los leads, se muestran
+ * solo los del proyecto.
+ */
+export function escucharEventosDeProyectoYLead(codigoProyecto, callback, onError) {
+  let delProyecto = null, leadIds = null;
+  const porLead = {}, paradoresLead = {};
+  const emitir = () => {
+    if (delProyecto === null || leadIds === null) return;
+    if (leadIds.some(id => porLead[id] === undefined)) return;
+    const unicos = new Map();
+    delProyecto.forEach(ev => unicos.set(ev.id, ev));
+    leadIds.forEach(id => porLead[id].forEach(ev => unicos.set(ev.id, ev)));
+    callback([...unicos.values()]);
+  };
+  const pararProyecto = onSnapshot(
+    query(collection(db, "eventos"), where("proyectoCodigo", "==", codigoProyecto)),
+    (snap) => { delProyecto = snap.docs.map(d => ({ id: d.id, ...d.data() })); emitir(); },
+    (err) => { console.error(err); onError?.(err); }
+  );
+  const pararLeads = onSnapshot(
+    query(collection(db, "leads"), where("proyectoVinculado", "==", codigoProyecto)),
+    (snap) => {
+      leadIds = snap.docs.map(d => d.id);
+      Object.keys(paradoresLead).forEach(id => {
+        if (!leadIds.includes(id)) { paradoresLead[id](); delete paradoresLead[id]; delete porLead[id]; }
+      });
+      leadIds.forEach(id => {
+        if (paradoresLead[id]) return;
+        paradoresLead[id] = onSnapshot(
+          query(collection(db, "eventos"), where("leadId", "==", id)),
+          (s) => { porLead[id] = s.docs.map(d => ({ id: d.id, ...d.data() })); emitir(); },
+          (err) => { console.error(err); porLead[id] = []; emitir(); }
+        );
+      });
+      emitir();
+    },
+    (err) => { console.error(err); leadIds = []; emitir(); }
+  );
+  return () => { pararProyecto(); pararLeads(); Object.values(paradoresLead).forEach(p => p()); };
+}
+
 /** Solo los eventos pendientes (abierto == true), en tiempo real. Lo usa la campanita. */
 export function escucharEventosAbiertos(callback, onError) {
   const q = query(collection(db, "eventos"), where("abierto", "==", true));
