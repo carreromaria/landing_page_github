@@ -10,13 +10,14 @@
 //     titulo: 'Agenda del proyecto',
 //     tipos: ['visita_cliente', 'toma_medidas'],  // botones, en este orden (claves de TIPOS_ACTIVIDAD)
 //     conOtraActividad: true,                     // agrega "＋ Otra actividad"
+//     estiloCrm: false,                           // true = rótulo dorado del CRM en vez de h2
 //     textoVacio: 'Aún no hay actividades agendadas para este proyecto.',
 //     textoError: 'No se pudo leer la agenda de este proyecto.',
 //     insertar: (seccion) => { ... },             // pone la sección en la pantalla; false si no puede
 //     urlNueva: (clave, tipo) => 'agenda.html?nuevo=1&...',   // tipo = undefined en "Otra actividad"
 //     suscribir: (fs, clave, alDatos, alError) => fs.escucharXxx(clave, alDatos, alError)  // devuelve la función para dejar de escuchar
 //   });
-//   agenda.mostrar(clave);   // al abrir la ficha
+//   agenda.mostrar(clave);   // al abrir la ficha (clave: texto u objeto; solo se le pasa a urlNueva y suscribir)
 //   agenda.ocultar();        // al cerrarla
 //
 // Las actividades viven en la colección "eventos" (no se copia nada aquí).
@@ -44,13 +45,14 @@ function inyectarEstilos() {
   .pa-titulo{flex:1;min-width:0;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pa-estado{font-size:11px;font-weight:500;white-space:nowrap}
   .pa-vacio{font-size:13px;opacity:.6;margin:0}
+  .pa-seccion-crm{margin-bottom:8px}
   @media(max-width:600px){.pa-fila{flex-wrap:wrap}.pa-fecha{flex:0 0 100%}}`;
   document.head.appendChild(s);
 }
 
 export function crearAgendaActividades(opciones) {
   const {
-    id, titulo, tipos = [], conOtraActividad = true,
+    id, titulo, tipos = [], conOtraActividad = true, estiloCrm = false,
     textoVacio = 'Aún no hay actividades agendadas.',
     textoError = 'No se pudo leer la agenda.',
     insertar, urlNueva, suscribir
@@ -60,9 +62,11 @@ export function crearAgendaActividades(opciones) {
 
   function crearSeccion() {
     const el = document.createElement('section');
-    el.className = 'panel-seccion';
     el.id = id;
-    el.innerHTML = `<h2>${esc(titulo)}</h2><div class="pa-atajos"></div><div class="pa-lista"></div>`;
+    // En el CRM los títulos de sección son el rótulo dorado (.crm-bitacora-titulo); en Proyectos, un h2 dentro de .panel-seccion
+    el.className = estiloCrm ? 'pa-seccion-crm' : 'panel-seccion';
+    const encabezado = estiloCrm ? `<div class="crm-bitacora-titulo">${esc(titulo)}</div>` : `<h2>${esc(titulo)}</h2>`;
+    el.innerHTML = `${encabezado}<div class="pa-atajos"></div><div class="pa-lista"></div>`;
     if (insertar(el) === false) return false;
     seccion = el;
     lista = el.querySelector('.pa-lista');
