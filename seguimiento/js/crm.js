@@ -200,10 +200,14 @@ const configAgendaCliente = {
   estiloCrm: true,
   textoVacio: 'Aún no hay actividades agendadas para este cliente.',
   textoError: 'No se pudo leer la agenda de este cliente.',
+  // Va entre los datos del cliente y la sección Cotización. Usa el contenedor de crm.html si existe;
+  // si no, se ubica solo antes del título "Cotización" (así funciona aunque crm.html no se haya actualizado).
   insertar: (seccion) => {
     const contenedor = document.getElementById('agendaClienteContenedor');
-    if (!contenedor) return false;
-    contenedor.appendChild(seccion);
+    if (contenedor) { contenedor.appendChild(seccion); return; }
+    const tituloCotizacion = document.querySelector('#vistaDetalleLead .crm-bitacora-titulo');
+    if (!tituloCotizacion) return false;
+    tituloCotizacion.parentNode.insertBefore(seccion, tituloCotizacion);
   },
   urlNueva: (clave, tipo) => `agenda.html?nuevo=1&lead=${encodeURIComponent(clave.leadId)}${tipo ? `&tipo=${tipo}` : ''}`,
   suscribir: (fs, clave, alDatos, alError) => fs.escucharEventosDeLead(clave.leadId, clave.proyectoCodigo, alDatos, alError)
