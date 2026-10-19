@@ -4,12 +4,12 @@
 // dashboard.js llama a mostrarAgendaProyecto(codigo) al abrir un proyecto
 // y a ocultarAgendaProyecto() al volver al listado. El bloque en sí (botones,
 // lista de actividades) lo dibuja el componente compartido
-// js/components/agenda-actividades.js; aquí solo se dice qué mostrar.
+// js/agenda-actividades.js; aquí solo se dice qué mostrar.
 //
 // Las actividades se leen de la colección "eventos" (campo proyectoCodigo, y leadId del cliente vinculado);
 // aquí no se guarda ni se copia nada del proyecto.
 
-import { crearAgendaActividades } from './components/agenda-actividades.js';
+import { crearAgendaActividades } from './agenda-actividades.js';
 
 const agenda = crearAgendaActividades({
   id: 'agendaProyecto',
