@@ -213,7 +213,7 @@ const agendaCliente = {
   claveActual: null,
   mostrar(clave) {
     this.claveActual = clave;
-    import('./components/agenda-actividades.js')
+    import('./agenda-actividades.js')
       .then(m => {
         this.instancia ||= m.crearAgendaActividades(configAgendaCliente);
         if (this.claveActual === clave) this.instancia.mostrar(clave);   // por si se cerró la ficha mientras cargaba
