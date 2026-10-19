@@ -10,7 +10,7 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   escucharEventos, escucharRecursos, listarUsuariosStaff,
   crearEvento, actualizarEvento, escucharHistorialEvento,
-  crearRecurso, actualizarRecurso, escucharProyectos,
+  crearRecurso, actualizarRecurso, escucharProyectos, escucharLeads,
   escucharColaboradores, crearColaborador, actualizarColaborador,
   escucharVehiculos, crearVehiculo, actualizarVehiculo, registrarKilometraje,
   escucharMantencionesVehiculo, escucharGastosVehiculo, crearGastoVehiculo, registrarMantencionVehiculo
@@ -25,7 +25,7 @@ const HORA_INI = 7, HORA_FIN = 20, ALTO_HORA = 48;   // rejilla semanal 07:00–
 const TIPOS_RECURSO = { persona: 'Persona', equipo: 'Equipo de instalación', vehiculo: 'Vehículo', sala: 'Sala de reuniones', taller: 'Taller', otro: 'Otro' };
 
 const S = {
-  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null, vehiculos: [], vehEditando: null, vehKm: null, vehGasto: null, planEditando: null, mantencionId: null, hvId: null, hvMant: [], hvGastos: [], hvPararM: null, hvPararG: null,
+  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, leadsPorId: {}, leadsListos: false, leadFormId: null, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null, vehiculos: [], vehEditando: null, vehKm: null, vehGasto: null, planEditando: null, mantencionId: null, hvId: null, hvMant: [], hvGastos: [], hvPararM: null, hvPararG: null,
   vista: 'resumen',
   mesRef: M.hoyStr().slice(0, 8) + '01',
   semanaRef: M.hoyStr(),
@@ -72,8 +72,28 @@ function bloqueProyecto(codigo) {
     ${!tel && !dir ? '<small>El proyecto aún no tiene teléfono ni dirección registrados.</small>' : ''}</div>`;
 }
 
-/** Texto del proyecto vinculado para buscar (código + cliente). */
-const textoProyecto = (ev) => ev.proyectoCodigo ? `${ev.proyectoCodigo} ${proyecto(ev.proyectoCodigo)?.cliente || ''}` : '';
+// ---------- Cliente (lead) vinculado: actividades agendadas desde el CRM (se lee en vivo, nunca se copia) ----------
+
+const lead = (id) => (id ? S.leadsPorId[id] || null : null);
+const etiquetaLead = (id) => { const l = lead(id); return l ? `${l.codigoLead ? l.codigoLead + ' — ' : ''}${l.nombre || ''}` : 'Cliente'; };
+
+function bloqueLead(id) {
+  if (!id) return '';
+  const l = lead(id);
+  if (!l) return `<div class="ag-proy"><div class="ag-proy-cab">Cliente</div><small>No se encontró el cliente (¿se cargó la lista?).</small></div>`;
+  const dir = (l.direccion && typeof l.direccion === 'object') ? formatearDireccion(l.direccion) : (l.direccion || '');
+  const tel = l.telefono || '';
+  return `<div class="ag-proy">
+    <div class="ag-proy-cab">${l.codigoLead ? esc(l.codigoLead) + ' · ' : ''}${esc(l.nombre || '')} <small>(en CRM)</small></div>
+    ${l.tipoProyecto ? `<div>${esc(l.tipoProyecto)}</div>` : ''}
+    ${tel ? `<div>📞 <a href="tel:${esc(tel)}">${esc(tel)}</a></div>` : ''}
+    ${dir ? `<div>📍 ${esc(dir)}</div>` : ''}
+    ${!tel && !dir ? '<small>El cliente aún no tiene teléfono ni dirección registrados.</small>' : ''}</div>`;
+}
+
+/** Texto del proyecto o cliente vinculado para buscar (código + nombre). */
+const textoProyecto = (ev) => ev.proyectoCodigo ? `${ev.proyectoCodigo} ${proyecto(ev.proyectoCodigo)?.cliente || ''}`
+  : ev.leadId ? `${lead(ev.leadId)?.codigoLead || ''} ${lead(ev.leadId)?.nombre || ''}` : '';
 
 /** Número de un campo del formulario (vacío → null). */
 const num = (id) => { const v = $(id).value; return v === '' ? null : Number(v); };
@@ -151,7 +171,7 @@ function filaAgenda(ev, fecha) {
   const acciones = abierto ? `
     <button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(ev.id)}" title="${M.esPago(ev) ? 'Registrar pago' : 'Marcar como realizado'}">${M.esPago(ev) ? '💳' : '✓'}</button>
     <button type="button" class="ag-mini" data-accion="posponer" data-ev="${esc(ev.id)}" title="Posponer / reprogramar">⏰</button>` : '';
-  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, resumenDatos({ ...ev, proximaFecha: fecha }), ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : '', ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
+  const sub = [M.CATEGORIAS[ev.categoria]?.nombre, M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre, resumenDatos({ ...ev, proximaFecha: fecha }), ev.proyectoCodigo ? etiquetaProyecto(ev.proyectoCodigo) : (ev.leadId ? etiquetaLead(ev.leadId) : ''), ev.responsableNombre].filter(Boolean).map(esc).join(' · ');
   return `<div class="ag-fila ${M.colorEvento({ ...ev, proximaFecha: fecha })}" data-ev="${esc(ev.id)}">
     <div class="ag-fila-hora">${esc(textoHora(ev)) || (fecha ? '—' : esc(M.cuandoCorto(ev)))}</div>
     <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(ev)} ${esc(ev.titulo)}</div><div class="ag-fila-sub">${sub}</div></div>
@@ -578,6 +598,7 @@ function actualizarHorario() {
 
 function abrirFormulario(ev = null, preset = {}) {
   S.editandoId = ev?.id || null;
+  S.leadFormId = ev ? (ev.leadId || null) : (preset.leadId || null);
   $('evError').classList.remove('visible'); $('evError').textContent = '';
   $('evModalTitulo').textContent = ev ? 'Editar evento' : 'Crear evento';
   $('btnGuardarEvento').textContent = ev ? 'Guardar cambios' : 'Crear evento';
@@ -656,8 +677,9 @@ function sugerirTitulo() {
   let auto = '';
   if (cat === 'actividad') {
     const p = proyecto(codigoDesdeTexto($('evProyecto').value));
+    const cliente = p ? p.cliente : (lead(S.leadFormId)?.nombre);   // sin proyecto elegido, el cliente del CRM
     const tipoNombre = M.TIPOS_ACTIVIDAD[$('evTipo').value]?.nombre || '';
-    auto = (p && tipoNombre) ? `${tipoNombre} — ${p.cliente || ''}` : '';
+    auto = (cliente && tipoNombre) ? `${tipoNombre} — ${cliente || ''}` : '';
   } else {
     auto = M.tituloSugerido(cat, leerDatosCategoria(cat) || {});
   }
@@ -669,8 +691,9 @@ function sugerirTitulo() {
 function mostrarInfoProyecto(sugerir = true) {
   const codigo = codigoDesdeTexto($('evProyecto').value);
   const box = $('evProyectoInfo');
-  box.style.display = codigo ? '' : 'none';
-  box.innerHTML = codigo ? bloqueProyecto(codigo) : '';
+  const html = codigo ? bloqueProyecto(codigo) : (S.leadFormId ? bloqueLead(S.leadFormId) : '');
+  box.style.display = html ? '' : 'none';
+  box.innerHTML = html;
   if (sugerir) sugerirTitulo();
 }
 
@@ -707,7 +730,9 @@ function leerFormulario() {
     descripcion: $('evDescripcion').value.trim(),
     notas: $('evNotas').value.trim(),
     proyectoCodigo: codigoDesdeTexto($('evProyecto').value),
-    relacion: codigoDesdeTexto($('evProyecto').value) ? { tipo: 'proyecto', id: codigoDesdeTexto($('evProyecto').value), codigo: codigoDesdeTexto($('evProyecto').value) } : null
+    leadId: S.leadFormId || null,   // cliente del CRM (si la actividad se agendó desde su ficha); se guarda solo el id
+    relacion: codigoDesdeTexto($('evProyecto').value) ? { tipo: 'proyecto', id: codigoDesdeTexto($('evProyecto').value), codigo: codigoDesdeTexto($('evProyecto').value) }
+      : (S.leadFormId ? { tipo: 'lead', id: S.leadFormId } : null)
   };
   d.datos = leerDatosCategoria(cat);
   if (cat === 'cumpleanos') {
@@ -889,7 +914,7 @@ function pintarDetalle(ev) {
     ${fila('Categoría', esc(M.CATEGORIAS[ev.categoria]?.nombre || '') + (ev.tipo ? ' · ' + esc(M.TIPOS_ACTIVIDAD[ev.tipo]?.nombre || '') : ''))}
     ${fila('Repetición', esc(M.textoRegla(ev.recurrencia)) + (ev.recurrencia?.hasta ? ` (hasta ${esc(M.formatoFechaDMA(ev.recurrencia.hasta))})` : ''))}
     ${fila('Aviso', esc(ant) + (ev.avisarHabilAnterior ? ' · día hábil anterior si cae fin de semana' : ''))}
-    ${fila('Proyecto / cliente', bloqueProyecto(ev.proyectoCodigo))}
+    ${fila('Proyecto / cliente', ev.proyectoCodigo ? bloqueProyecto(ev.proyectoCodigo) : bloqueLead(ev.leadId))}
     ${fila('Responsable', esc(ev.responsableNombre))}
     ${fila('Recursos', (ev.recursoIds || []).map(id => esc(rec[id] || '—')).join(', '))}
     ${fila('Descripción', esc(ev.descripcion).replace(/\n/g, '<br>'))}
@@ -1617,14 +1642,16 @@ function intentarDeepLink() {
   if (id && S.eventos.some(e => e.id === id)) { S.deepLinkHecho = true; abrirDetalle(id); }
 }
 
-/** agenda.html?nuevo=1&proyecto=LIN-00025&tipo=instalacion → formulario ya con el proyecto elegido. */
+/** agenda.html?nuevo=1&proyecto=LIN-00025&tipo=instalacion → formulario ya con el proyecto elegido.
+ *  agenda.html?nuevo=1&lead=<id del lead>&tipo=visita_cliente → igual, pero con el cliente del CRM. */
 function deepLinkNuevo() {
   if (S.deepLinkNuevoHecho) return;
   const p = new URLSearchParams(location.search);
   if (p.get('nuevo') !== '1') return;
+  if (p.get('lead') && !S.leadsListos) return;   // espera a leer los clientes para mostrar sus datos; se reintenta al llegar
   S.deepLinkNuevoHecho = true;
   const tipo = M.TIPOS_ACTIVIDAD[p.get('tipo')] ? p.get('tipo') : undefined;
-  abrirFormulario(null, { fecha: p.get('fecha') || undefined, proyectoCodigo: codigoDesdeTexto(p.get('proyecto')) || undefined, tipo, categoria: 'actividad' });
+  abrirFormulario(null, { fecha: p.get('fecha') || undefined, proyectoCodigo: codigoDesdeTexto(p.get('proyecto')) || undefined, leadId: p.get('lead') || undefined, tipo, categoria: 'actividad' });
 }
 
 function refrescarSiAplica() {
@@ -1690,6 +1717,12 @@ async function iniciar(staff) {
     refrescarSiAplica();
     deepLinkNuevo();
   }, () => { toast('No se pudieron leer los proyectos', 'error'); deepLinkNuevo(); });
+  escucharLeads((lista) => {
+    S.leadsPorId = Object.fromEntries(lista.map(l => [l.id, l]));
+    S.leadsListos = true;
+    refrescarSiAplica();
+    deepLinkNuevo();
+  }, () => { S.leadsListos = true; deepLinkNuevo(); });   // si no se pueden leer, la agenda funciona igual (sin datos del cliente)
   escucharEventos((lista) => { S.eventos = lista; refrescarSiAplica(); intentarDeepLink(); }, () => toast('No se pudo leer la agenda. Revisa que las reglas de Firestore incluyan "eventos".', 'error'));
   render();
 }
