@@ -19,6 +19,7 @@ import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
+import { crearAgendaActividades } from './components/agenda-actividades.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -187,6 +188,26 @@ let STAFF_ACTUAL = null;
 let usuariosStaff = [];
 let leadsActuales = [];
 let leadSeleccionadoId = null;
+
+// Agenda del cliente: visita, toma de medidas y reunión de diseño se agendan aquí, antes de que exista el proyecto.
+// El bloque lo dibuja el componente compartido (el mismo que usa Proyectos); las actividades quedan en la
+// colección "eventos" con el id del lead y, si el lead ya tiene proyecto vinculado, se ven también allí.
+const agendaCliente = crearAgendaActividades({
+  id: 'agendaCliente',
+  titulo: 'Agenda del cliente',
+  tipos: ['visita_cliente', 'toma_medidas', 'reunion_diseno'],
+  conOtraActividad: false,
+  estiloCrm: true,
+  textoVacio: 'Aún no hay actividades agendadas para este cliente.',
+  textoError: 'No se pudo leer la agenda de este cliente.',
+  insertar: (seccion) => {
+    const contenedor = document.getElementById('agendaClienteContenedor');
+    if (!contenedor) return false;
+    contenedor.appendChild(seccion);
+  },
+  urlNueva: (clave, tipo) => `agenda.html?nuevo=1&lead=${encodeURIComponent(clave.leadId)}${tipo ? `&tipo=${tipo}` : ''}`,
+  suscribir: (fs, clave, alDatos, alError) => fs.escucharEventosDeLead(clave.leadId, clave.proyectoCodigo, alDatos, alError)
+});
 let primeraCargaLeadsHecha = false;
 let dejarDeEscucharLeads = null;
 
@@ -557,6 +578,7 @@ function abrirDetalleLead(id) {
   vistaKanban.style.display = 'none';
   vistaDetalleLead.style.display = '';
   vistaDetalleLead.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  agendaCliente.mostrar({ leadId: id, proyectoCodigo: lead.proyectoVinculado || null });
 }
 
 function renderNotas(notas) {
@@ -599,6 +621,7 @@ function formatearFechaHora(timestamp) {
 document.getElementById('btnVolverKanban').addEventListener('click', () => {
   leadSeleccionadoId = null;
   vistaDetalleLead.style.display = 'none';
+  agendaCliente.ocultar();
   vistaKanban.style.display = '';
 });
 
@@ -1087,6 +1110,7 @@ document.getElementById('btnConfirmarGanado').addEventListener('click', async ()
 
     modalGanado.classList.remove('visible');
     vistaDetalleLead.style.display = 'none';
+  agendaCliente.ocultar();
     vistaKanban.style.display = '';
     mostrarToast(`Proyecto ${codigo} creado. Lead marcado como ganado.`);
   } catch (err) {
@@ -1128,6 +1152,7 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
     await marcarLeadPerdido(leadSeleccionadoId, motivo);
     modalPerdido.classList.remove('visible');
     vistaDetalleLead.style.display = 'none';
+  agendaCliente.ocultar();
     vistaKanban.style.display = '';
     mostrarToast('Lead marcado como perdido.');
   } catch (err) {
@@ -1161,6 +1186,7 @@ document.getElementById('btnConfirmarEliminacionLead').addEventListener('click',
     await eliminarLead(leadSeleccionadoId);
     leadSeleccionadoId = null;
     vistaDetalleLead.style.display = 'none';
+  agendaCliente.ocultar();
     vistaKanban.style.display = '';
     mostrarToast('Lead eliminado.');
   } catch (err) {
