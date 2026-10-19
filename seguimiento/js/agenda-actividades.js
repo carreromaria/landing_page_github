@@ -108,7 +108,7 @@ export function crearAgendaActividades(opciones) {
     if (!clave) return;
     parar?.(); parar = null; claveActual = clave;
     try {
-      const [fs, motor] = await Promise.all([import('../firestore.js'), import('../agenda-motor.js')]);
+      const [fs, motor] = await Promise.all([import('./firestore.js'), import('./agenda-motor.js')]);
       if (claveActual !== clave) return;                 // se cambió de ficha mientras cargaba
       M = motor;
       inyectarEstilos();
