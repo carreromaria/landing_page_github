@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
-<link rel="stylesheet" href="css/agenda.css?v=20261020a">
+<link rel="stylesheet" href="css/agenda.css?v=20261021a">
 </head>
 <body>
 
@@ -82,6 +82,7 @@
         <button type="button" class="ag-tab" data-vista="vehiculos">🚗 Vehículos</button>
         <button type="button" class="ag-tab" data-vista="colaboradores" id="tabColaboradores" style="display:none;">👥 Colaboradores</button>
         <button type="button" class="ag-tab" data-vista="recursos">🧰 Recursos</button>
+        <button type="button" class="ag-tab" data-vista="configuracion" id="tabConfiguracion" style="display:none;">⚙️ Configuración</button>
       </nav>
     </div>
 
@@ -95,6 +96,7 @@
       <div class="ag-pane" id="paneVehiculos" style="display:none;"></div>
       <div class="ag-pane" id="paneColaboradores" style="display:none;"></div>
       <div class="ag-pane" id="paneRecursos" style="display:none;"></div>
+      <div class="ag-pane" id="paneConfiguracion" style="display:none;"></div>
     </div>
   </main>
 </div>
@@ -480,6 +482,21 @@
   </div>
 </div>
 
+<!-- ================= MODAL: RECORDATORIOS AUTOMÁTICOS ================= -->
+<div class="modal-overlay agenda-modal" id="modalAuto">
+  <div class="modal-box">
+    <h2 id="auTitulo">Recordatorios automáticos</h2>
+    <p class="subtitulo">Al programar una actividad de este tipo, la agenda crea sola un recordatorio por cada aviso, con la cantidad de días indicada antes de la fecha.</p>
+    <div id="auFilas" class="ag-pasos"></div>
+    <button type="button" class="btn-secundario" id="btnAgregarPaso">+ Agregar aviso</button>
+    <div class="modal-error" id="auError"></div>
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarAuto">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnGuardarAuto">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= MODAL: COLABORADOR ================= -->
 <div class="modal-overlay agenda-modal" id="modalColaborador">
   <div class="modal-box">
@@ -508,7 +525,7 @@
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/agenda.js?v=20261020a"></script>
+<script type="module" src="js/agenda.js?v=20261021a"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
