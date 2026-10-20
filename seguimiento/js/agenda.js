@@ -13,7 +13,8 @@ import {
   crearRecurso, actualizarRecurso, escucharProyectos, escucharLeads,
   escucharColaboradores, crearColaborador, actualizarColaborador,
   escucharVehiculos, crearVehiculo, actualizarVehiculo, registrarKilometraje,
-  escucharMantencionesVehiculo, escucharGastosVehiculo, crearGastoVehiculo, registrarMantencionVehiculo
+  escucharMantencionesVehiculo, escucharGastosVehiculo, crearGastoVehiculo, registrarMantencionVehiculo,
+  escucharConfigAgenda, guardarConfigAgenda
 } from './firestore.js';
 import { formatearDireccion } from './regiones-comunas.js';
 import * as M from './agenda-motor.js';
@@ -25,7 +26,7 @@ const HORA_INI = 7, HORA_FIN = 20, ALTO_HORA = 48;   // rejilla semanal 07:00–
 const TIPOS_RECURSO = { persona: 'Persona', equipo: 'Equipo de instalación', vehiculo: 'Vehículo', sala: 'Sala de reuniones', taller: 'Taller', otro: 'Otro' };
 
 const S = {
-  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, leadsPorId: {}, leadsListos: false, leadFormId: null, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null, vehiculos: [], vehEditando: null, vehKm: null, vehGasto: null, planEditando: null, mantencionId: null, hvId: null, hvMant: [], hvGastos: [], hvPararM: null, hvPararG: null,
+  staff: null, eventos: [], recursos: [], usuarios: [], proyectos: [], proyectosPorCodigo: {}, autoConfig: M.normalizarAutomatizaciones(null), autoTipo: null, leadsPorId: {}, leadsListos: false, leadFormId: null, tituloAuto: '', deepLinkNuevoHecho: false, colaboradores: [], colabEditando: null, vehiculos: [], vehEditando: null, vehKm: null, vehGasto: null, planEditando: null, mantencionId: null, hvId: null, hvMant: [], hvGastos: [], hvPararM: null, hvPararG: null,
   vista: 'resumen',
   mesRef: M.hoyStr().slice(0, 8) + '01',
   semanaRef: M.hoyStr(),
@@ -530,6 +531,65 @@ function renderColaboradores() {
     ${filas || '<p class="ag-vacio">Aún no hay colaboradores registrados.</p>'}`;
 }
 
+// ---------- Vista: Configuración (solo administradores) ----------
+
+function renderConfiguracion() {
+  const reglas = S.autoConfig.reglas || {};
+  const filas = Object.entries(M.TIPOS_ACTIVIDAD).map(([k, t]) => `<div class="ag-fila ${reglas[k]?.length ? 'verde' : 'gris'}">
+      <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${t.icono} ${esc(t.nombre)}</div><div class="ag-fila-sub">${esc(M.textoPasos(reglas[k]))}</div></div>
+      <div class="ag-fila-acc"><button type="button" class="btn-secundario" data-auto-editar="${k}">Editar</button></div></div>`).join('');
+  $('paneConfiguracion').innerHTML = `
+    <div class="ag-dia-cab"><h2 class="ag-h2" style="margin:0">Recordatorios automáticos</h2>
+      <button type="button" class="btn-secundario" id="btnAutoActivo">${S.autoConfig.activo ? '✓ Activados · desactivar' : 'Desactivados · activar'}</button></div>
+    <p class="ag-ayuda">Al programar una actividad de un tipo, la agenda crea sola los recordatorios que configures (por ejemplo, para una instalación: 7 días antes “Confirmar con el cliente”, 3 días antes “Verificar materiales”, 1 día antes “Preparar el equipo”). Si la actividad se reprograma, sus recordatorios se mueven; si se cancela o se realiza, se cancelan los pendientes. Los cambios de esta pantalla valen para las actividades nuevas.</p>
+    ${filas}
+    <div class="ag-veh-acciones" style="margin-top:16px">
+      <button type="button" class="btn-secundario" id="btnAutoAplicar">Generar para actividades ya programadas</button>
+      <button type="button" class="btn-secundario" id="btnAutoRestaurar">Restaurar valores originales</button>
+    </div>`;
+}
+
+function filaPaso(p = {}) {
+  return `<div class="ag-paso-fila">
+    <input type="number" class="paso-dias" min="0" max="90" inputmode="numeric" value="${p.dias ?? ''}" placeholder="Días" aria-label="Días antes">
+    <input type="text" class="paso-titulo" value="${esc(p.titulo || '')}" placeholder="Qué hay que hacer. Ej. Confirmar con el cliente" autocomplete="off">
+    <button type="button" class="ag-mini paso-quitar" aria-label="Quitar aviso">×</button></div>`;
+}
+function abrirAuto(tipo) {
+  S.autoTipo = tipo;
+  $('auTitulo').textContent = 'Recordatorios · ' + (M.TIPOS_ACTIVIDAD[tipo]?.nombre || '');
+  const pasos = [...(S.autoConfig.reglas?.[tipo] || [])].sort((a, b) => b.dias - a.dias);
+  $('auFilas').innerHTML = pasos.map(filaPaso).join('') || filaPaso();
+  limpiarErr('auError');
+  $('modalAuto').classList.add('visible');
+}
+async function guardarConfigAuto(nuevo, mensaje) {
+  try { await guardarConfigAgenda(nuevo, S.staff.uid); toast(mensaje); return true; }
+  catch (e) { console.error(e); toast('No se pudo guardar la configuración. ¿Publicaste las reglas nuevas y eres administrador?', 'error'); return false; }
+}
+async function guardarAuto() {
+  const filas = [...$('auFilas').querySelectorAll('.ag-paso-fila')].map(r => ({ dias: r.querySelector('.paso-dias').value, titulo: r.querySelector('.paso-titulo').value.trim() }))
+    .filter(p => p.dias !== '' || p.titulo);
+  if (filas.some(p => p.dias === '' || !p.titulo)) return errEn('auError', 'Cada aviso necesita los días y un texto.');
+  const pasos = filas.map(p => ({ dias: parseInt(p.dias, 10), titulo: p.titulo }));
+  if (pasos.some(p => !(p.dias >= 0 && p.dias <= 90))) return errEn('auError', 'Los días deben estar entre 0 y 90.');
+  if (new Set(pasos.map(p => p.dias)).size !== pasos.length) return errEn('auError', 'No puede haber dos avisos con los mismos días.');
+  const reglas = { ...(S.autoConfig.reglas || {}) };
+  if (pasos.length) reglas[S.autoTipo] = pasos.sort((a, b) => b.dias - a.dias); else delete reglas[S.autoTipo];
+  if (await guardarConfigAuto({ activo: S.autoConfig.activo, reglas }, 'Configuración guardada')) cerrarModal('modalAuto');
+}
+async function aplicarAutomatizacionesExistentes() {
+  const hoy = M.hoyStr();
+  const lista = S.eventos.filter(e => e.categoria === 'actividad' && M.estaAbierto(e.estado) && e.proximaFecha >= hoy && S.autoConfig.reglas?.[e.tipo]?.length);
+  if (!lista.length) return toast('No hay actividades futuras con recordatorios configurados.');
+  if (!confirm(`Se revisarán ${lista.length} actividad${lista.length === 1 ? '' : 'es'} programada${lista.length === 1 ? '' : 's'} y se crearán los recordatorios que falten. ¿Continuar?`)) return;
+  const total = { creados: 0, actualizados: 0, cancelados: 0 };
+  try {
+    for (const e of lista) { const r = await sincronizarAutomatizaciones(e); total.creados += r.creados; total.actualizados += r.actualizados; total.cancelados += r.cancelados; }
+    toast('Listo' + (textoAuto(total) || ' · no faltaba ningún recordatorio'));
+  } catch (err) { console.error(err); toast('No se pudo completar. Revisa tu conexión.', 'error'); }
+}
+
 // ---------- Vista: Recursos ----------
 
 function renderRecursos() {
@@ -547,8 +607,8 @@ function renderRecursos() {
 function render() {
   document.querySelectorAll('.ag-tab').forEach(b => b.classList.toggle('activa', b.dataset.vista === S.vista));
   document.querySelectorAll('.ag-pane').forEach(p => p.style.display = (p.id === 'pane' + S.vista[0].toUpperCase() + S.vista.slice(1)) ? '' : 'none');
-  $('agFiltros').style.display = ['recursos', 'colaboradores', 'vehiculos'].includes(S.vista) ? 'none' : '';
-  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, pagos: renderPagos, cumpleanos: renderCumpleanos, colaboradores: renderColaboradores, vehiculos: renderVehiculos, recursos: renderRecursos })[S.vista]();
+  $('agFiltros').style.display = ['recursos', 'colaboradores', 'vehiculos', 'configuracion'].includes(S.vista) ? 'none' : '';
+  ({ resumen: renderResumen, mes: renderMes, semana: renderSemana, agenda: renderAgenda, pagos: renderPagos, cumpleanos: renderCumpleanos, colaboradores: renderColaboradores, vehiculos: renderVehiculos, configuracion: renderConfiguracion, recursos: renderRecursos })[S.vista]();
 }
 
 function irA(vista) { S.vista = vista; render(); }
@@ -775,8 +835,8 @@ async function guardarEvento() {
   try {
     const por = { por: S.staff.uid, porNombre: nombreStaff() };
     if (!S.editandoId) {
-      await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: d.diaAncla ?? M.partesFecha(d.proximaFecha).d, adjuntos: [] }, S.staff.uid, nombreStaff());
-      toast('Evento creado');
+      const nuevo = await crearEvento({ ...d, fecha: d.proximaFecha, diaAncla: d.diaAncla ?? M.partesFecha(d.proximaFecha).d, adjuntos: [] }, S.staff.uid, nombreStaff());
+      toast('Evento creado' + await autoTras({ ...d, id: nuevo.id }));
     } else {
       const ev = S.eventos.find(e => e.id === S.editandoId);
       const cambioFecha = ev.proximaFecha !== d.proximaFecha;
@@ -790,7 +850,7 @@ async function guardarEvento() {
           ? { tipo: 'estado', estadoAnterior: ev.estado, estadoNuevo: d.estado, ...por }
           : { tipo: 'editado', ...por };
       await actualizarEvento(S.editandoId, datos, entrada);
-      toast('Cambios guardados');
+      toast('Cambios guardados' + await autoTras({ ...ev, ...datos, id: ev.id }));
     }
     cerrarModal('modalEvento');
   } catch (e) {
@@ -855,6 +915,12 @@ function abrirDetalle(id) {
 
 /** Filas del detalle con los datos propios de la categoría. */
 function filasDatos(ev) {
+  const origen = ev.origen?.tipo === 'automatizacion'
+    ? `<div class="ag-det-fila"><span>Origen</span><div>Recordatorio automático · <a href="#" data-abrir-ev="${esc(ev.origen.eventoId)}">ver la actividad</a></div></div>` : '';
+  return origen + filasDatosCategoria(ev);
+}
+
+function filasDatosCategoria(ev) {
   const d = ev.datos || {};
   const f = (k, v) => v ? `<div class="ag-det-fila"><span>${k}</span><div>${v}</div></div>` : '';
   if (ev.categoria === 'servicio') {
@@ -934,6 +1000,61 @@ function pintarDetalle(ev) {
 
 // ---------- Completar / posponer / cancelar / estado ----------
 
+// ---------- Recordatorios automáticos (Fase 5) ----------
+
+/**
+ * Deja al día los recordatorios automáticos de una actividad: crea los que faltan,
+ * mueve los que cambiaron de fecha y cancela los que ya no corresponden.
+ * `padre` es la actividad tal como quedó (campos mezclados con lo recién guardado).
+ */
+async function sincronizarAutomatizaciones(padre) {
+  const r = { creados: 0, actualizados: 0, cancelados: 0 };
+  if (!S.autoConfig.activo || padre.categoria !== 'actividad') return r;
+  const existentes = S.eventos.filter(e => e.origen?.tipo === 'automatizacion' && e.origen.eventoId === padre.id);
+  const plan = M.planificarRecordatorios(padre, S.autoConfig.reglas, existentes);
+  const por = { por: S.staff.uid, porNombre: nombreStaff() };
+  const prioridad = ['alta', 'urgente'].includes(padre.prioridad) ? padre.prioridad : 'media';
+
+  for (const d of plan.crear) {
+    await crearEvento({
+      titulo: d.titulo, categoria: 'recordatorio', tipo: null, prioridad, estado: 'pendiente', abierto: true,
+      fecha: d.fecha, proximaFecha: d.fecha, diaAncla: M.partesFecha(d.fecha).d, todoElDia: true, horaInicio: null, horaFin: null,
+      recurrencia: { frecuencia: 'ninguna', intervalo: 1, hasta: null }, anticipacionDias: 0, avisarHabilAnterior: false,
+      responsableUid: padre.responsableUid || null, responsableNombre: padre.responsableNombre || '', recursoIds: [],
+      descripcion: `Recordatorio automático: ${d.dias} ${d.dias === 1 ? 'día' : 'días'} antes de «${padre.titulo}»`, notas: '',
+      proyectoCodigo: null, relacion: { tipo: 'evento', id: padre.id }, adjuntos: [],
+      origen: { tipo: 'automatizacion', eventoId: padre.id, clave: d.clave, fechaPadre: padre.proximaFecha }
+    }, S.staff.uid, nombreStaff());
+    r.creados++;
+  }
+  for (const { ev, d } of plan.actualizar) {
+    await actualizarEvento(ev.id,
+      { proximaFecha: d.fecha, titulo: d.titulo, diaAncla: M.partesFecha(d.fecha).d, 'origen.fechaPadre': padre.proximaFecha, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+      { tipo: 'reprogramado', fechaAnterior: ev.proximaFecha, fechaNueva: d.fecha, estadoAnterior: ev.estado, estadoNuevo: ev.estado, nota: 'Ajustado porque cambió la actividad', ...por });
+    r.actualizados++;
+  }
+  for (const ev of plan.cancelar) {
+    await actualizarEvento(ev.id, { estado: 'cancelado', abierto: false, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
+      { tipo: 'cancelado', estadoAnterior: ev.estado, estadoNuevo: 'cancelado', nota: 'La actividad cambió o terminó', ...por });
+    r.cancelados++;
+  }
+  return r;
+}
+
+function textoAuto(r) {
+  const p = [];
+  if (r.creados) p.push(`${r.creados} recordatorio${r.creados === 1 ? '' : 's'} automático${r.creados === 1 ? '' : 's'} creado${r.creados === 1 ? '' : 's'}`);
+  if (r.actualizados) p.push(`${r.actualizados} ajustado${r.actualizados === 1 ? '' : 's'}`);
+  if (r.cancelados) p.push(`${r.cancelados} cancelado${r.cancelados === 1 ? '' : 's'}`);
+  return p.length ? ' · ' + p.join(', ') : '';
+}
+
+/** Sincroniza sin romper el flujo principal: si falla, solo se avisa en consola. Devuelve el texto para el aviso. */
+async function autoTras(padre) {
+  try { return textoAuto(await sincronizarAutomatizaciones(padre)); }
+  catch (e) { console.warn('No se pudieron actualizar los recordatorios automáticos', e); return ''; }
+}
+
 let _accionId = null;
 
 function abrirCompletar(id) {
@@ -998,12 +1119,12 @@ async function confirmarCompletar() {
       await actualizarEvento(ev.id,
         { ...upd, proximaFecha: sig, estado, abierto: true, ultimaRealizacion: fechaReal, diaAncla: ev.diaAncla || M.partesFecha(ev.proximaFecha).d, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
         { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, fechaNueva: sig, estadoAnterior: ev.estado, estadoNuevo: estado, nota, ...extra, ...por });
-      toast(pago ? 'Pago registrado. Próximo vencimiento: ' + M.formatoFechaDMA(sig) : 'Registrado. Próxima fecha: ' + M.formatoFechaDMA(sig));
+      toast((pago ? 'Pago registrado. Próximo vencimiento: ' + M.formatoFechaDMA(sig) : 'Registrado. Próxima fecha: ' + M.formatoFechaDMA(sig)) + await autoTras({ ...ev, proximaFecha: sig, estado }));
     } else {
       await actualizarEvento(ev.id,
         { ...upd, estado: 'realizado', abierto: false, ultimaRealizacion: fechaReal, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
         { tipo: 'completado', fechaOcurrencia: ev.proximaFecha, fechaReal, estadoAnterior: ev.estado, estadoNuevo: 'realizado', nota, ...extra, ...por });
-      toast(pago ? 'Pago registrado' : 'Marcado como realizado');
+      toast((pago ? 'Pago registrado' : 'Marcado como realizado') + await autoTras({ ...ev, estado: 'realizado' }));
     }
     cerrarModal('modalCompletar');
   } catch (e) { console.error(e); toast('No se pudo guardar', 'error'); }
@@ -1040,7 +1161,7 @@ async function confirmarPosponer() {
   const btn = $('btnConfirmarPosponer'); btn.disabled = true;
   try {
     await actualizarEvento(ev.id, datos, { tipo: 'reprogramado', fechaAnterior: ev.proximaFecha, fechaNueva: nueva, estadoAnterior: ev.estado, estadoNuevo: datos.estado, nota: $('pmMotivo').value.trim(), por: S.staff.uid, porNombre: nombreStaff() });
-    toast('Reprogramado para el ' + M.formatoFechaDMA(nueva));
+    toast('Reprogramado para el ' + M.formatoFechaDMA(nueva) + await autoTras({ ...ev, ...datos, id: ev.id }));
     cerrarModal('modalPosponer');
   } catch (e) { console.error(e); toast('No se pudo guardar', 'error'); }
   finally { btn.disabled = false; }
@@ -1053,7 +1174,7 @@ async function cancelarEvento(id) {
   try {
     await actualizarEvento(id, { estado: 'cancelado', abierto: false, actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
       { tipo: 'cancelado', estadoAnterior: ev.estado, estadoNuevo: 'cancelado', por: S.staff.uid, porNombre: nombreStaff() });
-    toast('Evento cancelado');
+    toast('Evento cancelado' + await autoTras({ ...ev, estado: 'cancelado' }));
   } catch (e) { console.error(e); toast('No se pudo cancelar', 'error'); }
 }
 
@@ -1067,7 +1188,7 @@ async function cambiarEstado(id, nuevo) {
   try {
     await actualizarEvento(id, { estado: nuevo, abierto: M.estaAbierto(nuevo), actualizadoPor: S.staff.uid, actualizadoPorNombre: nombreStaff() },
       { tipo: 'estado', estadoAnterior: ev.estado, estadoNuevo: nuevo, por: S.staff.uid, porNombre: nombreStaff() });
-    toast('Estado actualizado');
+    toast('Estado actualizado' + await autoTras({ ...ev, estado: nuevo }));
   } catch (e) { console.error(e); toast('No se pudo cambiar el estado', 'error'); }
 }
 
@@ -1524,6 +1645,10 @@ function enlazar() {
     if (ev) return abrirDetalle(ev.dataset.ev);
     if (t.closest('#btnNuevoRecurso')) return abrirRecurso();
     if (t.closest('#btnNuevoVehiculo')) return abrirVehiculo();
+    const ae = t.closest('[data-auto-editar]'); if (ae) return abrirAuto(ae.dataset.autoEditar);
+    if (t.closest('#btnAutoActivo')) return guardarConfigAuto({ activo: !S.autoConfig.activo, reglas: S.autoConfig.reglas || {} }, S.autoConfig.activo ? 'Recordatorios automáticos desactivados' : 'Recordatorios automáticos activados');
+    if (t.closest('#btnAutoAplicar')) return aplicarAutomatizacionesExistentes();
+    if (t.closest('#btnAutoRestaurar')) { if (confirm('¿Volver a los valores originales? (Instalación: 7, 3 y 1 días antes)')) guardarConfigAuto({ activo: true, reglas: JSON.parse(JSON.stringify(M.AUTOMATIZACIONES_DEFECTO.reglas)) }, 'Valores originales restaurados'); return; }
     const vk = t.closest('[data-veh-km]'); if (vk) return abrirKm(vk.dataset.vehKm);
     const ve = t.closest('[data-veh-editar]'); if (ve) return abrirVehiculo(ve.dataset.vehEditar);
     const vs = t.closest('[data-veh-estado]'); if (vs) return cambiarEstadoVehiculo(vs.dataset.vehEstado);
@@ -1551,6 +1676,12 @@ function enlazar() {
     abrirFormulario(null, { fecha: col.dataset.dia, horaInicio: M.desdeMinutos(minutos), horaFin: M.desdeMinutos(minutos + 60) });
   });
   $('agPaneles').addEventListener('change', (e) => { if (e.target.id === 'semRecurso') { S.semRecurso = e.target.value; render(); } });
+
+  // Recordatorios automáticos
+  $('btnAgregarPaso').addEventListener('click', () => $('auFilas').insertAdjacentHTML('beforeend', filaPaso()));
+  $('auFilas').addEventListener('click', (e) => e.target.closest('.paso-quitar')?.closest('.ag-paso-fila')?.remove());
+  $('btnGuardarAuto').addEventListener('click', guardarAuto);
+  $('btnCancelarAuto').addEventListener('click', () => cerrarModal('modalAuto'));
 
   // Vehículos
   $('btnGuardarVehiculo').addEventListener('click', guardarVehiculo);
@@ -1597,6 +1728,8 @@ function enlazar() {
 
   // Detalle
   $('detContenido').addEventListener('click', (e) => {
+    const ab = e.target.closest('[data-abrir-ev]');
+    if (ab) { e.preventDefault(); if (S.eventos.some(x => x.id === ab.dataset.abrirEv)) abrirDetalle(ab.dataset.abrirEv); else toast('Esa actividad ya no está en la agenda', 'error'); return; }
     const b = e.target.closest('[data-det]'); if (!b) return;
     const id = S.detalleId; const a = b.dataset.det;
     if (a === 'editar') { const ev = S.eventos.find(x => x.id === id); cerrarModal('modalDetalle'); if (ev.categoria === 'vehiculo') abrirPlan(ev.vehiculoId, ev.datos?.clase, ev); else abrirFormulario(ev); }
@@ -1707,6 +1840,9 @@ async function iniciar(staff) {
       refrescarSiAplica();
     }, () => toast('No se pudo leer la lista de colaboradores', 'error'));
   }
+  if (esAdmin()) $('tabConfiguracion').style.display = '';
+  escucharConfigAgenda((cfg) => { S.autoConfig = M.normalizarAutomatizaciones(cfg); refrescarSiAplica(); },
+    () => console.warn('No se pudo leer la configuración de recordatorios automáticos; se usan los valores originales.'));
   escucharVehiculos((lista) => { S.vehiculos = lista; M.setVehiculos(lista); refrescarSiAplica(); }, () => toast('No se pudieron leer los vehículos. ¿Publicaste las reglas nuevas?', 'error'));
   escucharProyectos((lista) => {
     S.proyectos = lista.filter(p => p.activo !== false);
