@@ -556,3 +556,64 @@ export function planSiguiente(ev, kmReal, fechaReal) {
   if (modoUsaFecha(d.modo) && Number(d.intervaloMeses) > 0) out.proximaFecha = sumarMeses(fechaReal, Number(d.intervaloMeses), null);
   return out;
 }
+
+
+// ============================================================
+// RECORDATORIOS AUTOMÁTICOS (Fase 5)
+// ============================================================
+// Cuando se programa una actividad de cierto tipo (por ejemplo una instalación),
+// la agenda crea sola recordatorios "N días antes". Los pasos son configurables
+// por tipo de actividad. Aquí vive solo la lógica pura (qué crear, mover o cancelar);
+// agenda.js la ejecuta contra Firestore.
+
+export const AUTOMATIZACIONES_DEFECTO = {
+  activo: true,
+  reglas: {
+    instalacion: [
+      { dias: 7, titulo: 'Confirmar instalación con cliente' },
+      { dias: 3, titulo: 'Verificar materiales' },
+      { dias: 1, titulo: 'Preparar equipo de instalación' }
+    ]
+  }
+};
+
+/** Configuración guardada (o null) → configuración usable. Sin configuración usa los valores originales. */
+export function normalizarAutomatizaciones(cfg) {
+  if (!cfg) return { activo: true, reglas: JSON.parse(JSON.stringify(AUTOMATIZACIONES_DEFECTO.reglas)) };
+  return { activo: cfg.activo !== false, reglas: cfg.reglas && typeof cfg.reglas === 'object' ? cfg.reglas : {} };
+}
+
+export function textoPasos(pasos) {
+  if (!pasos?.length) return 'Sin recordatorios automáticos';
+  const dias = [...pasos].sort((a, b) => b.dias - a.dias).map(p => p.dias === 0 ? 'el mismo día' : String(p.dias));
+  return 'Avisos: ' + dias.join(' · ') + (pasos.every(p => p.dias > 0) ? ' días antes' : '');
+}
+
+/**
+ * Qué hay que hacer para dejar los recordatorios de una actividad al día.
+ * padre: la actividad (id, categoria, tipo, titulo, proximaFecha, estado…)
+ * existentes: recordatorios automáticos ya creados para esa actividad (origen.eventoId == padre.id)
+ * Devuelve { crear:[{clave,dias,fecha,titulo}], actualizar:[{ev,d}], cancelar:[ev] }
+ *  - Si la actividad se cierra (realizada/cancelada) o cambia de fecha, los recordatorios pendientes se mueven o cancelan.
+ *  - Un recordatorio ya hecho para esa misma fecha no se vuelve a crear.
+ *  - Los avisos cuya fecha ya pasó no se crean.
+ */
+export function planificarRecordatorios(padre, reglas, existentes, hoy = hoyStr()) {
+  const pasos = (padre.categoria === 'actividad' && estaAbierto(padre.estado) && padre.proximaFecha) ? (reglas?.[padre.tipo] || []) : [];
+  const deseados = pasos
+    .map(p => ({ clave: 'dias-' + p.dias, dias: p.dias, fecha: sumarDias(padre.proximaFecha, -p.dias), titulo: `${p.titulo} — ${padre.titulo}` }))
+    .filter(d => d.fecha >= hoy);
+  const crear = [], actualizar = [], cancelar = [];
+  for (const d of deseados) {
+    const delClave = existentes.filter(e => e.origen?.clave === d.clave);
+    const abierto = delClave.find(e => estaAbierto(e.estado));
+    if (abierto) {
+      if (abierto.proximaFecha !== d.fecha || abierto.titulo !== d.titulo) actualizar.push({ ev: abierto, d });
+    } else if (!delClave.some(e => e.origen?.fechaPadre === padre.proximaFecha)) {
+      crear.push(d);
+    }
+  }
+  const claves = new Set(deseados.map(d => d.clave));
+  for (const e of existentes) if (estaAbierto(e.estado) && !claves.has(e.origen?.clave)) cancelar.push(e);
+  return { crear, actualizar, cancelar };
+}
