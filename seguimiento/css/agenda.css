@@ -247,3 +247,8 @@
 .ag-veh-acciones .btn-secundario{padding:7px 12px;font-size:12px}
 .ag-barra.rojo i{background:var(--ag-rojo)} .ag-barra.naranja i{background:var(--ag-naranja)}
 @media (max-width:760px){.ag-veh-km{align-items:flex-start;text-align:left}}
+
+/* ---------- Recordatorios automáticos (Fase 5) ---------- */
+.ag-pasos{display:grid;gap:8px;margin:6px 0 12px}
+.ag-paso-fila{display:grid;grid-template-columns:88px 1fr 36px;gap:8px;align-items:center}
+.ag-paso-fila input{width:100%;height:42px;padding:0 10px;border:1px solid var(--gold-line,#e6d9bd);border-radius:8px;background:#fff;font:400 13px Poppins,sans-serif;color:var(--ink);box-sizing:border-box}
