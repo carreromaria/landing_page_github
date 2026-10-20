@@ -1328,3 +1328,19 @@ export async function registrarMantencionVehiculo({ eventoId, eventoUpdate, entr
   }
   await batch.commit();
 }
+
+
+// ---------- Configuración de la agenda (Fase 5) ----------
+// agendaConfig/automatizaciones → { activo, reglas: { <tipo de actividad>: [{dias, titulo}] } }
+// (colección aparte: "config" es de lectura pública y esto es interno).
+
+export function escucharConfigAgenda(callback, onError) {
+  return onSnapshot(doc(db, "agendaConfig", "automatizaciones"),
+    (snap) => callback(snap.exists() ? snap.data() : null),
+    (err) => { console.error(err); onError?.(err); }
+  );
+}
+
+export async function guardarConfigAgenda(datos, uid) {
+  await setDoc(doc(db, "agendaConfig", "automatizaciones"), { ...datos, actualizadoPor: uid, actualizadoEn: serverTimestamp() });
+}
