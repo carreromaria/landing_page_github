@@ -592,6 +592,18 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 }
 
 /* ============================================================
+   Un solo scroll en la página
+   crm.css (que este módulo también carga) deja `html, body { overflow-x:hidden }`.
+   Con eso <body> deja de ser parte de la página y pasa a ser su propia caja con scroll,
+   de alto "100%" de la pantalla, dentro de la página. En un módulo largo como el editor de
+   cotizaciones aparecían dos scrolls y una franja vacía al pie. Aquí <body> vuelve a crecer
+   con su contenido y el único scroll es el de la página; html mantiene el overflow-x:hidden,
+   que sigue evitando que la vista se arrastre hacia los lados.
+   ============================================================ */
+html, body { height: auto; min-height: 100%; }
+body { overflow-x: visible; }
+
+/* ============================================================
    RESPONSIVE — Teléfono y tablet (≤900px)
    Mismo patrón que el CRM: el encabezado del listado queda
    "sticky" debajo del topbar mobile, y los botones de acciones
