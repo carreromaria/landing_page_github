@@ -446,6 +446,32 @@
     page-break-inside: avoid;
   }
 
+  /* Cotización: el espacio vacío entre la tabla de ítems y el cuadro de notas queda enmarcado
+     y relleno con "ESPACIO NO UTILIZABLE" (gris claro, 30% de opacidad, inclinado a 45°), para
+     que nadie agregue ítems a mano. Su alto es el mismo espacio libre que calcula JS
+     (--ln-espacio-pie), así que crece o se achica solo según la cantidad de ítems.
+     Si el espacio cruza el salto de hoja, el marco queda abierto en el corte (sin línea inferior
+     en la hoja de arriba ni superior en la de abajo) y el texto sigue de corrida entre las dos.
+     El texto es un patrón que se repite dentro del marco: cubre todo el espacio, sea grande o chico. */
+  .ln-espacio-marcado {
+    box-sizing: border-box;
+    margin: 0 var(--m) var(--ln-sep-marco, 0px);
+    border: 1px solid #b8b8b8;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ctext x='210' y='210' text-anchor='middle' dominant-baseline='central' transform='rotate(-45 210 210)' font-family='Poppins,Arial,Helvetica,sans-serif' font-size='32' font-weight='700' letter-spacing='2' fill='rgb(120,120,120)' fill-opacity='0.3'%3EESPACIO NO UTILIZABLE%3C/text%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: var(--ln-tile-marco, 420px) var(--ln-tile-marco, 420px);
+    background-position: center top;
+    -webkit-box-decoration-break: slice;
+    box-decoration-break: slice;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Espacio demasiado chico para un marco: no se dibuja nada */
+  .ln-espacio-marcado.ln-espacio-reducido {
+    border: 0;
+    background: none;
+  }
+
   /* El encabezado de columnas de la tabla de ítems no se repite en cada hoja:
      así el cálculo de dónde queda el pie coincide exacto con lo que se imprime. */
   .pdf-tabla-items thead { display: table-row-group; }
