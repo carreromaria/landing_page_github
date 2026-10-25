@@ -824,6 +824,34 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
 }
 
 /* ============================================================
+   Anchos de columnas de la tabla de ítems del editor
+   - Orden, Cantidad, Valor unitario, Total línea y la ✕: ancho justo de su contenido
+     (width:1% + nowrap = la columna se encoge hasta lo mínimo que necesita).
+     Cantidad y Valor unitario crecen con el número más largo (JS:
+     activarAnchoJustoNumerico, en cotizaciones.js); Total línea es texto y se ajusta solo.
+   - Código: ancho fijo (regla de arriba).
+   - Descripción: se queda con todo el espacio que sobra, con un mínimo para que
+     nunca quede una cajita diminuta.
+   Los títulos de las columnas pueden saltar de línea (ej. VALOR / UNITARIO).
+   ============================================================ */
+#vistaEditorCotizacion .crm-cotizacion-tabla th:nth-child(1),
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(1),
+#vistaEditorCotizacion .crm-cotizacion-tabla th:nth-child(n+4),
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(n+4) {
+  width: 1%;
+  white-space: nowrap;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla th:nth-child(n+4) {
+  white-space: normal;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla td:nth-child(3) {
+  width: auto;
+}
+#vistaEditorCotizacion .crm-cotizacion-tabla .cot-item-descripcion {
+  min-width: 240px;
+}
+
+/* ============================================================
    Caja "Proyecto (se arma automático con las descripciones)":
    el texto se justifica y salta de línea en vez de salirse de la pantalla
    ============================================================ */
