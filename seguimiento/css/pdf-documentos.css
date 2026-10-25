@@ -229,6 +229,21 @@
   height: 20px;
 }
 
+/* Columna CÓDIGO de la tabla de ítems: ancho justo para el código completo, sin salto de línea
+   (ej. CLO-002 / COC-002). width:1% + nowrap la deja del tamaño del código más largo y le
+   devuelve el resto del ancho a la Descripción. El tope evita que un código muy largo
+   ensanche la tabla: se corta con "…". */
+.pdf-tabla-items th:first-child,
+.pdf-tabla-items td:first-child {
+  width: 1%;
+  white-space: nowrap;
+}
+.pdf-tabla-items td:first-child {
+  max-width: 1.5in;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .pdf-pie {
   margin: 0 var(--m) 16px;
 }
