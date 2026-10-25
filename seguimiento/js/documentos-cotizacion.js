@@ -498,7 +498,9 @@ const ESPACIO_MINIMO_PIE_PX = MARGEN_SEGURIDAD_PIE_PX; // si sobra menos que est
 // SEPARACION_MARCO_PX es el aire entre el marco y el cuadro de notas (se descuenta del alto del marco,
 // así el pie queda exactamente en el mismo lugar).
 const ESPACIO_MINIMO_MARCO_PX = 30;
-const SEPARACION_MARCO_PX = 10;
+const SEPARACION_MARCO_PX = 10;         // respaldo si no se puede medir una fila de la tabla
+// El aire sobre el marco (bajo la tabla) y bajo el marco (sobre el cuadro de notas) es el MISMO
+// y mide lo que una fila de la tabla de ítems, para que el marco quede simétrico.
 // true = escribe en la consola (F12) los valores medidos; útil si algún documento vuelve a descuadrarse.
 const DIAGNOSTICO_PIE = true;
 // pdf-pie: el cuadro de notas + totales de la Cotización, que también se ancla
@@ -573,7 +575,10 @@ export function prepararAlturasParaImprimir(plantilla) {
   document.body.appendChild(sim);
 
   let espacio = 0;
+  let altoFila = 0;
   try {
+    const filaItem = sim.querySelector('.pdf-tabla-items tbody tr');
+    if (filaItem) altoFila = filaItem.getBoundingClientRect().height;
     const rSim = sim.getBoundingClientRect();
     const rMarca = marca.getBoundingClientRect();
     const yFinal = Math.min(Math.max(rMarca.top - rSim.top, 0), ALTO_UTIL_PX); // dentro de la última hoja
@@ -597,9 +602,11 @@ export function prepararAlturasParaImprimir(plantilla) {
   let altoEspacio = espacioPx;
   const marcado = plantilla.querySelector(':scope > .ln-espacio-marcado');
   if (marcado) {
-    const visible = espacioPx >= ESPACIO_MINIMO_MARCO_PX;
-    const separacion = visible ? SEPARACION_MARCO_PX : 0;
-    altoEspacio = espacioPx - separacion;   // alto + separación = el mismo espacio de antes
+    // aire = alto de una fila de la tabla (entre 8 y 60 px); va arriba y abajo del marco por igual
+    const aire = altoFila > 0 ? Math.round(Math.min(60, Math.max(8, altoFila))) : SEPARACION_MARCO_PX;
+    const visible = espacioPx >= ESPACIO_MINIMO_MARCO_PX + 2 * aire;
+    const separacion = visible ? aire : 0;
+    altoEspacio = espacioPx - 2 * separacion;   // alto + aire arriba + aire abajo = el mismo espacio de antes
     plantilla.style.setProperty('--ln-sep-marco', separacion + 'px');
     // Tamaño del cuadrado donde se repite el texto inclinado: más chico si el espacio es poco
     plantilla.style.setProperty('--ln-tile-marco', Math.round(Math.max(140, Math.min(420, altoEspacio))) + 'px');
