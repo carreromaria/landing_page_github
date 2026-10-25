@@ -204,9 +204,12 @@ export function htmlEncabezado(titulo, folio) {
  *   prepararAlturasParaImprimir lo excluya del cuerpo normal y sume su alto
  *   al del pie al calcular el espacio.
  */
-export function htmlPie(titulo = '', folio = '', contenidoFijo = '') {
+export function htmlPie(titulo = '', folio = '', contenidoFijo = '', { marcarEspacio = false } = {}) {
+  // marcarEspacio: solo la Cotización. Al imprimir, el espacio vacío entre la tabla de ítems y el
+  // cuadro de notas se enmarca y se rellena con "ESPACIO NO UTILIZABLE" (ver pdf-documentos.css),
+  // para que nadie agregue ítems a mano en la cotización impresa.
   return `
-  <div class="ln-espacio-pie"></div>
+  <div class="ln-espacio-pie${marcarEspacio ? ' ln-espacio-marcado' : ''}"></div>
   ${contenidoFijo}
   <div class="ln-pie">
     <svg class="ln-pie-fondo" viewBox="221932 0 7772400 1644650" preserveAspectRatio="none" aria-hidden="true">
@@ -392,7 +395,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
     </thead>
     <tbody>${filas}</tbody>
   </table>
-${htmlPie('Cotización', folioConVersion(cotizacion.numero, cotizacion.version), cuadroPie)}`;
+${htmlPie('Cotización', folioConVersion(cotizacion.numero, cotizacion.version), cuadroPie, { marcarEspacio: true })}`;
 }
 
 // ---------- DC — Descripción de Cotización ----------
@@ -490,6 +493,12 @@ const ALTO_UTIL_PX = ALTO_HOJA_PX - 2 * MARGEN_VERTICAL_PX;
 // los px que quedan bajo el pie los cubre la franja dorada de .ln-pie::after (CSS).
 const MARGEN_SEGURIDAD_PIE_PX = 8;
 const ESPACIO_MINIMO_PIE_PX = MARGEN_SEGURIDAD_PIE_PX; // si sobra menos que esto, el pie va a una hoja nueva
+// Marco "ESPACIO NO UTILIZABLE" de la Cotización (solo si la plantilla trae .ln-espacio-marcado):
+// si el espacio libre mide menos que ESPACIO_MINIMO_MARCO_PX no se dibuja (no cabría ni el marco);
+// SEPARACION_MARCO_PX es el aire entre el marco y el cuadro de notas (se descuenta del alto del marco,
+// así el pie queda exactamente en el mismo lugar).
+const ESPACIO_MINIMO_MARCO_PX = 30;
+const SEPARACION_MARCO_PX = 10;
 // true = escribe en la consola (F12) los valores medidos; útil si algún documento vuelve a descuadrarse.
 const DIAGNOSTICO_PIE = true;
 // pdf-pie: el cuadro de notas + totales de la Cotización, que también se ancla
@@ -584,7 +593,19 @@ export function prepararAlturasParaImprimir(plantilla) {
     sim.remove();
   }
   // Se resta el margen de seguridad para que un redondeo nunca empuje el pie a una hoja de más
-  plantilla.style.setProperty('--ln-espacio-pie', Math.max(0, Math.floor(espacio) - 1 - MARGEN_SEGURIDAD_PIE_PX) + 'px');
+  const espacioPx = Math.max(0, Math.floor(espacio) - 1 - MARGEN_SEGURIDAD_PIE_PX);
+  let altoEspacio = espacioPx;
+  const marcado = plantilla.querySelector(':scope > .ln-espacio-marcado');
+  if (marcado) {
+    const visible = espacioPx >= ESPACIO_MINIMO_MARCO_PX;
+    const separacion = visible ? SEPARACION_MARCO_PX : 0;
+    altoEspacio = espacioPx - separacion;   // alto + separación = el mismo espacio de antes
+    plantilla.style.setProperty('--ln-sep-marco', separacion + 'px');
+    // Tamaño del cuadrado donde se repite el texto inclinado: más chico si el espacio es poco
+    plantilla.style.setProperty('--ln-tile-marco', Math.round(Math.max(140, Math.min(420, altoEspacio))) + 'px');
+    marcado.classList.toggle('ln-espacio-reducido', !visible);
+  }
+  plantilla.style.setProperty('--ln-espacio-pie', altoEspacio + 'px');
 }
 
 /**
