@@ -634,6 +634,14 @@ a.cot-chip-opcion:hover { background: #fdf7ea; }
     flex-wrap: nowrap; /* si no, "Válida desde" podía saltar a una segunda columna en vez de apilarse */
   }
 
+  /* En escritorio los campos de esta fila llevan un ancho base en "flex" (96px, 280px...) pensado
+     para una FILA. Al apilarse en columna ese mismo valor pasa a ser el ALTO de cada campo y dejaba
+     grandes vacíos (bajo "Días hábiles" y bajo las fechas de entrega). Aquí cada campo mide
+     solo lo que necesita. */
+  .cot-datos-documento .cot-campo-doc {
+    flex: 0 0 auto !important;
+  }
+
   /* Refuerzo: en algunos iPhone el <input type="date"> nativo no respeta
      width:100% y se desborda del contenedor aunque .cot-campo-doc ya
      estire a ancho completo (stretch del flex column). Se fuerza acá,
