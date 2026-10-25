@@ -677,7 +677,7 @@ function agregarFilaCotizacion(item = {}) {
     </td>
     <td><select id="cotCod_${rowId}" class="cot-item-codigo">${opcionesCodigoServicio(item.codigo)}</select></td>
     <td><input type="text" id="cotDesc_${rowId}" class="cot-item-descripcion" placeholder="Descripción" value="${escapeHtml(item.descripcion || '')}"></td>
-    <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="Ej. 7,40" value="${escapeHtml(item.cantidad || '')}"></td>
+    <td><input type="text" id="cotCant_${rowId}" class="cot-item-cantidad" placeholder="7,40" value="${escapeHtml(item.cantidad || '')}"></td>
     <td><input type="text" id="cotVU_${rowId}" class="cot-item-valor-unitario-input" inputmode="numeric" placeholder="$0" value="${item.valorUnitario ? formatearMilesInput(String(item.valorUnitario)) : ''}"></td>
     <td><span class="cot-item-total" id="cotTotal_${rowId}">$0</span></td>
     <td><button type="button" class="cot-item-eliminar" data-row-id="${rowId}" aria-label="Eliminar fila">✕</button></td>
@@ -716,8 +716,31 @@ function agregarFilaCotizacion(item = {}) {
   activarFormatoMiles(inpVU);
   inpVU.addEventListener('input', () => { actualizarTotalFila(rowId); recalcularCotizacion(); });
 
+  // Cantidad y Valor unitario: la columna toma el ancho justo del número más largo
+  // (la Descripción se queda con el resto). Se registra después de los formatos de arriba,
+  // así mide el valor ya formateado (ej. 1.250.000).
+  activarAnchoJustoNumerico(inpCant, 5);
+  activarAnchoJustoNumerico(inpVU, 6);
+
   actualizarTotalFila(rowId);
   actualizarBotonesOrden();
+}
+
+/**
+ * Deja el campo numérico con el ancho justo de lo que contiene (en "ch" = ancho de un dígito,
+ * así que es exacto con la tipografía del campo). Como la columna toma el ancho del campo más
+ * ancho, queda del tamaño del número más largo de toda la columna. Ver cotizaciones.css.
+ * @param {HTMLInputElement} input
+ * @param {number} minimoCh ancho mínimo (en dígitos) cuando el campo está vacío o es corto
+ */
+function activarAnchoJustoNumerico(input, minimoCh) {
+  const ajustar = () => {
+    const digitos = Math.max(minimoCh, String(input.value || '').length + 1); // +1: aire para el cursor
+    input.style.minWidth = `calc(${digitos}ch + 20px)`;                       // 20px = relleno y borde del campo
+  };
+  ajustar();
+  input.addEventListener('input', ajustar);
+  input.addEventListener('change', ajustar);
 }
 
 /** Deshabilita ▲ en la primera fila y ▼ en la última, para que se note visualmente el límite. */
