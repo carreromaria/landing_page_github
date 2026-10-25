@@ -470,7 +470,7 @@
      El texto es un patrón que se repite dentro del marco: cubre todo el espacio, sea grande o chico. */
   .ln-espacio-marcado {
     box-sizing: border-box;
-    margin: 0 var(--m) var(--ln-sep-marco, 0px);
+    margin: var(--ln-sep-marco, 0px) var(--m);
     border: 1px solid #b8b8b8;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Ctext x='210' y='210' text-anchor='middle' dominant-baseline='central' transform='rotate(-45 210 210)' font-family='Poppins,Arial,Helvetica,sans-serif' font-size='32' font-weight='700' letter-spacing='2' fill='rgb(120,120,120)' fill-opacity='0.3'%3EESPACIO NO UTILIZABLE%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
