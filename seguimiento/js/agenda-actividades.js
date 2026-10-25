@@ -8,8 +8,9 @@
 //   const agenda = crearAgendaActividades({
 //     id: 'agendaProyecto',                       // id de la sección en el DOM
 //     titulo: 'Agenda del proyecto',
-//     tipos: ['visita_cliente', 'toma_medidas'],  // botones, en este orden (claves de TIPOS_ACTIVIDAD)
-//     conOtraActividad: true,                     // agrega "＋ Otra actividad"
+//     tipos: ['visita_cliente', 'toma_medidas'],  // botones, en este orden (claves de TIPOS_ACTIVIDAD);
+//                                                 // 'todos' = todos los tipos que existan; también puede ser una función (clave) => lista | 'todos'
+//     conOtraActividad: true,                     // agrega "＋ Otra actividad" (también puede ser una función (clave) => true/false)
 //     estiloCrm: false,                           // true = rótulo dorado del CRM en vez de h2
 //     textoVacio: 'Aún no hay actividades agendadas para este proyecto.',
 //     textoError: 'No se pudo leer la agenda de este proyecto.',
@@ -74,9 +75,12 @@ export function crearAgendaActividades(opciones) {
   }
 
   function pintarAtajos(clave) {
-    const botones = tipos.filter(t => M.TIPOS_ACTIVIDAD[t]).map(t =>
+    let lista_tipos = typeof tipos === 'function' ? tipos(clave) : tipos;
+    if (lista_tipos === 'todos') lista_tipos = Object.keys(M.TIPOS_ACTIVIDAD);
+    const otra = typeof conOtraActividad === 'function' ? conOtraActividad(clave) : conOtraActividad;
+    const botones = lista_tipos.filter(t => M.TIPOS_ACTIVIDAD[t]).map(t =>
       `<a href="${esc(urlNueva(clave, t))}">${M.TIPOS_ACTIVIDAD[t].icono} ${esc(M.TIPOS_ACTIVIDAD[t].nombre)}</a>`);
-    if (conOtraActividad) botones.push(`<a href="${esc(urlNueva(clave))}">＋ Otra actividad</a>`);
+    if (otra) botones.push(`<a href="${esc(urlNueva(clave))}">＋ Otra actividad</a>`);
     seccion.querySelector('.pa-atajos').innerHTML = botones.join('');
   }
 
