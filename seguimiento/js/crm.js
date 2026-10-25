@@ -195,8 +195,9 @@ let leadSeleccionadoId = null;
 const configAgendaCliente = {
   id: 'agendaCliente',
   titulo: 'Agenda del cliente',
-  tipos: ['visita_cliente', 'toma_medidas', 'reunion_diseno'],
-  conOtraActividad: false,
+  // Antes de ganar el lead: solo los 3 botones de preventa. Con el lead ya Ganado: todos los botones de la agenda.
+  tipos: (clave) => clave.ganado ? 'todos' : ['visita_cliente', 'toma_medidas', 'reunion_diseno'],
+  conOtraActividad: (clave) => !!clave.ganado,
   estiloCrm: true,
   textoVacio: 'Aún no hay actividades agendadas para este cliente.',
   textoError: 'No se pudo leer la agenda de este cliente.',
@@ -599,7 +600,7 @@ function abrirDetalleLead(id) {
   vistaKanban.style.display = 'none';
   vistaDetalleLead.style.display = '';
   vistaDetalleLead.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  agendaCliente.mostrar({ leadId: id, proyectoCodigo: lead.proyectoVinculado || null });
+  agendaCliente.mostrar({ leadId: id, proyectoCodigo: lead.proyectoVinculado || null, ganado: lead.etapa === 'Ganado' });
 }
 
 function renderNotas(notas) {
