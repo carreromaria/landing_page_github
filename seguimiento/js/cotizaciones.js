@@ -24,7 +24,9 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento } from './documentos-cotizacion.js?v=23';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=24';
+// PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
+import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
 // ---------- Estado ----------
 
@@ -1536,9 +1538,34 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   // documentos de varias páginas sin poder reproducirlo/depurarlo acá.
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador.
-  avisoGuardarPdf();
-  imprimirDocumentoPdf(document.getElementById('plantillaPDF'), nombreArchivoCotizacion('Cotización'));
+  descargarPdfCotizacion([document.getElementById('plantillaPDF')], nombreArchivoCotizacion('Cotización'), document.getElementById('btnDescargarPdfModal'));
 });
+
+/**
+ * Botón amarillo "Descargar PDF". En computador: impresión del navegador, igual
+ * que siempre. En celular: el PDF se genera en el servidor (sin el pie con la
+ * ruta, fecha y página que agrega el teléfono). Si el servidor falla, se avisa
+ * y queda el botón "Imprimir" como alternativa.
+ */
+async function descargarPdfCotizacion(origenes, nombreArchivo, boton) {
+  if (!esCelular()) {
+    avisoGuardarPdf();
+    return imprimirDocumentosPdf(origenes, nombreArchivo);
+  }
+  const textoOriginal = boton?.textContent;
+  if (boton) { boton.disabled = true; boton.textContent = 'Generando PDF…'; }
+  mostrarToast('Generando el PDF… puede tardar unos segundos.', 'info', 20000);
+  try {
+    const documento = await prepararDocumentosParaServidor(origenes);
+    await descargarPdfServidor(documento, nombreArchivo);
+    mostrarToast('PDF listo.');
+  } catch (err) {
+    console.error('PDF en servidor:', err);
+    mostrarToast('No se pudo generar el PDF. Intenta de nuevo o usa el botón Imprimir.', 'error', 6000);
+  } finally {
+    if (boton) { boton.disabled = false; boton.textContent = textoOriginal; }
+  }
+}
 
 /** Nombre sugerido del PDF: "Cotización · Patricia Rivera · V2 · LINENCE". */
 function nombreArchivoCotizacion(documento) {
@@ -1604,8 +1631,7 @@ document.getElementById('btnImprimirDC').addEventListener('click', () => {
 });
 
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
-  avisoGuardarPdf();
-  imprimirDocumentoPdf(document.getElementById('plantillaDC'), nombreArchivoCotizacion('Descripción de la Cotización'));
+  descargarPdfCotizacion([document.getElementById('plantillaDC')], nombreArchivoCotizacion('Descripción de la Cotización'), document.getElementById('btnDescargarDCModal'));
 });
 
 // ---------- Cotización y descripción en UN solo PDF ----------
@@ -1645,6 +1671,9 @@ function imprimirCombinado() {
 }
 document.getElementById('btnImprimirCombinado').addEventListener('click', imprimirCombinado);
 document.getElementById('btnDescargarCombinadoModal').addEventListener('click', () => {
-  avisoGuardarPdf();
-  imprimirCombinado();
+  descargarPdfCotizacion(
+    [document.getElementById('plantillaCombDC'), document.getElementById('plantillaCombCT')],
+    nombreArchivoCotizacion('Cotización y Descripción'),
+    document.getElementById('btnDescargarCombinadoModal')
+  );
 });
