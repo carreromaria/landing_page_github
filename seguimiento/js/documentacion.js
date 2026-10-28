@@ -21,8 +21,10 @@ import { ETAPAS } from './etapas.js';
 // un solo archivo compartido con el módulo Cotizaciones.
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
-  prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento
-} from './documentos-cotizacion.js?v=16';
+  prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento, prepararDocumentosParaServidor
+} from './documentos-cotizacion.js?v=24';
+// PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
+import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
 let PROYECTO_ACTUAL = null;
 let STAFF_ACTUAL = null;
@@ -1327,6 +1329,34 @@ document.getElementById('btnImprimirDoc').addEventListener('click', imprimirDocu
 
 
 /**
+ * Botón amarillo "Descargar PDF". En computador: impresión del navegador, igual
+ * que siempre. En celular: el PDF se genera en el servidor (sin el pie con la
+ * ruta, fecha y página que agrega el teléfono). Si el servidor falla, se avisa
+ * y queda el botón "Imprimir" como alternativa.
+ */
+async function descargarPdfDocumentoActual(boton) {
+  if (!esCelular()) {
+    avisoGuardarPdf();
+    return imprimirDocumentoActual();
+  }
+  const textoOriginal = boton?.textContent;
+  if (boton) { boton.disabled = true; boton.textContent = 'Generando PDF…'; }
+  mostrarToast('Generando el PDF… puede tardar unos segundos.', 'info');
+  try {
+    await asegurarPoppins();
+    const documento = document.querySelector('#hojaDocumentoImprimir > *');
+    const datos = await prepararDocumentosParaServidor([documento]);
+    await descargarPdfServidor(datos, NOMBRE_PDF_ACTUAL);
+    mostrarToast('PDF listo.');
+  } catch (err) {
+    console.error('PDF en servidor:', err);
+    mostrarToast('No se pudo generar el PDF. Intenta de nuevo o usa el botón Imprimir.', 'error');
+  } finally {
+    if (boton) { boton.disabled = false; boton.textContent = textoOriginal; }
+  }
+}
+
+/**
  * Aviso al tocar "Descargar PDF". En computador y Android queda igual que
  * siempre. En iPhone/iPad no existe un "destino de impresión", así que se
  * explica el paso real para guardar el PDF.
@@ -1346,6 +1376,5 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // de varias páginas, sin poder reproducir/depurar el motivo acá.
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador — no depende de esa librería.
-  avisoGuardarPdf();
-  imprimirDocumentoActual();
+  descargarPdfDocumentoActual(document.getElementById('btnDescargarDoc'));
 });
