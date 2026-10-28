@@ -1325,6 +1325,20 @@ async function imprimirDocumentoActual() {
 
 document.getElementById('btnImprimirDoc').addEventListener('click', imprimirDocumentoActual);
 
+
+/**
+ * Aviso al tocar "Descargar PDF". En computador y Android queda igual que
+ * siempre. En iPhone/iPad no existe un "destino de impresión", así que se
+ * explica el paso real para guardar el PDF.
+ */
+function avisoGuardarPdf() {
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  mostrarToast(esIOS
+    ? 'Se abrirá la vista de impresión. Para guardar: separa dos dedos sobre la vista previa y toca Compartir → Guardar en Archivos.'
+    : 'Elige "Guardar como PDF" en el destino de impresión.', 'info');
+}
+
 document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // "Descargar PDF" pasado a usar la impresión nativa del navegador en
   // vez de html2pdf.js: después de 4 intentos distintos el generador
@@ -1332,6 +1346,6 @@ document.getElementById('btnDescargarDoc').addEventListener('click', () => {
   // de varias páginas, sin poder reproducir/depurar el motivo acá.
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador — no depende de esa librería.
-  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  avisoGuardarPdf();
   imprimirDocumentoActual();
 });
