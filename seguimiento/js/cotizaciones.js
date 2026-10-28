@@ -289,11 +289,15 @@ function formatearFecha(timestamp) {
   return fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function mostrarToast(mensaje, tipo = 'ok') {
+function mostrarToast(mensaje, tipo = 'ok', duracionMs = 2500) {
   const toastEl = document.getElementById('cotToast');
   toastEl.textContent = mensaje;
+  // Solo en pantallas chicas: el aviso ocupa el ancho disponible (no se corta).
+  const anchoMovil = window.matchMedia('(max-width: 900px)').matches
+    ? 'left:16px; right:16px; line-height:1.45;'
+    : 'right:24px;';
   toastEl.style.cssText = `
-    position:fixed; bottom:24px; right:24px; z-index:999999;
+    position:fixed; bottom:24px; ${anchoMovil} z-index:999999;
     background:${tipo === 'error' ? '#c14b32' : '#141213'};
     color:#faf7f2; font-family:'Poppins', sans-serif; font-size:13.5px;
     padding:12px 18px; border-radius:8px;
@@ -301,7 +305,23 @@ function mostrarToast(mensaje, tipo = 'ok') {
     border-left:3px solid #d6a52c;
     opacity:1; transition:opacity .3s ease;
   `;
-  setTimeout(() => { toastEl.style.opacity = '0'; }, 2500);
+  setTimeout(() => { toastEl.style.opacity = '0'; }, duracionMs);
+}
+
+
+/**
+ * Aviso al tocar "Descargar PDF". En computador y Android queda igual que
+ * siempre. En iPhone/iPad no existe un "destino de impresión", así que se
+ * explica el paso real para guardar el PDF.
+ */
+function avisoGuardarPdf() {
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (esIOS) {
+    mostrarToast('Se abrirá la vista de impresión. Para guardar: separa dos dedos sobre la vista previa y toca Compartir → Guardar en Archivos.', 'info', 9000);
+  } else {
+    mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  }
 }
 
 // ============================================================
@@ -1516,7 +1536,7 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
   // documentos de varias páginas sin poder reproducirlo/depurarlo acá.
   // El diálogo de impresión con destino "Guardar como PDF" usa la
   // paginación real del navegador.
-  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  avisoGuardarPdf();
   imprimirDocumentoPdf(document.getElementById('plantillaPDF'), nombreArchivoCotizacion('Cotización'));
 });
 
@@ -1584,7 +1604,7 @@ document.getElementById('btnImprimirDC').addEventListener('click', () => {
 });
 
 document.getElementById('btnDescargarDCModal').addEventListener('click', () => {
-  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  avisoGuardarPdf();
   imprimirDocumentoPdf(document.getElementById('plantillaDC'), nombreArchivoCotizacion('Descripción de la Cotización'));
 });
 
@@ -1625,6 +1645,6 @@ function imprimirCombinado() {
 }
 document.getElementById('btnImprimirCombinado').addEventListener('click', imprimirCombinado);
 document.getElementById('btnDescargarCombinadoModal').addEventListener('click', () => {
-  mostrarToast('Elige "Guardar como PDF" en el destino de impresión.', 'info');
+  avisoGuardarPdf();
   imprimirCombinado();
 });
