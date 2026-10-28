@@ -703,6 +703,43 @@ export async function imprimirDocumentosPdf(origenes, nombreArchivo) {
 }
 
 /**
+ * Arma el documento para el generador de PDF del servidor (celulares).
+ * Hace exactamente lo mismo que imprimirDocumentosPdf (mide las alturas con el
+ * documento visible, copia, estructura las hojas), pero en vez de abrir el
+ * diálogo de impresión devuelve el HTML ya armado + la lista de hojas de
+ * estilo, para que el servidor lo convierta en PDF con el mismo CSS. NO toca
+ * la página ni imprime: la impresión de escritorio sigue por
+ * imprimirDocumentosPdf, sin cambios.
+ * @param {HTMLElement[]} origenes documentos visibles, en el orden del PDF
+ * @returns {Promise<{html:string, estilos:string[], baseHref:string}|null>}
+ */
+export async function prepararDocumentosParaServidor(origenes) {
+  const lista = (origenes || []).filter(Boolean);
+  if (!lista.length) return null;
+  try { await document.fonts.ready; } catch (e) { /* sin soporte: se sigue igual */ }
+  lista.forEach(o => prepararAlturasParaImprimir(o));
+
+  const zona = document.createElement('div'); // solo para serializar; no se agrega a la página
+  lista.forEach((origen, i) => {
+    const copia = origen.cloneNode(true);
+    copia.removeAttribute('id');
+    if (i > 0) {
+      copia.style.breakBefore = 'page';
+      copia.style.pageBreakBefore = 'always';
+      copia.querySelectorAll('.ln-marca-agua').forEach(el => el.remove());
+    }
+    estructurarCopiaParaImprimir(copia);
+    zona.appendChild(copia);
+  });
+
+  return {
+    html: zona.innerHTML,
+    estilos: [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.href).filter(Boolean),
+    baseHref: new URL('.', document.baseURI).href
+  };
+}
+
+/**
  * Arma el nombre sugerido del PDF: "Documento · Cliente · V2 · LINENCE".
  * Documento, cliente y versión son dinámicos; LINENCE es fijo. Si el
  * documento no tiene versión (carta, contrato, acta...), esa parte se omite.
