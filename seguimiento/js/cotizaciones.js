@@ -1324,6 +1324,64 @@ function recalcularCotizacion() {
   return { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono };
 }
 
+/**
+ * Campos obligatorios para poder guardar/generar la cotización (los marcados
+ * con punto rojo en el editor). Si falta alguno, no se guarda: se resaltan en
+ * rojo, se lleva la pantalla al primero y se avisa cuáles faltan.
+ */
+const CLASE_CAMPO_FALTANTE = 'cot-campo-faltante';
+if (!document.getElementById('cot-estilos-campo-faltante')) {
+  const estilo = document.createElement('style');
+  estilo.id = 'cot-estilos-campo-faltante';
+  estilo.textContent = `.${CLASE_CAMPO_FALTANTE}{border-color:#c0392b !important;box-shadow:0 0 0 3px rgba(192,57,43,.18) !important;}`;
+  document.head.appendChild(estilo);
+}
+
+/** Cada campo obligatorio: nombre para el aviso, cómo saber si está vacío y qué resaltar. */
+function camposObligatorios() {
+  const tarjetasFormaPago = cotFormaPagoChecks.map(c => c.closest('label') || c.parentElement);
+  return [
+    { nombre: 'Descripción de esta opción', vacio: () => cotDescripcionOpcion.value.trim() === '',
+      resaltar: [cotDescripcionOpcion], enfocar: cotDescripcionOpcion },
+    { nombre: 'Días hábiles', vacio: () => String(cotDiasHabilesEntrega.value).trim() === '',
+      resaltar: [cotDiasHabilesEntrega], enfocar: cotDiasHabilesEntrega },
+    { nombre: 'Forma de pago', vacio: () => leerFormaPago() === '',
+      resaltar: tarjetasFormaPago, enfocar: cotFormaPagoChecks[0] },
+    { nombre: '% de abono', vacio: () => String(cotPorcentajeAbono.value).trim() === '',
+      resaltar: [cotPorcentajeAbono], enfocar: cotPorcentajeAbono }
+  ];
+}
+
+/** Quita el resaltado rojo de todos los campos obligatorios. */
+function limpiarCamposFaltantes() {
+  camposObligatorios().forEach(c => c.resaltar.forEach(el => el && el.classList.remove(CLASE_CAMPO_FALTANTE)));
+}
+
+/** En cuanto un campo queda completo, deja de verse en rojo (los que siguen vacíos se mantienen). */
+function actualizarCamposFaltantes() {
+  camposObligatorios().forEach(c => {
+    if (!c.vacio()) c.resaltar.forEach(el => el && el.classList.remove(CLASE_CAMPO_FALTANTE));
+  });
+}
+[cotDescripcionOpcion, cotDiasHabilesEntrega, cotPorcentajeAbono, ...cotFormaPagoChecks].forEach(el => {
+  el.addEventListener('input', actualizarCamposFaltantes);
+  el.addEventListener('change', actualizarCamposFaltantes);
+});
+
+/** Devuelve el aviso con los campos que faltan (y los resalta), o null si está todo completo. */
+function validarCamposObligatorios() {
+  limpiarCamposFaltantes();
+  const faltantes = camposObligatorios().filter(c => c.vacio());
+  if (!faltantes.length) return null;
+  faltantes.forEach(c => c.resaltar.forEach(el => el && el.classList.add(CLASE_CAMPO_FALTANTE)));
+  const primero = faltantes[0].enfocar;
+  if (primero) {
+    primero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try { primero.focus({ preventScroll: true }); } catch (e) { /* algunos campos no se pueden enfocar */ }
+  }
+  return `Completa los campos obligatorios para generar la cotización: ${faltantes.map(c => c.nombre).join(', ')}.`;
+}
+
 function validarCotizacion(items) {
   if (items.length === 0) {
     return 'Agrega al menos un servicio antes de guardar.';
@@ -1340,6 +1398,14 @@ async function guardar({ comoNuevaVersion }) {
 
   cotizacionError.textContent = '';
   cotizacionError.classList.remove('visible');
+
+  const errorCamposObligatorios = validarCamposObligatorios();
+  if (errorCamposObligatorios) {
+    cotizacionError.textContent = errorCamposObligatorios;
+    cotizacionError.classList.add('visible');
+    mostrarToast(errorCamposObligatorios, 'error', 6000);
+    return;
+  }
 
   const errorValidacion = validarCotizacion(items);
   if (errorValidacion) {
@@ -1374,15 +1440,6 @@ async function guardar({ comoNuevaVersion }) {
     materialesColores,
     descripcionOpcion: cotDescripcionOpcion.value.trim().toLocaleUpperCase('es-CL')
   };
-
-  // Con más de una opción, cada una necesita su descripción para poder distinguirlas.
-  const variasOpciones = opcionesLead.length > 1 || opcionActual !== 'A';
-  if (variasOpciones && !datos.descripcionOpcion) {
-    cotizacionError.textContent = 'Escribe una descripción para esta opción (ej. "Cubierta de cuarzo") para poder distinguirla de las otras.';
-    cotizacionError.classList.add('visible');
-    cotDescripcionOpcion.focus();
-    return;
-  }
 
   try {
     if (!vigenteActual || comoNuevaVersion) {
