@@ -25,15 +25,16 @@ export function esCelular() {
 
 /**
  * Envía el documento al servidor y descarga el PDF resultante.
- * @param {{html:string, estilos:string[], baseHref:string}} documento  lo arma prepararDocumentosParaServidor()
+ * @param {{origenes:string[], estilos:string[], baseHref:string, moduloUrl:string}} documento  lo arma prepararDocumentosParaServidor()
  * @param {string} nombreArchivo  nombre del PDF, sin ".pdf"
  */
 export async function descargarPdfServidor(documento, nombreArchivo) {
-  if (!documento || !documento.html) throw new Error('Documento vacío');
+  if (!documento || !documento.origenes || !documento.origenes.length) throw new Error('Documento vacío');
   const respuesta = await generarPdfDocumento({
-    html: documento.html,
+    origenes: documento.origenes,
     estilos: documento.estilos,
     baseHref: documento.baseHref,
+    moduloUrl: documento.moduloUrl,
     titulo: nombreArchivo || 'LINENCE'
   });
   const base64 = respuesta?.data?.pdfBase64;
