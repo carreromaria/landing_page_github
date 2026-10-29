@@ -1555,13 +1555,15 @@ async function descargarPdfCotizacion(origenes, nombreArchivo, boton) {
   const textoOriginal = boton?.textContent;
   if (boton) { boton.disabled = true; boton.textContent = 'Generando PDF…'; }
   mostrarToast('Generando el PDF… puede tardar unos segundos.', 'info', 20000);
+  let paso = 'preparar'; // para saber en qué etapa falló si hay un problema
   try {
     const documento = await prepararDocumentosParaServidor(origenes);
+    paso = 'servidor';
     await descargarPdfServidor(documento, nombreArchivo);
     mostrarToast('PDF listo.');
   } catch (err) {
-    console.error('PDF en servidor:', err);
-    mostrarToast('No se pudo generar el PDF. Intenta de nuevo o usa el botón Imprimir.', 'error', 6000);
+    console.error('PDF en servidor (' + paso + '):', err);
+    mostrarToast(`No se pudo generar el PDF (${paso}: ${err?.code || err?.message || 'error'}). Intenta de nuevo o usa el botón Imprimir.`, 'error', 9000);
   } finally {
     if (boton) { boton.disabled = false; boton.textContent = textoOriginal; }
   }
