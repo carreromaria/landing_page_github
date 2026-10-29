@@ -24,7 +24,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=24';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=25';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
