@@ -657,7 +657,7 @@ export async function imprimirDocumentoPdf(origen, nombreArchivo) {
  * @param {HTMLElement[]} origenes documentos visibles, en el orden de impresión
  * @param {string} [nombreArchivo] nombre sugerido al "Guardar como PDF"
  */
-export async function imprimirDocumentosPdf(origenes, nombreArchivo) {
+export async function imprimirDocumentosPdf(origenes, nombreArchivo, { soloArmar = false } = {}) {
   const lista = (origenes || []).filter(Boolean);
   if (!lista.length) return;
   // Poppins tiene que estar cargada antes de medir (y de imprimir)
@@ -686,6 +686,9 @@ export async function imprimirDocumentosPdf(origenes, nombreArchivo) {
     zona.appendChild(copia);
   });
   document.body.classList.add('imprimiendo-pdf-doc');
+  // Generador de PDF del servidor: la zona de impresión ya quedó armada y medida;
+  // el servidor genera el PDF desde ahí, así que acá no se imprime nada.
+  if (soloArmar) return;
 
   // Chrome propone como nombre del PDF el título de la página: se cambia
   // solo mientras dura la impresión y se devuelve al terminar.
@@ -703,39 +706,25 @@ export async function imprimirDocumentosPdf(origenes, nombreArchivo) {
 }
 
 /**
- * Arma el documento para el generador de PDF del servidor (celulares).
- * Hace exactamente lo mismo que imprimirDocumentosPdf (mide las alturas con el
- * documento visible, copia, estructura las hojas), pero en vez de abrir el
- * diálogo de impresión devuelve el HTML ya armado + la lista de hojas de
- * estilo, para que el servidor lo convierta en PDF con el mismo CSS. NO toca
- * la página ni imprime: la impresión de escritorio sigue por
- * imprimirDocumentosPdf, sin cambios.
+ * Reúne los documentos para el generador de PDF del servidor (celulares).
+ * NO mide ni imprime nada aquí: manda el HTML tal cual está y el servidor
+ * (un Chrome de escritorio) hace la misma medición y armado que la impresión
+ * del computador, con este mismo archivo (ver "soloArmar" en
+ * imprimirDocumentosPdf). Así el pie queda calculado por el mismo motor que
+ * imprime y no por el navegador del teléfono, que mide distinto (iOS agranda
+ * los textos y descuadra la altura del pie).
  * @param {HTMLElement[]} origenes documentos visibles, en el orden del PDF
- * @returns {Promise<{html:string, estilos:string[], baseHref:string}|null>}
+ * @returns {Promise<{origenes:string[], estilos:string[], baseHref:string, moduloUrl:string}|null>}
  */
 export async function prepararDocumentosParaServidor(origenes) {
   const lista = (origenes || []).filter(Boolean);
   if (!lista.length) return null;
   try { await document.fonts.ready; } catch (e) { /* sin soporte: se sigue igual */ }
-  lista.forEach(o => prepararAlturasParaImprimir(o));
-
-  const zona = document.createElement('div'); // solo para serializar; no se agrega a la página
-  lista.forEach((origen, i) => {
-    const copia = origen.cloneNode(true);
-    copia.removeAttribute('id');
-    if (i > 0) {
-      copia.style.breakBefore = 'page';
-      copia.style.pageBreakBefore = 'always';
-      copia.querySelectorAll('.ln-marca-agua').forEach(el => el.remove());
-    }
-    estructurarCopiaParaImprimir(copia);
-    zona.appendChild(copia);
-  });
-
   return {
-    html: zona.innerHTML,
+    origenes: lista.map(o => o.outerHTML),
     estilos: [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.href).filter(Boolean),
-    baseHref: new URL('.', document.baseURI).href
+    baseHref: new URL('.', document.baseURI).href,
+    moduloUrl: import.meta.url
   };
 }
 
