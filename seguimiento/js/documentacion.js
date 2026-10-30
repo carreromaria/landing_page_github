@@ -22,7 +22,7 @@ import { ETAPAS } from './etapas.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento, prepararDocumentosParaServidor
-} from './documentos-cotizacion.js?v=25';
+} from './documentos-cotizacion.js?v=26';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
