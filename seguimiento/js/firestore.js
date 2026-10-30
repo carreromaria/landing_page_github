@@ -657,7 +657,13 @@ export async function cambiarEstadoServicioCatalogo(id, activo) {
 // colores elegidos" (Elemento: mueble aéreo, cubierta… / Material: melamina,
 // cuarzo…). Viven en la misma colección para no crear una nueva (y no tener que
 // publicar reglas nuevas en Firebase Console).
-const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios', 'elementos', 'tiposMaterial', 'acabados', 'proveedores'];
+//
+// 'plantillas' guarda las FILAS SUGERIDAS por tipo de proyecto del bloque
+// "Materiales y colores elegidos": un documento por tipo, con
+//   { categoria:'plantillas', nombre:<'cocina'|'closet'|'bano'|'entretenimiento'|'office'|'logia'>,
+//     elementosIds:[ids de opciones 'elementos', en el orden en que se sugieren] }
+// Se editan desde "Gestionar opciones" en Cotizaciones.
+const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios', 'elementos', 'tiposMaterial', 'acabados', 'proveedores', 'plantillas'];
 
 /**
  * Lista todas las opciones del catálogo (activas e inactivas),
@@ -708,6 +714,17 @@ export async function crearOpcionCatalogoDescripcion(datos) {
 export async function renombrarOpcionCatalogoDescripcion(id, nombre, clave) {
   const ref = doc(db, "catalogoDescripcion", id);
   await updateDoc(ref, clave ? { nombre, clave } : { nombre });
+}
+
+/**
+ * Guarda la lista (y el orden) de elementos que se sugieren para un tipo de
+ * proyecto. `id` es el documento 'plantillas' de ese tipo.
+ * @param {string} id
+ * @param {string[]} elementosIds ids de opciones de la categoría 'elementos', en orden
+ */
+export async function actualizarPlantillaDescripcion(id, elementosIds) {
+  const ref = doc(db, "catalogoDescripcion", id);
+  await updateDoc(ref, { elementosIds });
 }
 
 /** Activa o desactiva una opción del catálogo (nunca se elimina de raíz). */
