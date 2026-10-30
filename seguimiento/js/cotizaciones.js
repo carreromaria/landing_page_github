@@ -25,7 +25,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=26';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=27';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
@@ -78,6 +78,7 @@ const cotAbono = document.getElementById('cotAbono');
 const cotSaldo = document.getElementById('cotSaldo');
 const cotSaldoEtiqueta = document.getElementById('cotSaldoEtiqueta');
 const cotizacionError = document.getElementById('cotizacionError');
+const cotTextoArchivo = document.getElementById('cotTextoArchivo');
 const btnGuardarCotizacion = document.getElementById('btnGuardarCotizacion');
 const btnGuardarNuevaVersion = document.getElementById('btnGuardarNuevaVersion');
 const btnMarcarAprobada = document.getElementById('btnMarcarAprobada');
@@ -571,6 +572,8 @@ async function cargarCotizacionVigente() {
   actualizarResumenDescripcion();
 
   cotDescripcionOpcion.value = vigenteActual?.descripcionOpcion || '';
+  // El texto del nombre del PDF es de ESTA opción: una opción nueva (copia de otra) parte vacía para no repetir el nombre.
+  cotTextoArchivo.value = vigenteActual?.textoArchivo || '';
 
   if (vigenteActual) {
     editorFolioVersion.textContent = `Opción ${opcionActual} · ${vigenteActual.numero} · versión ${vigenteActual.version}`;
@@ -1676,7 +1679,8 @@ async function guardar({ comoNuevaVersion }) {
     validaDesde: cotValidaDesde.value,
     descripcionCotizacion: leerDescripcionCotizacion(),
     materialesColores,
-    descripcionOpcion: cotDescripcionOpcion.value.trim().toLocaleUpperCase('es-CL')
+    descripcionOpcion: cotDescripcionOpcion.value.trim().toLocaleUpperCase('es-CL'),
+    textoArchivo: cotTextoArchivo.value.trim()
   };
 
   try {
@@ -1864,12 +1868,13 @@ async function descargarPdfCotizacion(origenes, nombreArchivo, boton) {
   }
 }
 
-/** Nombre sugerido del PDF: "Cotización · Patricia Rivera · V2 · LINENCE". */
+/** Nombre sugerido del PDF: "Cotización · Patricia Rivera · V2 · LINENCE · Cubierta de Cuarzo" (el final es el texto opcional de la opción). */
 function nombreArchivoCotizacion(documento) {
   return nombreArchivoDocumento({
     documento,
     cliente: leadActual?.nombre,
-    version: vigenteActual?.version
+    version: vigenteActual?.version,
+    extra: vigenteActual?.textoArchivo
   });
 }
 
