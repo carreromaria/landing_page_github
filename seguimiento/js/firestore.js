@@ -661,7 +661,8 @@ export async function cambiarEstadoServicioCatalogo(id, activo) {
 // 'plantillas' guarda las FILAS SUGERIDAS por tipo de proyecto del bloque
 // "Materiales y colores elegidos": un documento por tipo, con
 //   { categoria:'plantillas', nombre:<'cocina'|'closet'|'bano'|'entretenimiento'|'office'|'logia'>,
-//     elementosIds:[ids de opciones 'elementos', en el orden en que se sugieren] }
+//     elementosIds:[ids de opciones 'elementos', en el orden en que se sugieren],
+//     seleccionIds:{materiales:[ids], herrajes:[ids], cubiertas:[ids], accesorios:[ids]} (predeterminados del checklist) }
 // Se editan desde "Gestionar opciones" en Cotizaciones.
 const ORDEN_CATEGORIAS_DESCRIPCION = ['materiales', 'herrajes', 'cubiertas', 'accesorios', 'elementos', 'tiposMaterial', 'acabados', 'proveedores', 'plantillas'];
 
@@ -725,6 +726,17 @@ export async function renombrarOpcionCatalogoDescripcion(id, nombre, clave) {
 export async function actualizarPlantillaDescripcion(id, elementosIds) {
   const ref = doc(db, "catalogoDescripcion", id);
   await updateDoc(ref, { elementosIds });
+}
+
+/**
+ * Guarda la selección PREDETERMINADA del checklist de Descripción para un tipo
+ * de proyecto (qué materiales, herrajes, cubiertas y accesorios vienen marcados).
+ * @param {string} id documento 'plantillas' del tipo
+ * @param {{materiales:string[], herrajes:string[], cubiertas:string[], accesorios:string[]}} seleccionIds
+ */
+export async function actualizarSeleccionPlantillaDescripcion(id, seleccionIds) {
+  const ref = doc(db, "catalogoDescripcion", id);
+  await updateDoc(ref, { seleccionIds });
 }
 
 /** Activa o desactiva una opción del catálogo (nunca se elimina de raíz). */
