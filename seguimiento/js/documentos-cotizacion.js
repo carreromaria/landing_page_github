@@ -42,6 +42,21 @@ function formatearFechaCorta(fecha) {
   return `${d}-${m}-${a}`;
 }
 
+/**
+ * Fecha que muestran la Cotización ("Fecha de cotización") y la Descripción
+ * ("Con fecha ..."): la que se elige en "Válida desde" del editor, que es
+ * también desde donde cuentan los días hábiles de entrega. Así, una cotización
+ * armada el sábado 10 y enviada el lunes 12 puede mostrar el 12. Si la
+ * cotización no trae esa fecha (muy antiguas), se usa la de creación.
+ */
+function fechaDelDocumento(cotizacion) {
+  if (cotizacion?.validaDesde) {
+    const f = new Date(cotizacion.validaDesde + 'T00:00:00');
+    if (!isNaN(f.getTime())) return formatearFechaCorta(f);
+  }
+  return formatearFechaCorta(cotizacion?.creadoEn?.toDate?.() || new Date());
+}
+
 /** Arma "02 al 04-10-26" a partir de dos fechas tipo input date (AAAA-MM-DD). */
 function formatearRangoFechas(inicio, fin) {
   if (!inicio && !fin) return '—';
@@ -274,7 +289,7 @@ function htmlNotaAlcance(cotizacion, cliente) {
 // ---------- CT — Cotización ----------
 
 export function htmlCotizacion({ cotizacion, cliente = {} }) {
-  const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
+  const fecha = fechaDelDocumento(cotizacion);
 
   // "Válida por 7 días, hasta [fecha]" se calcula desde "Válida desde".
   const validaHasta = cotizacion.validaDesde
@@ -439,7 +454,7 @@ function htmlMaterialesColores(cotizacion) {
 }
 
 export function htmlDescripcion({ cotizacion, cliente = {}, catalogo = [] }) {
-  const fecha = formatearFechaCorta(cotizacion.creadoEn?.toDate?.() || new Date());
+  const fecha = fechaDelDocumento(cotizacion);
   const seleccion = cotizacion.descripcionCotizacion || {};
 
   // Encabezado solo en la primera hoja y pie solo en la última: el margen superior
