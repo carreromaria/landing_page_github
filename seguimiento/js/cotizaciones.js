@@ -19,6 +19,7 @@ import {
   escucharCotizacionesVigentes, crearServicioCatalogo,
   listarCatalogoDescripcion, crearOpcionCatalogoDescripcion,
   renombrarOpcionCatalogoDescripcion, cambiarEstadoOpcionCatalogoDescripcion,
+  actualizarPlantillaDescripcion,
   listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -996,6 +997,7 @@ function renderGestionOpciones() {
     `).join('') : '<p class="cot-desc-vacio">Aún no hay opciones.</p>';
     return `<div class="cot-gest-seccion"><div class="cot-gest-titulo">${NOMBRES_CATEGORIA_DESCRIPCION[categoria]}</div>${filas}</div>`;
   }).join('');
+  renderGestionPlantillas();
 }
 
 function mostrarErrorGestion(texto) {
@@ -1019,6 +1021,7 @@ async function refrescarTrasGestion(reemplazo) {
 
 document.getElementById('btnGestionarOpciones').addEventListener('click', () => {
   mostrarErrorGestion('');
+  tipoPlantillaGestion = document.getElementById('cotMcPlantilla').value || 'cocina';
   renderGestionOpciones();
   modalGestionarOpciones.style.display = 'flex';
 });
@@ -1094,41 +1097,187 @@ function plantillaPorTipoProyecto(texto) {
   return null;
 }
 
-/** Agrega las filas sugeridas que falten (no pisa ni duplica lo que ya está escrito). */
-async function cargarFilasSugeridas() {
-  const clavePlantilla = document.getElementById('cotMcPlantilla').value;
-  const nombresBase = PLANTILLAS_MATERIALES_COLORES[clavePlantilla] || [];
-  const encontrar = (n) => catalogoDescripcionTodo.find(o => o.categoria === 'elementos' && (o.clave === n || o.nombre === n));
-  try {
-    const faltantes = nombresBase.filter(n => !encontrar(n));
-    for (const nombre of faltantes) {
-      await crearOpcionCatalogoDescripcion({ categoria: 'elementos', nombre, clave: nombre });
-    }
-    if (faltantes.length) await recargarCatalogoDescripcion();
-  } catch (err) {
-    console.error(err);
-    mostrarToast('No se pudieron agregar algunos elementos al catálogo.', 'error');
-  }
+// ---------- Filas sugeridas por tipo de proyecto (configurables) ----------
+// Cada tipo (cocina, clóset…) tiene su propia lista ORDENADA de elementos, que se
+// edita en "Gestionar opciones". Se guarda en el catálogo (categoría 'plantillas',
+// con los ids de los elementos, así sobrevive a que un elemento cambie de nombre).
+// Mientras un tipo no tenga lista propia se usa la inicial del sistema
+// (PLANTILLAS_MATERIALES_COLORES), como siempre.
 
-  // Se usa el nombre actual de cada opción (por si fue renombrada) y se omiten las desactivadas.
-  const elementos = nombresBase
-    .map(encontrar)
-    .filter(o => o && o.activo !== false)
-    .map(o => o.nombre);
+const TIPOS_PLANTILLA = [
+  ['cocina', 'Cocina'],
+  ['closet', 'Clóset / Vestidor'],
+  ['bano', 'Baño / Vanitorio'],
+  ['entretenimiento', 'Centro de entretenimiento'],
+  ['office', 'Home office / Escritorio'],
+  ['logia', 'Logia / Lavandería']
+];
+let tipoPlantillaGestion = 'cocina';
+let guardandoPlantilla = false;
+
+const elementoPorNombreBase = (n) =>
+  catalogoDescripcionTodo.find(o => o.categoria === 'elementos' && (o.clave === n || o.nombre === n));
+
+const docPlantilla = (tipo) =>
+  catalogoDescripcionTodo.find(o => o.categoria === 'plantillas' && o.nombre === tipo);
+
+/** Ids de los elementos (activos) que se sugieren para un tipo, en su orden. */
+function idsElementosSugeridos(tipo) {
+  const propia = docPlantilla(tipo);
+  const ids = propia
+    ? (propia.elementosIds || [])
+    : (PLANTILLAS_MATERIALES_COLORES[tipo] || []).map(n => elementoPorNombreBase(n)?.id).filter(Boolean);
+  return ids.filter(id => {
+    const o = catalogoDescripcionTodo.find(x => x.id === id);
+    return o && o.categoria === 'elementos' && o.activo !== false;
+  });
+}
+
+/** Agrega las filas sugeridas que falten (no pisa ni duplica lo que ya está escrito). */
+async function cargarFilasSugeridas({ automatico = false } = {}) {
+  const clavePlantilla = document.getElementById('cotMcPlantilla').value;
+  let elementos;
+
+  if (docPlantilla(clavePlantilla)) {
+    elementos = idsElementosSugeridos(clavePlantilla).map(id => catalogoDescripcionTodo.find(o => o.id === id).nombre);
+  } else {
+    const nombresBase = PLANTILLAS_MATERIALES_COLORES[clavePlantilla] || [];
+    // Al cargar a mano se crean los elementos iniciales que falten; en la carga automática no se crea nada.
+    if (!automatico) {
+      try {
+        const faltantes = nombresBase.filter(n => !elementoPorNombreBase(n));
+        for (const nombre of faltantes) {
+          await crearOpcionCatalogoDescripcion({ categoria: 'elementos', nombre, clave: nombre });
+        }
+        if (faltantes.length) await recargarCatalogoDescripcion();
+      } catch (err) {
+        console.error(err);
+        mostrarToast('No se pudieron agregar algunos elementos al catálogo.', 'error');
+      }
+    }
+    // Se usa el nombre actual de cada opción (por si fue renombrada) y se omiten las desactivadas.
+    elementos = nombresBase
+      .map(elementoPorNombreBase)
+      .filter(o => o && o.activo !== false)
+      .map(o => o.nombre);
+  }
 
   const actuales = leerMaterialesColoresCrudo();
   const yaEstan = new Set(actuales.map(f => f.elemento));
   const nuevas = elementos.filter(n => !yaEstan.has(n)).map(n => ({ elemento: n }));
   if (!nuevas.length) {
-    mostrarToast('Esos elementos ya están en la lista.', 'info');
+    if (!automatico) mostrarToast('Esos elementos ya están en la lista.', 'info');
     return;
   }
   renderMaterialesColores([...actuales, ...nuevas]);
   actualizarResumenDescripcion();
-  mostrarToast('Filas sugeridas cargadas. Completa material y color.');
+  mostrarToast(automatico
+    ? 'Cargué las filas sugeridas según el tipo de proyecto. Completa material y color.'
+    : 'Filas sugeridas cargadas. Completa material y color.');
 }
 
-document.getElementById('btnCargarSugeridas').addEventListener('click', cargarFilasSugeridas);
+// ---------- Gestionar opciones: lista y orden de las filas sugeridas ----------
+
+const gestionPlantillas = document.getElementById('gestionPlantillas');
+const ESTILO_FLECHA = 'display:block; width:26px; height:20px; line-height:18px; padding:0; margin:0 auto; border:1px solid #ddd; background:#fff; cursor:pointer; font-size:11px;';
+
+function renderGestionPlantillas() {
+  const ids = idsElementosSugeridos(tipoPlantillaGestion);
+  const nombreDe = (id) => catalogoDescripcionTodo.find(o => o.id === id)?.nombre || '';
+  const propia = !!docPlantilla(tipoPlantillaGestion);
+  const disponibles = catalogoDescripcionCompleto.filter(o => o.categoria === 'elementos' && !ids.includes(o.id));
+
+  const filas = ids.length ? ids.map((id, i) => `
+    <div style="display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid #eee8dc;">
+      <div style="flex:none;">
+        <button type="button" class="cot-plant-mover" data-dir="up" data-i="${i}" aria-label="Subir" style="${ESTILO_FLECHA} border-radius:4px 4px 0 0; ${i === 0 ? 'opacity:.35; cursor:default;' : ''}" ${i === 0 ? 'disabled' : ''}>▲</button>
+        <button type="button" class="cot-plant-mover" data-dir="down" data-i="${i}" aria-label="Bajar" style="${ESTILO_FLECHA} border-top:none; border-radius:0 0 4px 4px; ${i === ids.length - 1 ? 'opacity:.35; cursor:default;' : ''}" ${i === ids.length - 1 ? 'disabled' : ''}>▼</button>
+      </div>
+      <span style="flex:1; font-size:14px;">${escapeHtml(nombreDe(id))}</span>
+      <button type="button" class="cot-plant-quitar" data-i="${i}" aria-label="Quitar de las sugeridas" style="flex:none; border:none; background:none; color:#c0634a; font-size:16px; cursor:pointer;">✕</button>
+    </div>`).join('')
+    : '<p class="cot-desc-vacio">Este tipo aún no tiene filas sugeridas. Agrega elementos abajo.</p>';
+
+  const opcionesTipo = TIPOS_PLANTILLA.map(([clave, etiqueta]) =>
+    `<option value="${clave}" ${clave === tipoPlantillaGestion ? 'selected' : ''}>${etiqueta}</option>`).join('');
+  const opcionesAgregar = '<option value="">Elige un elemento…</option>'
+    + disponibles.map(o => `<option value="${o.id}">${escapeHtml(o.nombre)}</option>`).join('');
+
+  gestionPlantillas.innerHTML = `
+    <div class="cot-gest-seccion">
+      <div class="cot-gest-titulo">Filas sugeridas por tipo de proyecto</div>
+      <p class="cot-desc-vacio" style="margin:0 0 8px;">Elige el tipo de proyecto y ordena sus filas con las flechas. Se cargan solas al abrir la Descripción cuando está vacía, y también con el botón "Cargar filas sugeridas".${propia ? '' : ' <strong>Esta es la lista inicial del sistema; en cuanto la cambies se guarda tu propia lista para este tipo.</strong>'}</p>
+      <select id="gestPlantillaTipo">${opcionesTipo}</select>
+      <div style="margin:10px 0;">${filas}</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <select id="gestPlantillaAgregar">${opcionesAgregar}</select>
+        <button type="button" class="btn-secundario" id="btnPlantAgregar" style="height:38px; padding:0 16px; font-size:13px;">Agregar</button>
+      </div>
+    </div>`;
+  mejorarSelect('#gestPlantillaTipo');
+  mejorarSelect('#gestPlantillaAgregar');
+}
+
+/** Guarda la lista de un tipo (crea su documento la primera vez) y vuelve a dibujar. */
+async function guardarPlantilla(tipo, ids) {
+  if (guardandoPlantilla) return;
+  guardandoPlantilla = true;
+  mostrarErrorGestion('');
+  try {
+    const propia = docPlantilla(tipo);
+    if (propia) await actualizarPlantillaDescripcion(propia.id, ids);
+    else await crearOpcionCatalogoDescripcion({ categoria: 'plantillas', nombre: tipo, elementosIds: ids });
+    await recargarCatalogoDescripcion();
+  } catch (err) {
+    console.error(err);
+    mostrarErrorGestion(err?.code === 'permission-denied'
+      ? 'Firebase no permitió guardar esta lista (permisos de la base de datos). Avísale a Claude para ajustarlo.'
+      : 'No se pudo guardar el cambio. Intenta de nuevo.');
+  } finally {
+    guardandoPlantilla = false;
+    renderGestionPlantillas();
+  }
+}
+
+gestionPlantillas.addEventListener('click', async (e) => {
+  const tipo = tipoPlantillaGestion;
+  const mover = e.target.closest('.cot-plant-mover');
+  if (mover && !mover.disabled) {
+    const ids = idsElementosSugeridos(tipo);
+    const i = Number(mover.dataset.i);
+    const j = mover.dataset.dir === 'up' ? i - 1 : i + 1;
+    if (j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    await guardarPlantilla(tipo, ids);
+    return;
+  }
+  const quitar = e.target.closest('.cot-plant-quitar');
+  if (quitar) {
+    const ids = idsElementosSugeridos(tipo);
+    ids.splice(Number(quitar.dataset.i), 1);
+    await guardarPlantilla(tipo, ids);
+    return;
+  }
+  if (e.target.closest('#btnPlantAgregar')) {
+    const elegido = document.getElementById('gestPlantillaAgregar').value;
+    if (!elegido) { mostrarErrorGestion('Elige un elemento para agregar.'); return; }
+    const ids = idsElementosSugeridos(tipo);
+    ids.push(elegido);
+    await guardarPlantilla(tipo, ids);
+  }
+});
+
+function cambioTipoPlantillaGestion(e) {
+  if (!e.target.matches('#gestPlantillaTipo')) return;
+  if (e.target.value === tipoPlantillaGestion) return;
+  tipoPlantillaGestion = e.target.value;
+  mostrarErrorGestion('');
+  renderGestionPlantillas();
+}
+gestionPlantillas.addEventListener('change', cambioTipoPlantillaGestion);
+gestionPlantillas.addEventListener('input', cambioTipoPlantillaGestion);
+
+document.getElementById('btnCargarSugeridas').addEventListener('click', () => cargarFilasSugeridas());
 
 document.getElementById('btnAgregarFilaMc').addEventListener('click', () => {
   agregarFilaMaterialColor();
@@ -1202,6 +1351,11 @@ document.querySelector('.cot-desc-modal-scroll').addEventListener('change', (e) 
 
 btnEditarDescripcion.addEventListener('click', () => {
   modalDescripcionCotizacion.classList.add('visible');
+  // Si todavía no hay filas de "Materiales y colores elegidos", se cargan solas las
+  // sugeridas del tipo de proyecto. Si ya hay filas escritas no se toca nada.
+  if (!leerMaterialesColoresCrudo().length && plantillaPorTipoProyecto(leadActual?.tipoProyecto)) {
+    cargarFilasSugeridas({ automatico: true }).catch(err => console.error(err));
+  }
 });
 btnCerrarDescripcion.addEventListener('click', () => {
   modalDescripcionCotizacion.classList.remove('visible');
