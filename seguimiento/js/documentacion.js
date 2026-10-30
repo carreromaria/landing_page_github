@@ -22,7 +22,7 @@ import { ETAPAS } from './etapas.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento, prepararDocumentosParaServidor
-} from './documentos-cotizacion.js?v=26';
+} from './documentos-cotizacion.js?v=27';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
@@ -705,7 +705,9 @@ function renderizarDocsGrid() {
           documento: doc.nombre,
           cliente: p.cliente || p.lead?.nombre,
           // la versión solo existe en los documentos que salen de la cotización
-          version: doc.requiereCotizacionReal ? p.cotizacionReal?.version : undefined
+          version: doc.requiereCotizacionReal ? p.cotizacionReal?.version : undefined,
+          // texto que diferencia la opción (ej. "Cubierta de Cuarzo"), solo en los documentos de la cotización
+          extra: doc.requiereCotizacionReal ? p.cotizacionReal?.textoArchivo : undefined
         }));
       });
     }
