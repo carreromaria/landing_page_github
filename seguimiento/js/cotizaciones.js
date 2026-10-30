@@ -24,7 +24,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=25';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=26';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
@@ -551,7 +551,7 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = base.fechaEntregaFin || '';
     cotDiasHabilesEntrega.value = base.diasHabilesEntrega ?? '';
     escribirFormaPago(base.formaPago);
-    cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : new Date().toISOString().slice(0, 10);
+    cotValidaDesde.value = vigenteActual ? (base.validaDesde || '') : fechaLocalISO(new Date());
     renderChecklistDescripcionCompleto(base.descripcionCotizacion || {});
     renderMaterialesColores(base.materialesColores || []);
   } else {
@@ -563,7 +563,7 @@ async function cargarCotizacionVigente() {
     cotFechaEntregaFin.value = '';
     cotDiasHabilesEntrega.value = '';
     escribirFormaPago('');
-    cotValidaDesde.value = new Date().toISOString().slice(0, 10);
+    cotValidaDesde.value = fechaLocalISO(new Date());
     renderChecklistDescripcionCompleto({});
     renderMaterialesColores([]);
   }
