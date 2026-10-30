@@ -143,17 +143,22 @@
       <input type="text" id="cotDescripcionOpcion" maxlength="70" placeholder="Ej. Cubierta de cuarzo, Melamina roble claro, Herrajes premium…">
     </div>
 
+    <div class="cot-campo-doc cot-campo-opcion">
+      <label for="cotTextoArchivo">Texto al final del nombre del PDF <span style="font-weight:400; color:#8a7a5a;">(opcional)</span></label>
+      <input type="text" id="cotTextoArchivo" maxlength="50" placeholder="Ej. Cubierta de Cuarzo — diferencia esta opción de las otras">
+    </div>
+
     <div id="cotVersionesAnteriores" class="cot-versiones-anteriores" style="display:none;">
       <button type="button" id="btnVerVersiones" class="cot-link-versiones">Ver versiones anteriores</button>
       <div id="listaVersionesAnteriores" style="display:none;"></div>
     </div>
 
     <div class="cot-datos-documento cot-datos-flex">
+
       <div class="cot-campo-doc cot-campo-valida">
         <label for="cotValidaDesde">Válida desde</label>
         <input type="date" id="cotValidaDesde">
       </div>
-      
       <div class="cot-campo-doc cot-campo-dias">
         <label for="cotDiasHabilesEntrega">Días hábiles</label>
         <input type="text" id="cotDiasHabilesEntrega" inputmode="numeric" maxlength="3" placeholder="Ej: 20">
@@ -507,7 +512,7 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=30"></script>
+<script type="module" src="js/cotizaciones.js?v=31"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
