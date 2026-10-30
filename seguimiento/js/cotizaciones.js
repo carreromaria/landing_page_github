@@ -19,7 +19,7 @@ import {
   escucharCotizacionesVigentes, crearServicioCatalogo,
   listarCatalogoDescripcion, crearOpcionCatalogoDescripcion,
   renombrarOpcionCatalogoDescripcion, cambiarEstadoOpcionCatalogoDescripcion,
-  actualizarPlantillaDescripcion,
+  actualizarPlantillaDescripcion, actualizarSeleccionPlantillaDescripcion,
   listarUsuariosStaff
 } from './firestore.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -1277,6 +1277,87 @@ function cambioTipoPlantillaGestion(e) {
 gestionPlantillas.addEventListener('change', cambioTipoPlantillaGestion);
 gestionPlantillas.addEventListener('input', cambioTipoPlantillaGestion);
 
+
+// ---------- Predeterminados del checklist (materiales, herrajes, cubiertas, accesorios) ----------
+// Por tipo de proyecto se guarda "qué viene marcado" (ids por categoría) en el mismo
+// documento 'plantillas' del tipo. Se configura marcando el checklist como debe quedar
+// y tocando "Guardar esta selección como predeterminada"; después se cargan solos al
+// abrir la Descripción de una cotización que aún no tiene nada marcado.
+
+const ETIQUETAS_TIPO_PLANTILLA = Object.fromEntries(TIPOS_PLANTILLA);
+const cotPredTipo = document.getElementById('cotPredTipo');
+const btnGuardarPredeterminados = document.getElementById('btnGuardarPredeterminados');
+
+const tipoActualDescripcion = () => document.getElementById('cotMcPlantilla').value || 'cocina';
+const etiquetaTipo = (tipo) => ETIQUETAS_TIPO_PLANTILLA[tipo] || tipo;
+
+function actualizarEtiquetaPredeterminados() {
+  cotPredTipo.textContent = etiquetaTipo(tipoActualDescripcion());
+}
+['change', 'input'].forEach(ev => document.getElementById('cotMcPlantilla').addEventListener(ev, actualizarEtiquetaPredeterminados));
+
+/** Selección predeterminada guardada para un tipo (solo opciones que siguen activas), o null si no hay. */
+function seleccionPredeterminada(tipo) {
+  const guardada = docPlantilla(tipo)?.seleccionIds;
+  if (!guardada) return null;
+  const resultado = {};
+  CATEGORIAS_DESCRIPCION.forEach(cat => {
+    resultado[cat] = (guardada[cat] || []).filter(id => catalogoDescripcionCompleto.some(o => o.id === id && o.categoria === cat));
+  });
+  return CATEGORIAS_DESCRIPCION.some(cat => resultado[cat].length) ? resultado : null;
+}
+
+function hayMarcasEnChecklist() {
+  const sel = leerDescripcionCotizacion();
+  return CATEGORIAS_DESCRIPCION.some(cat => sel[cat].length);
+}
+
+/** Marca los predeterminados del tipo sin desmarcar nada de lo que ya estaba marcado. */
+function aplicarPredeterminados({ automatico = false } = {}) {
+  const tipo = tipoActualDescripcion();
+  const pred = seleccionPredeterminada(tipo);
+  if (!pred) {
+    if (!automatico) mostrarToast(`Aún no hay predeterminados guardados para ${etiquetaTipo(tipo)}. Marca el checklist como corresponde y usa "Guardar esta selección como predeterminada".`, 'info', 7000);
+    return;
+  }
+  const actual = leerDescripcionCotizacion();
+  const unida = {};
+  CATEGORIAS_DESCRIPCION.forEach(cat => { unida[cat] = [...new Set([...actual[cat], ...pred[cat]])]; });
+  renderChecklistDescripcionCompleto(unida);
+  actualizarResumenDescripcion();
+  mostrarToast(automatico
+    ? `Cargué los predeterminados de ${etiquetaTipo(tipo)}. Revisa y ajusta lo que cambie.`
+    : `Predeterminados de ${etiquetaTipo(tipo)} cargados.`);
+}
+
+async function guardarPredeterminados() {
+  const tipo = tipoActualDescripcion();
+  const seleccion = leerDescripcionCotizacion();
+  if (!CATEGORIAS_DESCRIPCION.some(cat => seleccion[cat].length)) {
+    mostrarToast('Marca primero lo que quieres dejar como predeterminado.', 'info');
+    return;
+  }
+  if (seleccionPredeterminada(tipo) && !window.confirm(`Esto reemplaza los predeterminados actuales de ${etiquetaTipo(tipo)}. ¿Continuar?`)) return;
+
+  btnGuardarPredeterminados.disabled = true;
+  try {
+    const propia = docPlantilla(tipo);
+    if (propia) await actualizarSeleccionPlantillaDescripcion(propia.id, seleccion);
+    else await crearOpcionCatalogoDescripcion({ categoria: 'plantillas', nombre: tipo, elementosIds: idsElementosSugeridos(tipo), seleccionIds: seleccion });
+    await recargarCatalogoDescripcion();
+    mostrarToast(`Guardado: así se cargará por defecto en las cotizaciones de ${etiquetaTipo(tipo)}.`);
+  } catch (err) {
+    console.error(err);
+    mostrarToast(err?.code === 'permission-denied'
+      ? 'Firebase no permitió guardar los predeterminados (permisos de la base de datos). Avísale a Claude para ajustarlo.'
+      : 'No se pudieron guardar los predeterminados. Intenta de nuevo.', 'error', 7000);
+  } finally {
+    btnGuardarPredeterminados.disabled = false;
+  }
+}
+document.getElementById('btnCargarPredeterminados').addEventListener('click', () => aplicarPredeterminados());
+btnGuardarPredeterminados.addEventListener('click', guardarPredeterminados);
+
 document.getElementById('btnCargarSugeridas').addEventListener('click', () => cargarFilasSugeridas());
 
 document.getElementById('btnAgregarFilaMc').addEventListener('click', () => {
@@ -1353,8 +1434,11 @@ btnEditarDescripcion.addEventListener('click', () => {
   modalDescripcionCotizacion.classList.add('visible');
   // Si todavía no hay filas de "Materiales y colores elegidos", se cargan solas las
   // sugeridas del tipo de proyecto. Si ya hay filas escritas no se toca nada.
-  if (!leerMaterialesColoresCrudo().length && plantillaPorTipoProyecto(leadActual?.tipoProyecto)) {
-    cargarFilasSugeridas({ automatico: true }).catch(err => console.error(err));
+  actualizarEtiquetaPredeterminados();
+  if (plantillaPorTipoProyecto(leadActual?.tipoProyecto)) {
+    if (!leerMaterialesColoresCrudo().length) cargarFilasSugeridas({ automatico: true }).catch(err => console.error(err));
+    // Lo mismo con el checklist: solo si todavía no tiene nada marcado.
+    if (!hayMarcasEnChecklist()) aplicarPredeterminados({ automatico: true });
   }
 });
 btnCerrarDescripcion.addEventListener('click', () => {
