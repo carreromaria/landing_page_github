@@ -322,6 +322,15 @@
         </div>
       </div>
 
+      <!-- Predeterminados del checklist según el tipo de proyecto (el tipo es el que se elige arriba, en Materiales y colores) -->
+      <div class="cot-desc-seccion" id="cotPredeterminadosBarra">
+        <div class="cot-mc-sugeridas" style="align-items:center; flex-wrap:wrap;">
+          <span class="cot-desc-vacio" style="margin:0;">Predeterminados de <strong id="cotPredTipo">Cocina</strong>:</span>
+          <button type="button" class="btn-secundario" id="btnCargarPredeterminados">Cargar predeterminados</button>
+          <button type="button" class="btn-secundario" id="btnGuardarPredeterminados">Guardar esta selección como predeterminada</button>
+        </div>
+      </div>
+
       <div class="cot-desc-seccion">
         <div class="cot-sec-header" role="button" tabindex="0" aria-expanded="true">
           <span class="cot-sec-titulo">Materiales</span>
@@ -496,7 +505,7 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=29"></script>
+<script type="module" src="js/cotizaciones.js?v=30"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
