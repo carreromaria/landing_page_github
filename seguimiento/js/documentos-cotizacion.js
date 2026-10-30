@@ -749,7 +749,7 @@ export async function prepararDocumentosParaServidor(origenes) {
  * documento no tiene versión (carta, contrato, acta...), esa parte se omite.
  * @param {{documento:string, cliente?:string, version?:number|string}} datos
  */
-export function nombreArchivoDocumento({ documento, cliente, version } = {}) {
+export function nombreArchivoDocumento({ documento, cliente, version, extra } = {}) {
   const limpiar = (t) => String(t ?? '')
     .replace(/[\\/:*?"<>|]/g, '') // caracteres no permitidos en nombres de archivo
     .replace(/\s+/g, ' ')
@@ -758,5 +758,6 @@ export function nombreArchivoDocumento({ documento, cliente, version } = {}) {
   const nombrePropio = (t) => limpiar(t).toLocaleLowerCase('es-CL')
     .replace(/(^|\s)(\S)/g, (m, sp, ch) => sp + ch.toLocaleUpperCase('es-CL'));
   const v = (version === undefined || version === null || version === '') ? '' : 'V' + limpiar(version);
-  return [limpiar(documento), nombrePropio(cliente), v, 'LINENCE'].filter(Boolean).join(' · ');
+  // `extra` (opcional): texto que diferencia una opción de otra, ej. "Cubierta de Cuarzo"; va al final tal como se escribió.
+  return [limpiar(documento), nombrePropio(cliente), v, 'LINENCE', limpiar(extra)].filter(Boolean).join(' · ');
 }
