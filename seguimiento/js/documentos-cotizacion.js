@@ -277,6 +277,18 @@ function codigoTipoProyecto(cotizacion, cliente) {
   return 'OTR';
 }
 
+// ---------- Nota – Descuento de la asesoría técnica ----------
+// Va en la Cotización, justo ARRIBA de la nota de alcance, dentro del mismo bloque
+// anclado al fondo (así el recuadro "ESPACIO NO UTILIZABLE" se achica solo).
+const NOTA_DESCUENTO_TITULO = 'NOTA – DESCUENTO DE LA ASESORÍA TÉCNICA:';
+
+function htmlNotaDescuentoAsesoria() {
+  return `<div class="pdf-nota-descuento">
+      <p class="pdf-nota-descuento-titulo">${NOTA_DESCUENTO_TITULO}</p>
+      <p>El valor abonado por concepto de visita técnica será descontado en su totalidad del monto final de este presupuesto al momento de ser <strong>aprobado el proyecto</strong>.</p>
+    </div>`;
+}
+
 function htmlNotaAlcance(cotizacion, cliente) {
   const texto = NOTAS_ALCANCE[codigoTipoProyecto(cotizacion, cliente)] || NOTAS_ALCANCE.OTR;
   return `<div class="pdf-nota-alcance">
@@ -335,6 +347,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   const cuadroPie = `
   <div class="pdf-pie">
+    ${htmlNotaDescuentoAsesoria()}
     ${htmlNotaAlcance(cotizacion, cliente)}
     <div class="pdf-pie-fila">
       <div class="pdf-pie-notas">
