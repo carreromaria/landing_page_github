@@ -277,24 +277,25 @@ function codigoTipoProyecto(cotizacion, cliente) {
   return 'OTR';
 }
 
-// ---------- Nota – Descuento de la asesoría técnica ----------
-// Va en la Cotización, justo ARRIBA de la nota de alcance, dentro del mismo bloque
-// anclado al fondo (así el recuadro "ESPACIO NO UTILIZABLE" se achica solo).
+// ---------- Bloque "NOTAS" (Cotización) ----------
+// Un solo cuadro, anclado al fondo de la última hoja (se mide junto con el pie, así el
+// recuadro "ESPACIO NO UTILIZABLE" se ajusta solo). Orden: primero el descuento de la
+// asesoría técnica (letras negras) y al final el alcance del servicio (letras rojas).
 const NOTA_DESCUENTO_TITULO = 'NOTA – DESCUENTO DE LA ASESORÍA TÉCNICA:';
 
-function htmlNotaDescuentoAsesoria() {
-  return `<div class="pdf-nota-descuento">
-      <p class="pdf-nota-descuento-titulo">${NOTA_DESCUENTO_TITULO}</p>
-      <p>El valor abonado por concepto de visita técnica será descontado en su totalidad del monto final de este presupuesto al momento de ser <strong>aprobado el proyecto</strong>.</p>
-    </div>`;
-}
-
-function htmlNotaAlcance(cotizacion, cliente) {
+function htmlNotas(cotizacion, cliente) {
   const texto = NOTAS_ALCANCE[codigoTipoProyecto(cotizacion, cliente)] || NOTAS_ALCANCE.OTR;
-  return `<div class="pdf-nota-alcance">
-      <p class="pdf-nota-alcance-titulo">${NOTA_ALCANCE_TITULO}</p>
-      <p>${texto}</p>
-      <p>${NOTA_ALCANCE_FINAL}</p>
+  return `<div class="pdf-notas">
+      <p class="pdf-notas-titulo">NOTAS</p>
+      <div class="pdf-nota-sub">
+        <p class="pdf-nota-sub-titulo">${NOTA_DESCUENTO_TITULO}</p>
+        <p>El valor abonado por concepto de visita técnica será descontado en su totalidad del monto final de este presupuesto al momento de ser <strong>aprobado el proyecto</strong>.</p>
+      </div>
+      <div class="pdf-nota-sub pdf-nota-sub--alcance">
+        <p class="pdf-nota-sub-titulo">${NOTA_ALCANCE_TITULO}</p>
+        <p>${texto}</p>
+        <p>${NOTA_ALCANCE_FINAL}</p>
+      </div>
     </div>`;
 }
 
@@ -347,8 +348,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
 
   const cuadroPie = `
   <div class="pdf-pie">
-    ${htmlNotaDescuentoAsesoria()}
-    ${htmlNotaAlcance(cotizacion, cliente)}
+    ${htmlNotas(cotizacion, cliente)}
     <div class="pdf-pie-fila">
       <div class="pdf-pie-notas">
         <p>Esta cotización de su proyecto es válida por 7 días, hasta ${validaHasta}</p>
