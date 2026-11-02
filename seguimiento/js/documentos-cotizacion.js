@@ -247,7 +247,7 @@ export function htmlPie(titulo = '', folio = '', contenidoFijo = '', { marcarEsp
 // Va dentro del bloque anclado al fondo de la Cotización, justo ENCIMA del
 // recuadro negro de vigencia y montos. La clave es el código de tipo de
 // proyecto (COC, CLO, VAN...). Mismo esquema de redacción en todos los textos.
-const NOTA_ALCANCE_TITULO = 'NOTA – ALCANCE DEL SERVICIO:';
+const NOTA_ALCANCE_TITULO = 'ALCANCE DEL SERVICIO:';
 const NOTA_ALCANCE_FINAL = 'Todo servicio adicional que no esté expresamente indicado en la cotización deberá ser evaluado y cotizado por separado.';
 const NOTAS_ALCANCE = {
   COC: 'El valor cotizado contempla la fabricación e instalación de los muebles de cocina especificados en la cotización. No incluye el retiro ni desmontaje de mobiliario existente, instalación de encimera, lavaplatos, horno u otros artefactos y accesorios, trabajos de gasfitería, conexiones eléctricas y agua, reparaciones de muros ni obras de remodelación.',
@@ -281,7 +281,7 @@ function codigoTipoProyecto(cotizacion, cliente) {
 // Un solo cuadro, anclado al fondo de la última hoja (se mide junto con el pie, así el
 // recuadro "ESPACIO NO UTILIZABLE" se ajusta solo). Orden: primero el descuento de la
 // asesoría técnica (letras negras) y al final el alcance del servicio (letras rojas).
-const NOTA_DESCUENTO_TITULO = 'NOTA – DESCUENTO DE LA ASESORÍA TÉCNICA:';
+const NOTA_DESCUENTO_TITULO = 'DESCUENTO DE LA ASESORÍA TÉCNICA:';
 
 function htmlNotas(cotizacion, cliente) {
   const texto = NOTAS_ALCANCE[codigoTipoProyecto(cotizacion, cliente)] || NOTAS_ALCANCE.OTR;
