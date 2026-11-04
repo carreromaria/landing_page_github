@@ -1841,13 +1841,29 @@ document.getElementById('btnDescargarPdfModal').addEventListener('click', () => 
 });
 
 /**
- * Botón amarillo "Descargar PDF". En computador: impresión del navegador, igual
- * que siempre. En celular: el PDF se genera en el servidor (sin el pie con la
- * ruta, fecha y página que agrega el teléfono). Si el servidor falla, se avisa
- * y queda el botón "Imprimir" como alternativa.
+ * ¿Este equipo debe generar el PDF en el servidor en vez de imprimir?
+ * Sí en celulares, en cualquier Mac y en Safari: la impresión de Safari/macOS
+ * usa otro tamaño de papel y otro escalado que Chrome en Windows, y eso corría
+ * el encabezado, mandaba el pie a una 3ª hoja y apagaba la marca de agua.
+ * El servidor usa siempre el mismo Chrome, así el PDF sale igual en todos los
+ * equipos. Chrome/Edge en Windows siguen imprimiendo como siempre.
+ */
+function debeUsarPdfServidor() {
+  if (esCelular()) return true;
+  const ua = navigator.userAgent || '';
+  const esMac = /Macintosh|Mac OS X/.test(ua) || navigator.platform === 'MacIntel';
+  const esSafari = /Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua);
+  return esMac || esSafari;
+}
+
+/**
+ * Botón amarillo "Descargar PDF". En Windows (Chrome/Edge): impresión del
+ * navegador, igual que siempre. En celular, Mac y Safari: el PDF se genera en
+ * el servidor (sin el pie con la ruta, fecha y página que agrega el navegador).
+ * Si el servidor falla, se avisa y queda el botón "Imprimir" como alternativa.
  */
 async function descargarPdfCotizacion(origenes, nombreArchivo, boton) {
-  if (!esCelular()) {
+  if (!debeUsarPdfServidor()) {
     avisoGuardarPdf();
     return imprimirDocumentosPdf(origenes, nombreArchivo);
   }
