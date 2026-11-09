@@ -1,0 +1,334 @@
+/* ============================================================
+   LINENCE — UI común del panel (botones, campos, tarjetas,
+   títulos y encabezado fijo)
+   ------------------------------------------------------------
+   Se carga AL FINAL en todas las vistas del panel (después de
+   dashboard.css y del CSS de cada módulo), así que lo que se
+   define aquí manda sobre los estilos sueltos de cada módulo.
+
+   IMPORTANTE: todo está dentro de @media screen. Nada de este
+   archivo se aplica al imprimir ni al generar PDF, así que el
+   diseño de impresión de las cotizaciones y demás documentos
+   (pdf-documentos.css, reglas @media print) queda intacto.
+
+   Escala de diseño
+   · Botón primario  : dorado sólido, texto negro
+   · Botón secundario: fondo blanco, borde arena
+   · Botón peligro   : rojo (solo para eliminar)
+   · Campos/botones  : esquina 6px, alto ≈ 42px, letra 14px
+   · Tarjetas        : esquina 12px, borde #e6d9bd, fondo blanco
+   · Títulos         : 26px (22px en celular), peso 500
+   · Subtítulos      : 14px gris
+   ============================================================ */
+
+:root {
+  /* Alto de la barra negra superior del celular */
+  --topbar-h: 54px;
+
+  /* Márgenes de la página (escritorio) */
+  --ln-pad-y: 34px;
+  --ln-pad-x: 44px;
+
+  /* Colores y bordes */
+  --ln-border: #d3bb8c;        /* campos y botón secundario */
+  --ln-card-border: #e6d9bd;   /* tarjetas y tablas */
+  --ln-gold-hover: #c49522;
+  --ln-danger: #b8452f;
+  --ln-muted: #6b6b6b;
+
+  /* Esquinas */
+  --ln-r-ctl: 6px;
+  --ln-r-card: 12px;
+
+  /* Letra */
+  --ln-fs-title: 26px;
+  --ln-fs-sub: 14px;
+  --ln-fs-ctl: 14px;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --ln-pad-y: 22px;
+    --ln-pad-x: 18px;
+    --ln-fs-title: 22px;
+  }
+}
+
+@media screen {
+
+  /* ==========================================================
+     1) BOTONES — primario / secundario / peligro
+     ========================================================== */
+  .btn-primario,
+  .btn-dorado,
+  .btn-nuevo-proyecto,
+  .btn-secundario,
+  .btn-peligro {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: var(--ln-r-ctl);
+    font-family: 'Poppins', sans-serif;
+    font-size: var(--ln-fs-ctl);
+    line-height: 1.2;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: background .15s ease, border-color .15s ease, color .15s ease, opacity .15s ease;
+  }
+
+  /* Primario: dorado sólido */
+  .btn-primario,
+  .btn-dorado,
+  .btn-nuevo-proyecto {
+    background: var(--gold);
+    color: var(--ink);
+    border: 1px solid var(--gold);
+    font-weight: 600;
+  }
+  .btn-primario:hover,
+  .btn-dorado:hover,
+  .btn-nuevo-proyecto:hover {
+    background: var(--ln-gold-hover);
+    border-color: var(--ln-gold-hover);
+    opacity: 1;
+  }
+
+  /* Secundario: blanco con borde arena */
+  .btn-secundario {
+    background: #fff;
+    color: var(--ink);
+    border: 1px solid var(--ln-border);
+    font-weight: 500;
+  }
+  .btn-secundario:hover {
+    background: #f5efe3;
+    border-color: var(--gold);
+  }
+
+  /* Peligro: solo para eliminar */
+  .btn-peligro {
+    background: var(--ln-danger);
+    color: #fff;
+    border: 1px solid var(--ln-danger);
+    font-weight: 600;
+  }
+  .btn-peligro:hover { opacity: .9; }
+
+  .btn-primario:disabled,
+  .btn-dorado:disabled,
+  .btn-nuevo-proyecto:disabled,
+  .btn-secundario:disabled,
+  .btn-peligro:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  /* Botones pequeños que ya existían dentro de módulos (no se agrandan) */
+  .doc-card .doc-card-botones button,
+  .ag-nav .btn-secundario,
+  .ag-veh-acciones .btn-secundario {
+    font-size: 12.5px;
+  }
+
+  /* Acciones de fila en listados: secundarias y compactas */
+  .cot-btn-ver,
+  .cot-btn-nuevo-codigo,
+  .crm-btn-editar {
+    border-radius: var(--ln-r-ctl);
+    font-family: 'Poppins', sans-serif;
+  }
+
+
+  /* ==========================================================
+     2) CAMPOS — buscadores, selectores y desplegables
+     ========================================================== */
+  .dash-toolbar input[type="search"],
+  .dash-toolbar select,
+  .ag-toolbar input[type="search"],
+  .doc-buscador input,
+  .cat-filtro-buscar,
+  .cat-filtro-select,
+  .dash-toolbar .ln-dropdown-trigger,
+  .ag-filtros .ln-dropdown-trigger,
+  .cat-filtros .ln-dropdown-trigger,
+  .crm-toolbar .ln-dropdown-trigger,
+  .doc-buscador .ln-dropdown-trigger {
+    min-height: 42px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    font-family: 'Poppins', sans-serif;
+    font-size: var(--ln-fs-ctl);
+  }
+
+  /* Misma esquina y mismo borde en todos los campos */
+  .dash-toolbar input[type="search"],
+  .dash-toolbar select,
+  .ag-toolbar input[type="search"],
+  .doc-buscador input,
+  .cat-filtro-buscar,
+  .cat-filtro-select,
+  .cat-input,
+  .cat-modal select,
+  .cot-campo-doc input,
+  .cot-campo-doc select,
+  .ln-dropdown-trigger,
+  .crm-dropdown-trigger {
+    border: 1px solid var(--ln-border);
+    border-radius: var(--ln-r-ctl);
+    background-color: #fff;
+  }
+
+  .campo input:not(.campo-codigo-prefijo input),
+  .campo select,
+  .campo textarea {
+    border-radius: var(--ln-r-ctl);
+  }
+
+  .dash-toolbar input[type="search"]:focus,
+  .ag-toolbar input[type="search"]:focus,
+  .doc-buscador input:focus,
+  .cat-filtro-buscar:focus,
+  .cat-input:focus {
+    border-color: var(--gold);
+    outline: none;
+  }
+
+
+  /* ==========================================================
+     3) TARJETAS Y TABLAS — mismo marco en todas las vistas
+     ========================================================== */
+  .tabla-proyectos,
+  .panel-seccion,
+  .doc-card,
+  .doc-cliente-resultado,
+  .rep-kpi,
+  .rep-seccion,
+  .cat-tabla-wrapper,
+  .ag-fila,
+  .ag-mes,
+  .ag-semana,
+  .ag-veh,
+  .ag-disp-fila {
+    border-color: var(--ln-card-border);
+    border-radius: var(--ln-r-card);
+  }
+
+
+  /* ==========================================================
+     4) TÍTULOS Y SUBTÍTULOS — mismo tamaño y peso en todas las vistas
+     ========================================================== */
+  .page-fijo h1,
+  .dash-main > .cat-header h1,
+  .cat-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: var(--ln-fs-title);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .page-fijo .subtitulo,
+  .cat-header .subtitulo,
+  .cat-subtitle {
+    font-size: var(--ln-fs-sub);
+    line-height: 1.4;
+    color: var(--ln-muted);
+    opacity: 1;
+    margin: 4px 0 0;
+  }
+
+
+  /* ==========================================================
+     5) ENCABEZADO FIJO — igual en todas las vistas
+     ------------------------------------------------------------
+     El bloque de título (y filtros, donde corresponde) queda
+     pegado arriba con fondo sólido: al hacer scroll el contenido
+     pasa por DEBAJO y nunca se ve por detrás ni por los costados.
+     ========================================================== */
+  .page-fijo,
+  .dash-main:not(#vistaEditorCotizacion) > .cat-header {
+    position: sticky;
+    top: 0;
+    z-index: 150;
+    background: var(--cream);
+    margin: calc(-1 * var(--ln-pad-y)) calc(-1 * var(--ln-pad-x)) 24px;
+    padding: 24px var(--ln-pad-x) 14px;
+    border-bottom: 1px solid var(--gold-line);
+  }
+
+  /* Dentro del encabezado fijo, los bloques no suman espacio extra */
+  .page-fijo .dash-toolbar,
+  .page-fijo .ag-toolbar,
+  .page-fijo .crm-toolbar {
+    margin-bottom: 0;
+  }
+  .page-fijo .subtitulo + .dash-toolbar {
+    margin-top: 14px;
+  }
+  .page-fijo > .cat-header {
+    position: static;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  /* ==========================================================
+     6) CELULAR Y TABLET (≤ 900px)
+     ========================================================== */
+  @media (max-width: 900px) {
+
+    /* La barra negra del logo queda REALMENTE fija. Antes era "sticky"
+       dentro de <body>, que mide solo una pantalla de alto, y por eso
+       desaparecía al bajar y dejaba un hueco donde se veía el contenido. */
+    .dash-topbar-mobile {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--topbar-h);
+      box-sizing: border-box;
+      z-index: 200;
+    }
+    .dash-layout {
+      padding-top: var(--topbar-h);
+    }
+
+    /* El encabezado fijo se apoya justo debajo de la barra negra */
+    .page-fijo,
+    .dash-main:not(#vistaEditorCotizacion) > .cat-header {
+      top: var(--topbar-h);
+      padding: 14px var(--ln-pad-x) 12px;
+      margin-bottom: 18px;
+    }
+
+    /* Subtítulo de una sola línea para no robar pantalla */
+    .page-fijo > .subtitulo,
+    .cat-header .subtitulo {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+    }
+    .cat-header > div { min-width: 0; }
+
+    .page-fijo .dash-top-colapsable .subtitulo {
+      white-space: normal;
+    }
+
+    /* Agenda: buscador y filtros se despliegan con la flechita */
+    .ag-barra { display: none; }
+    .ag-barra.abierto { display: block; }
+  }
+
+  @media (min-width: 901px) {
+    .ag-barra { display: block; }
+    .ag-barra .ag-toolbar { margin-top: 0; }
+  }
+}

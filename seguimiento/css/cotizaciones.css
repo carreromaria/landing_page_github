@@ -629,16 +629,7 @@ body { overflow-x: visible; }
     min-width: 0;
   }
 
-  /* ---------- Encabezado fijo del listado (igual que CRM) ---------- */
-  #vistaListaCotizaciones .cat-header {
-    position: sticky;
-    top: 54px;
-    z-index: 150;
-    background: var(--cream);
-    margin: 0 -18px 20px;
-    padding: 18px 18px 16px;
-    border-bottom: 1px solid var(--gold-line);
-  }
+  /* El encabezado fijo del listado ahora lo define css/linence-ui.css (igual en todas las vistas). */
 
   /* ---------- Fila de fechas / forma de pago del editor ---------- */
   .cot-datos-documento {
