@@ -285,6 +285,12 @@
 }
 .pdf-pie-notas p { margin: 0 0 8px; }
 .pdf-pie-gracias { color: #d6a52c; font-weight: 600; }
+/* Datos bancarios dentro de la caja negra (solo CT). Alturas de línea fijas en px
+   para que pantalla, impresión de escritorio/móvil y PDF de servidor midan igual;
+   ocupa el espacio libre bajo el agradecimiento sin agrandar la fila. */
+.pdf-banco { margin-top: 4px; color: #fff; font-size: 10px; line-height: 13px; }
+.pdf-banco-titulo { font-weight: 700; font-size: 10.5px; line-height: 14px; margin-bottom: 3px; }
+.pdf-banco-cols { display: flex; gap: 40px; }
 
 .pdf-tabla-totales {
   border-collapse: collapse;
