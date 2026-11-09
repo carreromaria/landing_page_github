@@ -244,6 +244,9 @@
   }
 
 
+  .dash-main { min-width: 0; }
+  .page-fijo { min-width: 0; }
+
   /* ==========================================================
      5) ENCABEZADO FIJO — igual en todas las vistas
      ------------------------------------------------------------
@@ -284,42 +287,40 @@
      ========================================================== */
   @media (max-width: 900px) {
 
-    /* La barra negra del logo queda REALMENTE fija. Antes era "sticky"
-       dentro de <body>, que mide solo una pantalla de alto, y por eso
-       desaparecía al bajar y dejaba un hueco donde se veía el contenido. */
+    /* La barra negra del logo se mueve con la página (como siempre) y NO
+       intenta quedarse fija: en iPhone esa barra fija se perdía al bajar y
+       dejaba un hueco por donde se veía el contenido. El encabezado de cada
+       vista se pega arriba del todo (top:0), así nunca queda espacio libre. */
     .dash-topbar-mobile {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: var(--topbar-h);
-      box-sizing: border-box;
-      z-index: 200;
-    }
-    .dash-layout {
-      padding-top: var(--topbar-h);
+      position: static;
     }
 
-    /* El encabezado fijo se apoya justo debajo de la barra negra */
+    /* El encabezado fijo se pega al borde superior de la pantalla */
     .page-fijo,
     .dash-main:not(#vistaEditorCotizacion) > .cat-header {
-      top: var(--topbar-h);
+      top: 0;
       padding: 14px var(--ln-pad-x) 12px;
       margin-bottom: 18px;
     }
 
-    /* Subtítulo de una sola línea para no robar pantalla */
+    /* Subtítulo de una sola línea para no robar pantalla.
+       Se recorta con line-clamp (no con nowrap): nowrap hacía que la página
+       completa se ensanchara al largo del texto. */
     .page-fijo > .subtitulo,
     .cat-header .subtitulo {
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
       overflow: hidden;
-      text-overflow: ellipsis;
       font-size: 13px;
     }
     .cat-header > div { min-width: 0; }
 
     .page-fijo .dash-top-colapsable .subtitulo {
-      white-space: normal;
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
     }
 
     /* Agenda: buscador y filtros se despliegan con la flechita */
