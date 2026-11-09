@@ -356,6 +356,13 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
         <p>Condiciones: ${escapeHtml(condiciones)}</p>
         <p>Cualquier duda o consulta comuníquese con nosotros, estaremos gustoso de atenderlo.</p>
         <p class="pdf-pie-gracias">GRACIAS POR SU PREFERENCIA…!!!</p>
+        <div class="pdf-banco">
+          <div class="pdf-banco-titulo">CUENTA BANCARIA</div>
+          <div class="pdf-banco-cols">
+            <div>LINENCE SpA<br>78.446.739-2<br>Banco de Chile</div>
+            <div>Cuenta Corriente<br>00-200-30432-01<br>contacto@linence.cl</div>
+          </div>
+        </div>
       </div>
       <table class="pdf-tabla-totales">
         <tr><th>MONTO</th><td>${formatearMoneda(monto)}</td></tr>
