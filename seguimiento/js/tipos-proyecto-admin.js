@@ -1,6 +1,6 @@
 // ============================================================
 // LINENCE — Administración de Tipos de proyecto
-// Lógica de la pantalla tipos-proyecto.html
+// Lógica de la pestaña "Tipos de proyecto" de maestro.html
 // ============================================================
 // Reglas:
 //  - El código son 3 letras mayúsculas, sin tildes ni espacios, y es único.
@@ -9,7 +9,6 @@
 //  - Desactivar oculta el tipo al crear leads/proyectos nuevos; lo ya creado no cambia.
 //  - Solo se puede eliminar un tipo que nunca se usó. MIX y OTR están protegidos.
 
-import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   listarTiposProyecto, asegurarTiposProyectoBase, crearTipoProyecto,
   actualizarNombreTipoProyecto, cambiarEstadoTipoProyecto, eliminarTipoProyecto,
@@ -23,48 +22,24 @@ let accionPendiente = null;  // { tipo, codigo }
 const filtros = { texto: '', estado: '' };
 
 const tablaBody = document.getElementById('tablaTiposBody');
-const catVacio = document.getElementById('catVacio');
+const catVacio = document.getElementById('tpVacio');
 const modalTipo = document.getElementById('modalTipo');
 const inputCodigo = document.getElementById('inputCodigoTipo');
 const inputNombre = document.getElementById('inputNombreTipo');
 const errorCodigo = document.getElementById('errorCodigo');
-const errorNombre = document.getElementById('errorNombre');
+const errorNombre = document.getElementById('tpErrorNombre');
 const notaCodigo = document.getElementById('notaCodigo');
 const modalConfirmar = document.getElementById('modalConfirmar');
 const toastEl = document.getElementById('catToast');
 
-// ---------- Sesión y sidebar ----------
-
-const dashTopbarMobile = document.getElementById('dashTopbarMobile');
-const actualizarTopbar = () => { dashTopbarMobile.style.display = window.innerWidth <= 900 ? 'flex' : 'none'; };
-window.addEventListener('resize', actualizarTopbar);
-
-observarSesionStaff((staff) => {
-  if (!staff) { window.location.href = 'login.html'; return; }
-  document.getElementById('dashCargando').style.display = 'none';
-  document.getElementById('dashLayout').style.display = '';
-  actualizarTopbar();
-  document.getElementById('staffNombre').textContent = staff.nombre || '—';
-  document.getElementById('staffRol').textContent = staff.rol || '—';
-  iniciar();
-});
-
-document.getElementById('btnCerrarSesion')?.addEventListener('click', async () => {
-  await cerrarSesion();
-  window.location.href = 'login.html';
-});
-
-const dashSidebar = document.getElementById('dashSidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-const abrirSidebar = () => { dashSidebar.classList.add('abierto'); sidebarOverlay.classList.add('visible'); };
-const cerrarSidebar = () => { dashSidebar.classList.remove('abierto'); sidebarOverlay.classList.remove('visible'); };
-document.getElementById('btnAbrirSidebar')?.addEventListener('click', abrirSidebar);
-document.getElementById('btnCerrarSidebar')?.addEventListener('click', cerrarSidebar);
-sidebarOverlay?.addEventListener('click', cerrarSidebar);
-
 // ---------- Carga y render ----------
 
-async function iniciar() {
+let iniciado = false;
+// La sesión, el menú lateral y las pestañas los maneja maestro.js.
+// Se inicia la primera vez que se abre la pestaña "Tipos de proyecto".
+export async function iniciarTipos() {
+  if (iniciado) return;
+  iniciado = true;
   try {
     // La primera vez carga los 9 tipos base (COC, VAN, CLO, WAL, CEN, OFI, LOC, MIX, OTR)
     await asegurarTiposProyectoBase();
@@ -108,7 +83,7 @@ function render() {
     return true;
   });
 
-  document.getElementById('btnLimpiarFiltros').style.display = (texto || filtros.estado) ? '' : 'none';
+  document.getElementById('tpBtnLimpiarFiltros').style.display = (texto || filtros.estado) ? '' : 'none';
 
   if (!visibles.length) {
     catVacio.textContent = tipos.length ? 'Ningún tipo coincide con los filtros.' : 'Aún no hay tipos creados.';
@@ -136,12 +111,12 @@ function render() {
   });
 }
 
-document.getElementById('filtroTexto').addEventListener('input', (e) => { filtros.texto = e.target.value; render(); });
-document.getElementById('filtroEstado').addEventListener('change', (e) => { filtros.estado = e.target.value; render(); });
-document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
+document.getElementById('tpFiltroTexto').addEventListener('input', (e) => { filtros.texto = e.target.value; render(); });
+document.getElementById('tpFiltroEstado').addEventListener('change', (e) => { filtros.estado = e.target.value; render(); });
+document.getElementById('tpBtnLimpiarFiltros').addEventListener('click', () => {
   filtros.texto = filtros.estado = '';
-  document.getElementById('filtroTexto').value = '';
-  document.getElementById('filtroEstado').value = '';
+  document.getElementById('tpFiltroTexto').value = '';
+  document.getElementById('tpFiltroEstado').value = '';
   render();
 });
 

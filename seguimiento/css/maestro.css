@@ -1,0 +1,58 @@
+/* ===== Maestro — pestañas (Catálogo + Tipos de proyecto) ===== */
+/* Paleta: negro #141213 · oro #d6a52c · arena #d3bb8c */
+
+.maestro-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 22px;
+  border-bottom: 2px solid var(--gold);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Pestaña tipo carpeta: inactiva en arena suave, activa en negro con texto dorado */
+.maestro-tab {
+  position: relative;
+  top: 2px;                       /* la activa "se apoya" sobre la línea dorada */
+  padding: 11px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b6b6b;
+  background: #f1e9d8;
+  border: 1px solid #ece4d3;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.maestro-tab:hover {
+  background: #f5efe3;
+  color: #141213;
+}
+.maestro-tab[aria-selected="true"] {
+  background: #141213;
+  border-color: #141213;
+  color: #d6a52c;
+  font-weight: 600;
+}
+
+.maestro-panel[hidden] { display: none !important; }
+
+.maestro-descripcion {
+  font-size: 13.5px;
+  color: #6b6b6b;
+  margin: 0 0 16px;
+}
+
+@media (max-width: 900px) {
+  /* El encabezado del Maestro queda fijo (ver catalogo-servicios.css);
+     las pestañas se reparten el ancho para que se toquen bien con el dedo. */
+  .maestro-tab {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 11px 12px;
+    font-size: 13px;
+  }
+}

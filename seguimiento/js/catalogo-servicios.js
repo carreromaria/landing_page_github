@@ -1,11 +1,10 @@
 // ============================================================
 // LINENCE — Catálogo de Servicios
-// Lógica de la pantalla catalogo-servicios.html
+// Lógica de la pestaña "Catálogo" de maestro.html
 // ============================================================
-// Igual que crm.js: reutiliza auth.js y firestore.js. No habla con
+// Reutiliza firestore.js (la sesión la maneja maestro.js). No habla con
 // Firestore directamente en ningún punto de este archivo.
 
-import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   listarServiciosCatalogo, crearServicioCatalogo,
   actualizarServicioCatalogo, cambiarEstadoServicioCatalogo
@@ -42,51 +41,16 @@ const modalEstadoTexto = document.getElementById('modalEstadoTexto');
 
 const toastEl = document.getElementById('catToast');
 
-// ---------- Guardia de sesión (mismo patrón que crm.js / dashboard.js) ----------
+// ---------- Arranque ----------
+// La sesión, el menú lateral y las pestañas los maneja maestro.js.
+// Este módulo se inicia la primera vez que se abre la pestaña "Catálogo".
 
-const dashTopbarMobile = document.getElementById('dashTopbarMobile');
-
-function actualizarVisibilidadTopbar() {
-  dashTopbarMobile.style.display = window.innerWidth <= 900 ? 'flex' : 'none';
-}
-window.addEventListener('resize', actualizarVisibilidadTopbar);
-
-observarSesionStaff((staff) => {
-  if (!staff) {
-    window.location.href = 'login.html';
-    return;
-  }
-  document.getElementById('dashCargando').style.display = 'none';
-  document.getElementById('dashLayout').style.display = '';
-  actualizarVisibilidadTopbar();
-  document.getElementById('staffNombre').textContent = staff.nombre || '—';
-  document.getElementById('staffRol').textContent = staff.rol || '—';
+let iniciado = false;
+export function iniciarCatalogo() {
+  if (iniciado) return;
+  iniciado = true;
   cargarServicios();
-});
-
-document.getElementById('btnCerrarSesion')?.addEventListener('click', async () => {
-  await cerrarSesion();
-  window.location.href = 'login.html';
-});
-
-// ---------- Sidebar mobile (mismo patrón que crm.js) ----------
-
-const btnAbrirSidebar = document.getElementById('btnAbrirSidebar');
-const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-const dashSidebar = document.getElementById('dashSidebar');
-
-function abrirSidebar() {
-  dashSidebar.classList.add('abierto');
-  sidebarOverlay.classList.add('visible');
 }
-function cerrarSidebar() {
-  dashSidebar.classList.remove('abierto');
-  sidebarOverlay.classList.remove('visible');
-}
-btnAbrirSidebar?.addEventListener('click', abrirSidebar);
-btnCerrarSidebar?.addEventListener('click', cerrarSidebar);
-sidebarOverlay?.addEventListener('click', cerrarSidebar);
 
 // ---------- Carga y render ----------
 
