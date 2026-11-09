@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/agenda.css?v=20261021a">
+<link rel="stylesheet" href="css/linence-ui.css?v=1">
 </head>
 <body>
 
@@ -55,22 +56,14 @@
   </aside>
 
   <main class="dash-main agenda" id="vistaAgenda">
-    <div class="dash-top-fijo">
-      <div class="dash-top-encabezado"><h1>Agenda</h1></div>
+    <div class="dash-top-fijo page-fijo" id="agTopWrap">
+      <div class="dash-top-encabezado">
+        <h1>Agenda</h1>
+        <button type="button" class="dash-top-toggle" id="agTopToggle" aria-expanded="false" aria-label="Mostrar buscador y filtros">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
       <p class="subtitulo">Actividades, recordatorios y vencimientos de Linence en un solo lugar.</p>
-
-      <div class="ag-toolbar">
-        <input type="search" id="agBuscador" placeholder="Buscar por título, responsable, recurso…" autocomplete="off">
-        <button class="btn-nuevo-proyecto" id="btnNuevoEvento" type="button">+ Crear evento</button>
-      </div>
-      <div class="ag-filtros" id="agFiltros">
-        <select id="fCat" aria-label="Categoría"></select>
-        <select id="fEstado" aria-label="Estado"></select>
-        <select id="fPrio" aria-label="Prioridad"></select>
-        <select id="fResp" aria-label="Responsable"></select>
-        <button type="button" class="ag-link" id="btnLimpiarFiltros">Limpiar filtros</button>
-      </div>
-
       <nav class="ag-tabs" aria-label="Vistas de la agenda">
         <button type="button" class="ag-tab activa" data-vista="resumen">📊 Resumen</button>
         <button type="button" class="ag-tab" data-vista="semana">🗓️ Semana</button>
@@ -84,6 +77,35 @@
         <button type="button" class="ag-tab" data-vista="configuracion" id="tabConfiguracion" style="display:none;">⚙️ Configuración</button>
       </nav>
     </div>
+
+    <!-- Buscador y filtros: en celular se despliegan con la flechita del título -->
+    <div class="ag-barra" id="agBarra">
+      <div class="ag-toolbar">
+        <input type="search" id="agBuscador" placeholder="Buscar por título, responsable, recurso…" autocomplete="off">
+        <button class="btn-nuevo-proyecto" id="btnNuevoEvento" type="button">+ Crear evento</button>
+      </div>
+      <div class="ag-filtros" id="agFiltros">
+        <select id="fCat" aria-label="Categoría"></select>
+        <select id="fEstado" aria-label="Estado"></select>
+        <select id="fPrio" aria-label="Prioridad"></select>
+        <select id="fResp" aria-label="Responsable"></select>
+        <button type="button" class="ag-link" id="btnLimpiarFiltros">Limpiar filtros</button>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        var toggle = document.getElementById('agTopToggle');
+        var wrap = document.getElementById('agTopWrap');
+        var barra = document.getElementById('agBarra');
+        if (!toggle || !wrap || !barra) return;
+        toggle.addEventListener('click', function(){
+          var abierto = barra.classList.toggle('abierto');
+          wrap.classList.toggle('abierto', abierto);
+          toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+        });
+      })();
+    </script>
 
     <div id="agPaneles">
       <div class="ag-pane" id="paneResumen"></div>

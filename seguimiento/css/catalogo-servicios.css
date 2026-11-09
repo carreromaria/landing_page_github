@@ -326,18 +326,6 @@
     min-width: 0;
   }
 
-  #vistaMaestro .cat-header {
-    position: sticky;
-    top: 54px;
-    z-index: 150;
-    background: var(--cream);
-    margin: 0 -18px 20px;
-    padding: 18px 18px 16px;
-    border-bottom: 1px solid var(--gold-line);
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   /* El botón ahora vive en la barra de filtros */
   #vistaMaestro .cat-filtros .btn-dorado {
     width: 100%;

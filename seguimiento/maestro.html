@@ -13,8 +13,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/catalogo-servicios.css?v=3">
-<link rel="stylesheet" href="css/maestro.css?v=1">
+<link rel="stylesheet" href="css/catalogo-servicios.css?v=4">
+<link rel="stylesheet" href="css/maestro.css?v=2">
+<link rel="stylesheet" href="css/linence-ui.css?v=1">
 </head>
 <body>
 
@@ -55,17 +56,19 @@
   </aside>
 
   <main class="dash-main" id="vistaMaestro">
-    <header class="cat-header">
-      <div>
-        <h1 class="cat-title">Maestro</h1>
-        <p class="subtitulo">Datos base del sistema: servicios del catálogo y tipos de proyecto.</p>
-      </div>
-    </header>
+    <div class="page-fijo">
+      <header class="cat-header">
+        <div>
+          <h1 class="cat-title">Maestro</h1>
+          <p class="subtitulo">Datos base del sistema: servicios del catálogo y tipos de proyecto.</p>
+        </div>
+      </header>
 
-    <!-- Pestañas -->
-    <div class="maestro-tabs" role="tablist" aria-label="Secciones del Maestro">
-      <a href="#catalogo" id="tabCatalogo" class="maestro-tab" role="tab" aria-controls="panelCatalogo" aria-selected="true">🏷️ Catálogo</a>
-      <a href="#tipos" id="tabTipos" class="maestro-tab" role="tab" aria-controls="panelTipos" aria-selected="false" tabindex="-1">🧩 Tipos de proyecto</a>
+      <!-- Pestañas -->
+      <div class="maestro-tabs" role="tablist" aria-label="Secciones del Maestro">
+        <a href="#catalogo" id="tabCatalogo" class="maestro-tab" role="tab" aria-controls="panelCatalogo" aria-selected="true">🏷️ Catálogo</a>
+        <a href="#tipos" id="tabTipos" class="maestro-tab" role="tab" aria-controls="panelTipos" aria-selected="false" tabindex="-1">🧩 Tipos de proyecto</a>
+      </div>
     </div>
 
     <!-- ========== Pestaña: Catálogo ========== -->
