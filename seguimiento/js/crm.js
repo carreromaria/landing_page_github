@@ -9,12 +9,12 @@
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   crearLead, escucharLeads, actualizarLead, agregarNotaLead,
-  cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido,
+  cambiarEtapaLead, marcarLeadGanado, marcarLeadPerdido, reabrirLead,
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion
-} from './firestore.js';
+} from './firestore.js?v=20261110a';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -583,6 +583,22 @@ function abrirDetalleLead(id) {
   marcarEtapaSeleccionada(esCierre ? 'Nuevo contacto' : lead.etapa);
 
   document.getElementById('accionesCierre').style.display = esCierre ? 'none' : '';
+
+  // Lead perdido: se ofrece reabrirlo y se muestra por qué se perdió
+  const esPerdido = lead.etapa === 'Perdido';
+  document.getElementById('wrapReabrir').style.display = esPerdido ? '' : 'none';
+  const avisoPerdido = document.getElementById('avisoPerdido');
+  if (esPerdido) {
+    const fechaPerdido = lead.fechaGanadoOPerdido ? formatearFechaHora(lead.fechaGanadoOPerdido) : '';
+    avisoPerdido.innerHTML = `
+      <strong>Lead perdido${fechaPerdido && fechaPerdido !== '—' ? ' · ' + escapeHtml(fechaPerdido) : ''}</strong>
+      ${lead.motivoPerdida ? `<span>Motivo: ${escapeHtml(lead.motivoPerdida)}</span>` : ''}
+      <span>Si el cliente cambió de decisión, usa “Reabrir lead” para devolverlo al tablero.</span>`;
+    avisoPerdido.style.display = '';
+  } else {
+    avisoPerdido.style.display = 'none';
+    avisoPerdido.innerHTML = '';
+  }
 
   const zonaEliminar = document.getElementById('zonaEliminarLead');
   zonaEliminar.style.display = (STAFF_ACTUAL?.rol === 'admin') ? '' : 'none';
@@ -1171,7 +1187,8 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
   }
 
   try {
-    await marcarLeadPerdido(leadSeleccionadoId, motivo);
+    const leadPerdido = leadsActuales.find(l => l.id === leadSeleccionadoId);
+    await marcarLeadPerdido(leadSeleccionadoId, motivo, leadPerdido?.etapa || null);
     modalPerdido.classList.remove('visible');
     vistaDetalleLead.style.display = 'none';
   agendaCliente.ocultar();
@@ -1180,6 +1197,62 @@ document.getElementById('btnConfirmarPerdido').addEventListener('click', async (
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No se pudo guardar. Intenta de nuevo.';
+    errorEl.classList.add('visible');
+  }
+});
+
+// ---------- Modal: reabrir lead perdido ----------
+
+const modalReabrir = document.getElementById('modalReabrir');
+const ETAPAS_REABRIR = ETAPAS.filter(e => e !== 'Ganado' && e !== 'Perdido');
+mejorarSelect('#selectEtapaReabrir');
+
+document.getElementById('btnReabrirLead').addEventListener('click', () => {
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  if (!lead) return;
+
+  // Si se sabe en qué fase estaba antes de perderse, se propone esa; si no, "En conversación"
+  const sugerida = ETAPAS_REABRIR.includes(lead.etapaAnterior) ? lead.etapaAnterior : 'En conversación';
+  document.getElementById('selectEtapaReabrir').value = sugerida;
+  document.getElementById('reabrirSubtitulo').textContent = ETAPAS_REABRIR.includes(lead.etapaAnterior)
+    ? `Estaba en "${lead.etapaAnterior}" antes de perderse. Puedes elegir otra fase si prefieres.`
+    : 'Vuelve el lead al tablero para seguir trabajándolo.';
+  document.getElementById('inputMotivoReabrir').value = '';
+  document.getElementById('reabrirError').textContent = '';
+  document.getElementById('reabrirError').classList.remove('visible');
+  modalReabrir.classList.add('visible');
+});
+
+document.getElementById('btnCancelarReabrir').addEventListener('click', () => {
+  modalReabrir.classList.remove('visible');
+});
+
+document.getElementById('btnConfirmarReabrir').addEventListener('click', async () => {
+  const errorEl = document.getElementById('reabrirError');
+  const lead = leadsActuales.find(l => l.id === leadSeleccionadoId);
+  const etapaDestino = document.getElementById('selectEtapaReabrir').value;
+  const nota = document.getElementById('inputMotivoReabrir').value.trim();
+
+  if (!lead || !ETAPAS_REABRIR.includes(etapaDestino)) {
+    errorEl.textContent = 'Elige a qué fase vuelve el lead.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  try {
+    await reabrirLead(leadSeleccionadoId, etapaDestino, {
+      motivoPerdida: lead.motivoPerdida || '',
+      nota,
+      autor: STAFF_ACTUAL?.nombre || ''
+    });
+    modalReabrir.classList.remove('visible');
+    vistaDetalleLead.style.display = 'none';
+    agendaCliente.ocultar();
+    vistaKanban.style.display = '';
+    mostrarToast(`Lead reabierto en "${etapaDestino}".`);
+  } catch (err) {
+    console.error(err);
+    errorEl.textContent = 'No se pudo reabrir. Intenta de nuevo.';
     errorEl.classList.add('visible');
   }
 });

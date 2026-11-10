@@ -10,7 +10,7 @@ import { db } from './firebase-config.js';
 import {
   doc, getDoc, setDoc, updateDoc, deleteDoc,
   collection, getDocs, query, orderBy, where,
-  serverTimestamp, writeBatch, arrayUnion, arrayRemove,
+  serverTimestamp, writeBatch, arrayUnion, arrayRemove, deleteField,
   onSnapshot, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -568,15 +568,55 @@ export async function marcarLeadGanado(id, codigoProyecto) {
   });
 }
 
-/** Marca un lead como Perdido, con motivo (para poder analizarlo después). */
-export async function marcarLeadPerdido(id, motivo) {
+/**
+ * Marca un lead como Perdido, con motivo (para poder analizarlo después).
+ * Guarda también la etapa en que estaba, para poder devolverlo a esa fase
+ * si el cliente cambia de decisión (ver reabrirLead).
+ */
+export async function marcarLeadPerdido(id, motivo, etapaAnterior = null) {
   const ref = doc(db, "leads", id);
-  await updateDoc(ref, {
+  const datos = {
     etapa: "Perdido",
     motivoPerdida: motivo,
     fechaGanadoOPerdido: serverTimestamp(),
     etapaActualizadaEn: serverTimestamp(),
     actualizadoEn: serverTimestamp()
+  };
+  if (etapaAnterior) datos.etapaAnterior = etapaAnterior;
+  await updateDoc(ref, datos);
+}
+
+/**
+ * Reabre un lead que estaba Perdido y lo devuelve a una fase activa del
+ * pipeline. Limpia los datos del cierre (motivo, fecha) para que el lead
+ * vuelva a contarse como activo, pero deja constancia en la bitácora de
+ * que estuvo perdido y por qué, así no se pierde el historial.
+ * @param {string} id
+ * @param {string} etapaDestino fase activa a la que vuelve (nunca Ganado/Perdido)
+ * @param {{motivoPerdida?:string, nota?:string, autor?:string}} [info]
+ */
+export async function reabrirLead(id, etapaDestino, info = {}) {
+  const ref = doc(db, "leads", id);
+  const partes = [
+    `Lead reabierto: pasó de "Perdido" a "${etapaDestino}".`
+  ];
+  if (info.motivoPerdida) partes.push(`Motivo por el que se había perdido: ${info.motivoPerdida}`);
+  if (info.nota) partes.push(`Motivo de la reapertura: ${info.nota}`);
+
+  await updateDoc(ref, {
+    etapa: etapaDestino,
+    etapaActualizadaEn: serverTimestamp(),
+    actualizadoEn: serverTimestamp(),
+    fechaUltimoContacto: serverTimestamp(),
+    reabiertoEn: serverTimestamp(),
+    motivoPerdida: deleteField(),
+    fechaGanadoOPerdido: deleteField(),
+    etapaAnterior: deleteField(),
+    notas: arrayUnion({
+      texto: partes.join(" "),
+      autor: info.autor || "",
+      fecha: new Date().toISOString()
+    })
   });
 }
 

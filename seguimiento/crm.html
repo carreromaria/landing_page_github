@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
-<link rel="stylesheet" href="css/crm.css?v=10">
+<link rel="stylesheet" href="css/crm.css?v=11">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=2">
 </head>
@@ -152,7 +152,12 @@
           </ul>
         </div>
       </div>
+      <div class="crm-reabrir-wrap" id="wrapReabrir" style="display:none;">
+        <button type="button" class="btn-primario" id="btnReabrirLead">Reabrir lead</button>
+      </div>
     </div>
+
+    <div class="crm-aviso-perdido" id="avisoPerdido" style="display:none;"></div>
 
     <div class="crm-detalle-card">
       <div class="crm-detalle-card-header">
@@ -537,10 +542,40 @@
   </div>
 </div>
 
+<!-- ================= MODAL: REABRIR LEAD ================= -->
+<div class="modal-overlay" id="modalReabrir">
+  <div class="modal-box">
+    <h2>Reabrir lead</h2>
+    <p class="subtitulo" id="reabrirSubtitulo">Vuelve el lead al tablero para seguir trabajándolo.</p>
+
+    <div class="campo campo-full">
+      <label for="selectEtapaReabrir">¿A qué fase lo devuelves?</label>
+      <select id="selectEtapaReabrir">
+        <option value="Nuevo contacto">Nuevo contacto</option>
+        <option value="En conversación">En conversación</option>
+        <option value="Propuesta enviada">Propuesta enviada</option>
+        <option value="Negociación">Negociación</option>
+      </select>
+    </div>
+
+    <div class="campo campo-full">
+      <label for="inputMotivoReabrir">Motivo de la reapertura (opcional)</label>
+      <textarea id="inputMotivoReabrir" placeholder="Ej. El cliente volvió a escribir y quiere retomar la cotización."></textarea>
+    </div>
+
+    <div class="modal-error" id="reabrirError"></div>
+
+    <div class="modal-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarReabrir">Cancelar</button>
+      <button type="button" class="btn-primario" id="btnConfirmarReabrir">Reabrir lead</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= NOTIFICACIONES TOAST ================= -->
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
-<script type="module" src="js/crm.js?v=20261019a"></script>
+<script type="module" src="js/crm.js?v=20261110a"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>

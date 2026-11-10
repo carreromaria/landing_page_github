@@ -1076,3 +1076,30 @@ html, body{
   border:1px solid var(--gold); border-radius:4px;
   padding:3px 9px;
 }
+
+/* ---------- Lead perdido: botón Reabrir y aviso ---------- */
+.crm-reabrir-wrap{
+  display:flex;
+  align-items:flex-start;
+}
+.crm-aviso-perdido{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin:0 0 20px;
+  padding:14px 18px;
+  background:#fff;
+  border:1px solid #e6d9bd;
+  border-left:4px solid #b8452f;
+  border-radius:12px;
+  font-size:13.5px;
+  color:#4a4a4a;
+}
+.crm-aviso-perdido strong{
+  color:#141213;
+  font-weight:600;
+}
+@media (max-width:900px){
+  .crm-reabrir-wrap .btn-primario{ width:100%; }
+  .crm-reabrir-wrap{ width:100%; margin-top:14px; }
+}
