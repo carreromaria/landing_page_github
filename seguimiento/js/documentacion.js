@@ -5,7 +5,7 @@
 // Busca un proyecto por RUT y genera los documentos del clienteeeeeeeeeee
 // listos para descargar en PDF o imprimir. Los datos de cotizaciónnnnnnnn
 // (folio, ítems, totales, IVA, abono, forma de pago, fechas de
-// entrega y el checklist de la Descripción) se leen SIEMPRE en vivo
+// entrega y el checklist de la Descripción) se leen SIEMPRE en vivooooooo
 // desde el módulo Cotizaciones (colección "cotizaciones", vinculada
 // al proyecto por leadOrigenId). Ya no existe el formulario
 // provisional de cotización dentro de Documentación.
