@@ -755,12 +755,17 @@ function generarCartaBienvenida(p) {
         <p>Con el objetivo de facilitar el cuidado de su mobiliario y mantener sus condiciones originales, ponemos a su disposición la presente documentación, la cual forma parte del expediente oficial de su proyecto:</p>
 
         <ul>
+          <li>Portada institucional.</li>
+          <li>Carta de Bienvenida.</li>
+          <li>Cotización.</li>
+          <li>Descripción de la Cotización.</li>
+          <li>Comprobante de Recepción de Abono.</li>
           <li>Contrato de Venta e Instalación.</li>
-          <li>Acta de Entrega y Recepción Conforme.</li>
-          <li>Certificado de Garantía Comercial.</li>
           <li>Manual de Uso y Mantención.</li>
-          <li>Anexo Técnico de Materiales.</li>
-          <li>Ficha Técnica del Proyecto.</li>
+          li>Certificado de Garantía Comercial.</li>
+          <li>Acta de Entrega y Recepción Conforme.</li>
+          <li>Tarjeta de Servicio Postventa.</li>
+          <li>Tarjeta de Evaluación en Google.</li>
         </ul>
 
         <p>Le recomendamos conservar estos documentos, ya que contienen información relevante sobre las especificaciones técnicas del proyecto, las condiciones de la garantía comercial y las recomendaciones para la correcta conservación del mobiliario.</p>
