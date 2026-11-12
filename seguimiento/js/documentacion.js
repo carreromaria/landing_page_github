@@ -762,7 +762,7 @@ function generarCartaBienvenida(p) {
           <li>Comprobante de Recepción de Abono.</li>
           <li>Contrato de Venta e Instalación.</li>
           <li>Manual de Uso y Mantención.</li>
-          li>Certificado de Garantía Comercial.</li>
+          <li>Certificado de Garantía Comercial.</li>
           <li>Acta de Entrega y Recepción Conforme.</li>
           <li>Tarjeta de Servicio Postventa.</li>
           <li>Tarjeta de Evaluación en Google.</li>
