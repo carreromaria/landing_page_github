@@ -3,7 +3,7 @@
 // Controlador de documentacion.html
 // ============================================================
 // Busca un proyecto por RUT y genera los documentos del clienteeeeeeeeeee
-// listos para descargar en PDF o imprimir. Los datos de cotización
+// listos para descargar en PDF o imprimir. Los datos de cotizaciónnnnnnnn
 // (folio, ítems, totales, IVA, abono, forma de pago, fechas de
 // entrega y el checklist de la Descripción) se leen SIEMPRE en vivo
 // desde el módulo Cotizaciones (colección "cotizaciones", vinculada
