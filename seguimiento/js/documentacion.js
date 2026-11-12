@@ -764,8 +764,6 @@ function generarCartaBienvenida(p) {
           <li>Manual de Uso y Mantención.</li>
           <li>Certificado de Garantía Comercial.</li>
           <li>Acta de Entrega y Recepción Conforme.</li>
-          <li>Tarjeta de Servicio Postventa.</li>
-          <li>Tarjeta de Evaluación en Google.</li>
         </ul>
 
         <p>Le recomendamos conservar estos documentos, ya que contienen información relevante sobre las especificaciones técnicas del proyecto, las condiciones de la garantía comercial y las recomendaciones para la correcta conservación del mobiliario.</p>
