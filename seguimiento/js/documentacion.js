@@ -1192,7 +1192,7 @@ function generarComprobanteAbono(p) {
         Fecha del Pago: ${formatearFechaLarga(cot.fechaPago)}</p>
 
         <p><strong>Los pagos fueron realizados a la siguiente cuenta de:</strong><br>
-        MARIA LOURDES CARRERO<br>26.429.618-8<br>Banco Bci<br>Cuenta Corriente<br>95178252</p>
+        LINENCE SPA<br>78.446.739-2<br>Banco de Chile<br>Cuenta Corriente<br>00-200-30432-01<br>pagos@linence.cl</p>
 
         <p><strong>VI. DESTINO DEL ABONO</strong><br>
         El monto recibido será imputado al proyecto indicado en este comprobante. Este documento acredita la recepción administrativa del abono y no reemplaza la boleta o factura que corresponda emitir conforme a la legislación tributaria chilena.</p>
