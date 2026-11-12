@@ -763,7 +763,7 @@ function generarCartaBienvenida(p) {
           <li>Contrato de Venta e Instalación.</li>
           <li>Manual de Uso y Mantención.</li>
           <li>Certificado de Garantía Comercial.</li>
-          <li>Acta de Entrega y Recepción Conforme.</li>
+          <li>Acta de Entrega y Recepción Conforme..</li>
         </ul>
 
         <p>Le recomendamos conservar estos documentos, ya que contienen información relevante sobre las especificaciones técnicas del proyecto, las condiciones de la garantía comercial y las recomendaciones para la correcta conservación del mobiliario.</p>
