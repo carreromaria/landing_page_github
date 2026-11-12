@@ -769,7 +769,6 @@ function generarCartaBienvenida(p) {
         <p>Le recomendamos conservar estos documentos, ya que contienen información relevante sobre las especificaciones técnicas del proyecto, las condiciones de la garantía comercial y las recomendaciones para la correcta conservación del mobiliario.</p>
 
         <p>En LINENCE creemos que los mejores proyectos nacen de la confianza, el compromiso y la atención a los detalles. Esa filosofía guía nuestro trabajo en cada etapa del proceso, desde el diseño inicial hasta la entrega final.</p>
-
         <p>Esperamos que disfrute plenamente de su nuevo espacio y que este refleje la calidad, funcionalidad y estilo que inspiraron su proyecto.</p>
 
         <p>Agradecemos nuevamente su preferencia y esperamos seguir acompañándolo en sus futuros proyectos.</p>
