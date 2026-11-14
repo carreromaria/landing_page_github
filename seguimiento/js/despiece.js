@@ -23,16 +23,22 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 function moduloNuevo(n) {
   return {id:'m' + Date.now() + Math.floor(Math.random() * 99), nombre:'Módulo ' + n,
-    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
-    colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',puerta:'gres'},
-    vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva'},
+    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, recI:0, recD:0, golas:[], divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
+    colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',gola:'blanco',rec:'blanco',puerta:'gres'},
+    vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva',s:'Vista superior (barra)'},
     categoriaCodigo:'', categoriaNombre:'', subcategoriaId:'', subcategoriaNombre:'', plantilla:'', notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
 }
 // ===== Plantillas de despiece: cada mueble tiene su propia receta =====
 // Se agregan aquí a medida que María indica cómo se construye cada mueble.
 const PLANTILLAS = {
-  aereo: {nombre:'Mueble aéreo', claves:['aereo']}
+  aereo: {nombre:'Mueble aéreo', claves:['aereo']},
+  bajo:  {nombre:'Mueble bajo', claves:['bajo']}
 };
+const DEFECTOS = {
+  aereo: {ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, recI:0, recD:0, barra:6, puertas:2, juego:0.5, sobre:0, golas:[]},
+  bajo:  {ancho:120, alto:80.5, prof:58, espI:1.5, espD:1.5, recI:0.3, recD:0.3, barra:6, puertas:2, juego:0.5, sobre:0, golas:[]}
+};
+const anchoInt = m => m.ancho - (m.espI + (m.recI || 0)) - (m.espD + (m.recD || 0));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const plantillaPara = nombre => Object.entries(PLANTILLAS).find(([, p]) => p.claves.some(c => norm(nombre).includes(c)))?.[0] || '';
 let TIPOS = [], CATALOGO = [];
@@ -49,7 +55,7 @@ async function cargarDespiece() {
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
     if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.plantilla === undefined) m.plantilla = 'aereo'; // módulos anteriores: eran el aéreo
-    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', ...m.colores}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
+    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -97,6 +103,23 @@ async function poblarUsuarios() {
 // ===== Cálculo de piezas =====
 function calcular(m) {
   if (!m.plantilla) return [];
+  return m.plantilla === 'bajo' ? calcularBajo(m) : calcularAereo(m);
+}
+function calcularBajo(m) {
+  const iw = anchoInt(m), eP = Math.min(m.espI, m.espD), n = +m.puertas || 0, sg = m.golas.reduce((a, g) => a + (+g || 0), 0);
+  const p = [
+    {k:'piso',n:'Piso',c:1,a:m.ancho,b:m.prof},
+    {k:'lat',n:'Lateral',c:2,a:m.alto - eP,b:m.prof}
+  ];
+  const nr = (m.recI > 0) + (m.recD > 0);
+  if (nr) p.push({k:'rec',n:'Lateral de recubrimiento',c:nr,a:m.alto,b:m.prof});
+  if (m.barra > 0) p.push({k:'barra',n:'Listón de fijación',c:1,a:iw,b:m.barra});
+  m.golas.forEach((g, i) => p.push({k:'gola',n:'Gola ' + (i + 1),c:1,a:iw,b:+g || 0}));
+  if (m.divisiones.length) p.push({k:'bandeja',n:'Bandeja',c:m.divisiones.length,a:iw,b:m.prof});
+  if (n > 0) p.push({k:'puerta',n:'Puerta',c:n,a:m.alto - 2 * m.juego - sg,b:m.ancho / n - m.juego,puerta:true});
+  return p;
+}
+function calcularAereo(m) {
   const iw = m.ancho - m.espI - m.espD, n = +m.puertas || 0;
   const p = [
     {k:'lat',n:'Lateral exterior',c:2,a:m.alto,b:m.prof},
@@ -142,6 +165,38 @@ function svgFrontal(m, interior) {
   g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.alto));
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
+function txt(x, y, t, a) { return `<text x="${x}" y="${y}" font-size="9" text-anchor="${a || 'middle'}" fill="#141213" font-family="Poppins,sans-serif">${t}</text>`; }
+function svgFrontalBajo(m, interior) {
+  const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, c = m.colores;
+  const eP = Math.min(m.espI, m.espD) * s, rI = m.recI * s, rD = m.recD * s, eI = m.espI * s, eD = m.espD * s, iw = anchoInt(m) * s, x0 = x + rI + eI;
+  let g = '';
+  if (interior) {
+    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="#fff" stroke="#141213" stroke-width=".8"/>`;
+    g += R(x, y + h - eP, w, eP, c.piso);
+    if (rI) g += R(x, y, rI, h, c.rec); g += R(x + rI, y, eI, h - eP, c.lat) + R(x + w - rD - eD, y, eD, h - eP, c.lat); if (rD) g += R(x + w - rD, y, rD, h, c.rec);
+    let yy = y; if (m.barra > 0) { g += R(x0, yy, iw, m.barra * s, c.barra); yy += m.barra * s; }
+    m.golas.forEach(gl => { const gh = (+gl || 0) * s; if (yy + gh <= y + h - eP + .5) { g += R(x0, yy, iw, gh, c.gola); yy += gh; } });
+    g += dimH(x0, x0 + iw, y + h + 16, cm(anchoInt(m)));
+  } else {
+    const n = +m.puertas || 0; let yy = y;
+    m.golas.forEach(gl => { const gh = (+gl || 0) * s; g += R(x, yy, w, gh, c.gola); yy += gh; });
+    const hd = Math.max(y + h - yy, 0);
+    if (n === 0 && !m.golas.length) g += R(x, y, w, h, c.lat);
+    for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, yy, w / n - 1, hd, c.puerta);
+    g += dimH(x, x + w, y + h + 16, cm(m.ancho));
+  }
+  g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.alto));
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
+function svgSuperior(m) {
+  const s = escala(m.ancho, m.prof), w = m.ancho * s, h = m.prof * s, x = (W - w) / 2 + 8, y = 34, c = m.colores;
+  const eI = m.espI * s, eD = m.espD * s, rI = m.recI * s, rD = m.recD * s, iw = anchoInt(m) * s, eP = Math.min(m.espI, m.espD) * s;
+  let g = R(x + rI + eI, y, iw, h, 'blanco').replace('stroke-width=".8"', 'stroke-width=".4" stroke-dasharray="3 2"');
+  if (rI) g += R(x, y, rI, h, c.rec); g += R(x + rI, y, eI, h, c.lat) + R(x + w - rD - eD, y, eD, h, c.lat); if (rD) g += R(x + w - rD, y, rD, h, c.rec);
+  if (m.barra > 0) g += R(x + rI + eI, y, iw, eP, c.barra) + txt(x + w / 2, y + eP + 11, 'Listón de fijación ' + cm(anchoInt(m)) + ' × ' + cm(m.barra) + ' cm');
+  g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.prof)) + txt(x + w / 2, y + h + 14, 'Parte trasera arriba · frente abajo');
+  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
+}
 function svgLateral(m) {
   const s = escala(m.prof, m.alto), w = m.prof * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34;
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${R(x, y, w, h, m.colores.lat)}${dimH(x, x + w, y - 8, cm(m.prof))}${dimV(y, y + h, x - 14, cm(m.alto))}</svg>`;
@@ -150,13 +205,18 @@ function svgPersp(m) {
   const k = 0.42, s = Math.min((W - 80) / (m.ancho + m.prof * k), (H - 70) / (m.alto + m.prof * k));
   const w = m.ancho * s, h = m.alto * s, dx = m.prof * s * k, dy = m.prof * s * k * 0.8, x = 20, y = 40 + dy, c = m.colores, n = +m.puertas || 0;
   const poly = (pts, col) => `<polygon points="${pts}" fill="${hex(col)}" stroke="#141213" stroke-width=".8"/>`;
-  let g = poly(`${x},${y} ${x+w},${y} ${x+w+dx},${y-dy} ${x+dx},${y-dy}`, c.techo) + poly(`${x+w},${y} ${x+w+dx},${y-dy} ${x+w+dx},${y+h-dy} ${x+w},${y+h}`, c.lat);
+  let g = poly(`${x},${y} ${x+w},${y} ${x+w+dx},${y-dy} ${x+dx},${y-dy}`, m.plantilla === 'bajo' ? c.lat : c.techo) + poly(`${x+w},${y} ${x+w+dx},${y-dy} ${x+w+dx},${y+h-dy} ${x+w},${y+h}`, c.lat);
   if (n === 0) g += R(x, y, w, h, c.lat);
   for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, y, w / n - 1, h + m.sobre * s, c.puerta);
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 
 // ===== Hoja del documento =====
+function vistasHtml(m) {
+  const v = (t, svg) => `<div class="dp-v"><h4>${esc(t)}</h4>${svg}</div>`;
+  if (m.plantilla === 'bajo') return v(m.vistas.f, svgFrontalBajo(m, false)) + v(m.vistas.i, svgFrontalBajo(m, true)) + v(m.vistas.l, svgLateral(m)) + v(m.vistas.p, svgPersp(m)) + v(m.vistas.s || 'Vista superior (barra)', svgSuperior(m));
+  return v(m.vistas.f, svgFrontal(m, false)) + v(m.vistas.i, svgFrontal(m, true)) + v(m.vistas.l, svgLateral(m)) + v(m.vistas.p, svgPersp(m));
+}
 const rutaMueble = m => [m.categoriaNombre, m.subcategoriaNombre].filter(Boolean).map(esc).join(' › ');
 function hojaModulo(m, i) {
   if (!m.plantilla) return `<div class="${i ? 'dp-mod-sep' : ''}"><div class="dp-cab"><div><b>${esc(m.nombre)} – ${esc(D.nombre || 'Proyecto')}</b><small>${rutaMueble(m) || 'Sin categoría'}</small></div><div class="dp-marca">LINENCE</div></div><p class="dp-vacio">${m.subcategoriaId ? `El despiece de «${esc(m.subcategoriaNombre)}» aún no está configurado.` : 'Elige la categoría y el mueble (subcategoría) para ver su plano y despiece.'}</p></div>`;
@@ -166,14 +226,9 @@ function hojaModulo(m, i) {
   const puerta = pz.find(p => p.puerta);
   return `<div class="${i ? 'dp-mod-sep' : ''}">
   <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${rutaMueble(m) ? ' · ' + rutaMueble(m) : ''}${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
-  <div class="dp-vistas">
-    <div class="dp-v"><h4>${esc(m.vistas.f)}</h4>${svgFrontal(m, false)}</div>
-    <div class="dp-v"><h4>${esc(m.vistas.i)}</h4>${svgFrontal(m, true)}</div>
-    <div class="dp-v"><h4>${esc(m.vistas.l)}</h4>${svgLateral(m)}</div>
-    <div class="dp-v"><h4>${esc(m.vistas.p)}</h4>${svgPersp(m)}</div>
-  </div>
+  <div class="dp-vistas">${vistasHtml(m)}</div>
   <div class="dp-datos">
-    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
+    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.plantilla === 'bajo' ? `${m.recI > 0 || m.recD > 0 ? `<tr><td>Recubrimiento</td><td>Izq. ${cm(m.recI * 10)} mm · Der. ${cm(m.recD * 10)} mm</td></tr>` : ''}${m.golas.length ? `<tr><td>Golas (cajones)</td><td>${m.golas.length} u. · alto ${m.golas.map(cm).join(' / ')} cm</td></tr>` : ''}<tr><td>Ancho interior</td><td>${cm(anchoInt(m))} cm</td></tr>` : ''}${m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
     <div><h3>Despiece (medidas de fabricación, cm)</h3><table><tr><th>Pieza</th><th>Cant.</th><th>Medidas</th><th>Color</th><th class="col-listo">Listo</th></tr>${filas}</table></div>
   </div>
   ${m.notas ? `<div class="dp-notas"><b>Notas</b>\n${esc(m.notas)}</div>` : ''}</div>`;
@@ -181,7 +236,7 @@ function hojaModulo(m, i) {
 function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join(''); }
 
 // ===== Panel editor =====
-const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
+const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mRecI:'recI', mRecD:'recD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pNombre').readOnly = !!D._origenNombre; $('pCodigo').readOnly = !!q.get('codigo') || !!(D.codigo && D._origenNombre); $('pLead').readOnly = !!D.leadOrigenId && !!D._origenNombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; if ($('pAsignado').value !== (D.asignadoA || '')) $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
@@ -194,9 +249,15 @@ function pintarEditor() {
   $('mSub').value = M().subcategoriaId || '';
   $('mPlantillaInfo').textContent = M().plantilla ? 'Despiece: ' + PLANTILLAS[M().plantilla].nombre : (M().subcategoriaId ? 'Este mueble aún no tiene su despiece configurado.' : '');
   for (const [id, k] of Object.entries(CAMPOS)) $(id).value = M()[k];
-  for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).value = M().vistas[k];
-  pintarBandejas();
-  $('dpColores').innerHTML = PIEZAS.filter(p => p.k !== 'bandeja' || M().divisiones.length > 0).map(p => `<div class="dp-pz"><span>${p.n}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${p.k}" data-c="${c.id}" class="${M().colores[p.k] === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
+  for (const k of ['f', 'i', 'l', 'p', 's']) $('v_' + k).value = M().vistas[k] || '';
+  $('dpEditor').dataset.pl = M().plantilla || '';
+  pintarBandejas(); pintarGolas();
+  const vistos = {}; calcular(M()).forEach(p => { if (!vistos[p.k]) vistos[p.k] = p.k === 'gola' ? 'Gola (cajones)' : p.n; });
+  $('dpColores').innerHTML = Object.entries(vistos).map(([k, nombre]) => `<div class="dp-pz"><span>${nombre}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${k}" data-c="${c.id}" class="${M().colores[k] === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
+}
+function pintarGolas() {
+  const m = M();
+  $('dpGolas').innerHTML = m.golas.map((g, i) => `<div class="dp-div"><label>Gola ${i + 1} · alto (cm)<input type="number" step="0.1" min="1" data-gola="${i}" value="${g}"></label><button class="dp-btn dp-sec" data-quitargola="${i}" title="Quitar gola ${i + 1}">✕</button></div>`).join('') + (m.golas.length ? '<small class="dp-nota">Cada gola es un cajón o frente; las puertas ocupan el alto que queda.</small>' : '');
 }
 function pintarBandejas() {
   const m = M(), esT = Math.min(m.espI, m.espD), interior = m.alto - 2 * esT;
@@ -223,8 +284,12 @@ for (const [id, k] of Object.entries(CAMPOS)) $(id).addEventListener('input', e 
   const num = e.target.type === 'number'; M()[k] = num ? (parseFloat(e.target.value) || 0) : e.target.value; refrescar();
   if (k === 'nombre') pintarEditor();
 });
-for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).addEventListener('input', e => { M().vistas[k] = e.target.value; refrescar(); });
+for (const k of ['f', 'i', 'l', 'p', 's']) $('v_' + k).addEventListener('input', e => { M().vistas[k] = e.target.value; refrescar(); });
 [['pNombre', 'nombre'], ['pCodigo', 'codigo'], ['pLead', 'leadOrigenId'], ['pAsignado', 'asignadoA']].forEach(([id, k]) => $(id).addEventListener('input', e => { D[k] = e.target.value.trim(); refrescar(); }));
+$('btnAddGola').addEventListener('click', () => { M().golas.push(20); pintarEditor(); refrescar(); });
+$('dpGolas').addEventListener('input', e => { const i = e.target.dataset.gola; if (i == null) return; M().golas[+i] = parseFloat(e.target.value) || 0; refrescar(); });
+$('dpGolas').addEventListener('change', () => pintarEditor());
+$('dpGolas').addEventListener('click', e => { const b = e.target.closest('[data-quitargola]'); if (!b) return; M().golas.splice(+b.dataset.quitargola, 1); pintarEditor(); refrescar(); });
 $('btnAddBandeja').addEventListener('click', () => { M().divisiones.push(M().divisiones.length ? 15 : 35); pintarEditor(); refrescar(); });
 $('dpBandejas').addEventListener('input', e => { const i = e.target.dataset.div; if (i == null) return; M().divisiones[+i] = parseFloat(e.target.value) || 0; refrescar(); });
 $('dpBandejas').addEventListener('change', () => pintarEditor());
@@ -234,7 +299,8 @@ $('dpColores').addEventListener('click', e => { const b = e.target.closest('butt
 $('mCat').addEventListener('change', e => { aplicarCategoria(M(), e.target.value); pintarEditor(); refrescar(); });
 $('mSub').addEventListener('change', e => {
   const s = CATALOGO.find(x => x.id === e.target.value), m = M();
-  m.subcategoriaId = s?.id || ''; m.subcategoriaNombre = s?.nombre || ''; m.plantilla = s ? plantillaPara(s.nombre) : '';
+  const previa = m.plantilla; m.subcategoriaId = s?.id || ''; m.subcategoriaNombre = s?.nombre || ''; m.plantilla = s ? plantillaPara(s.nombre) : '';
+  if (m.plantilla && m.plantilla !== previa) Object.assign(m, JSON.parse(JSON.stringify(DEFECTOS[m.plantilla])), {divisiones: []});
   if (s && /^Módulo \d+$/.test(m.nombre)) m.nombre = s.nombre;
   if (s && !m.categoriaCodigo) { const t = TIPOS.find(t => t.nombre === s.categoria); if (t) aplicarCategoria(m, t.codigo); }
   pintarEditor(); refrescar();

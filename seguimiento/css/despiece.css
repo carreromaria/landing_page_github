@@ -51,6 +51,7 @@
 .dp-edit{border-bottom:1px dashed var(--arena);cursor:text;outline:none}.dp-edit:focus{border-bottom:1px solid var(--oro);background:#fff8e6}
 .dp-app input[readonly]{background:#f6f2ea;color:#6b6358}
 .dp-vacio{padding:26px;text-align:center;color:#6b6358;border:1px dashed var(--arena);border-radius:8px}
+#dpEditor:not([data-pl="bajo"]) .solo-bajo{display:none}
 .dp-acc-mod{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:900px){.dp-app{grid-template-columns:1fr}.dp-vistas,.dp-datos{grid-template-columns:1fr}}
 @media print{
