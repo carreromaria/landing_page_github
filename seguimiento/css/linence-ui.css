@@ -324,12 +324,23 @@
     }
 
     /* Agenda: buscador y filtros se despliegan con la flechita */
-    .ag-barra { display: none; }
-    .ag-barra.abierto { display: block; }
+    .ag-controles { display: none; }
+    .ag-controles.abierto { display: block; }
   }
 
   @media (min-width: 901px) {
-    .ag-barra { display: block; }
-    .ag-barra .ag-toolbar { margin-top: 0; }
+    .ag-controles { display: block; }
+    .ag-controles .ag-toolbar { margin-top: 0; }
+
+    /* Menú lateral FIJO: ocupa todo el alto de la pantalla y no se mueve al
+       hacer scroll; solo se desplaza el contenido de la derecha. Si la
+       pantalla es muy baja, el scroll queda dentro del propio menú. */
+    .dash-sidebar {
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+      height: 100vh;
+      overflow-y: auto;
+    }
   }
 }
