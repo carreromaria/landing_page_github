@@ -1,6 +1,6 @@
 // ===== LINENCE · Módulo Despiece =====
 import { observarSesionStaff, cerrarSesion } from './auth.js';
-import { obtenerProyecto, listarUsuariosStaff, obtenerDespiece, buscarDespiecePorLead, guardarDespiece as fsGuardar, marcarAvanceDespiece, listarDespiecesAsignados, obtenerLead } from './firestore.js';
+import { listarTiposProyectoActivos, listarServiciosActivos, obtenerProyecto, listarUsuariosStaff, obtenerDespiece, buscarDespiecePorLead, guardarDespiece as fsGuardar, marcarAvanceDespiece, listarDespiecesAsignados, obtenerLead } from './firestore.js';
 
 const PALETA = [
   {id:'blanco',n:'Blanco',h:'#f2efe9'},{id:'marfil',n:'Marfil',h:'#e6dcc8'},
@@ -26,8 +26,16 @@ function moduloNuevo(n) {
     ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
     colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva'},
-    notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
+    categoriaCodigo:'', categoriaNombre:'', subcategoriaId:'', subcategoriaNombre:'', plantilla:'', notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
 }
+// ===== Plantillas de despiece: cada mueble tiene su propia receta =====
+// Se agregan aquí a medida que María indica cómo se construye cada mueble.
+const PLANTILLAS = {
+  aereo: {nombre:'Mueble aéreo', claves:['aereo']}
+};
+const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const plantillaPara = nombre => Object.entries(PLANTILLAS).find(([, p]) => p.claves.some(c => norm(nombre).includes(c)))?.[0] || '';
+let TIPOS = [], CATALOGO = [];
 let D = {nombre:'', codigo:q.get('codigo') || '', leadOrigenId:q.get('lead') || '', asignadoA:'', modulos:[moduloNuevo(1)], avance:{}};
 let idx = 0;
 const M = () => D.modulos[idx];
@@ -40,7 +48,8 @@ async function cargarDespiece() {
     if (q.get('id')) d = await obtenerDespiece(q.get('id'));
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
-    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', ...m.colores}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
+    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.plantilla === undefined) m.plantilla = 'aereo'; // módulos anteriores: eran el aéreo
+    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', ...m.colores}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -58,14 +67,23 @@ async function traerOrigen() {
   if (MODO_TALLER) return;
   try {
     let leadId = D.leadOrigenId, nombre = '';
+    D.tipoProyectoCodigo = D.tipoProyectoCodigo || '';
     if (D.codigo) {
       const p = await obtenerProyecto(D.codigo);
-      if (p) { nombre = p.cliente || ''; leadId = leadId || p.leadOrigenId || ''; }
+      if (p) { nombre = p.cliente || ''; D.tipoProyectoCodigo = p.tipoProyectoCodigo || D.tipoProyectoCodigo; leadId = leadId || p.leadOrigenId || ''; }
     }
-    if (leadId) { const l = await obtenerLead(leadId); if (l) { D.leadOrigenId = leadId; nombre = l.nombre || nombre; if (!D.codigo && l.proyectoVinculado) D.codigo = l.proyectoVinculado; } }
+    if (leadId) { const l = await obtenerLead(leadId); if (l) { D.tipoProyectoCodigo = D.tipoProyectoCodigo || l.tipoProyectoCodigo || ''; D.leadOrigenId = leadId; nombre = l.nombre || nombre; if (!D.codigo && l.proyectoVinculado) D.codigo = l.proyectoVinculado; } }
     if (nombre) D.nombre = nombre;
     D._origenNombre = !!nombre;
   } catch (e) { console.error(e); }
+}
+async function poblarListas() {
+  if (MODO_TALLER) return;
+  try { [TIPOS, CATALOGO] = await Promise.all([listarTiposProyectoActivos(), listarServiciosActivos()]); } catch (e) { console.error(e); }
+  D.modulos.forEach(m => { if (!m.categoriaCodigo && !m.subcategoriaId && D.tipoProyectoCodigo) aplicarCategoria(m, D.tipoProyectoCodigo); });
+}
+function aplicarCategoria(m, codigo) {
+  m.categoriaCodigo = codigo; m.categoriaNombre = TIPOS.find(t => t.codigo === codigo)?.nombre || m.categoriaNombre || '';
 }
 async function poblarUsuarios() {
   const sel = $('pAsignado'); let us = [];
@@ -78,6 +96,7 @@ async function poblarUsuarios() {
 
 // ===== Cálculo de piezas =====
 function calcular(m) {
+  if (!m.plantilla) return [];
   const iw = m.ancho - m.espI - m.espD, n = +m.puertas || 0;
   const p = [
     {k:'lat',n:'Lateral exterior',c:2,a:m.alto,b:m.prof},
@@ -138,13 +157,15 @@ function svgPersp(m) {
 }
 
 // ===== Hoja del documento =====
+const rutaMueble = m => [m.categoriaNombre, m.subcategoriaNombre].filter(Boolean).map(esc).join(' › ');
 function hojaModulo(m, i) {
+  if (!m.plantilla) return `<div class="${i ? 'dp-mod-sep' : ''}"><div class="dp-cab"><div><b>${esc(m.nombre)} – ${esc(D.nombre || 'Proyecto')}</b><small>${rutaMueble(m) || 'Sin categoría'}</small></div><div class="dp-marca">LINENCE</div></div><p class="dp-vacio">${m.subcategoriaId ? `El despiece de «${esc(m.subcategoriaNombre)}» aún no está configurado.` : 'Elige la categoría y el mueble (subcategoría) para ver su plano y despiece.'}</p></div>`;
   const EDIT = MODO_TALLER ? '' : 'contenteditable="true" spellcheck="false"';
   const pz = calcular(m), conPuertas = +m.puertas > 0;
   const filas = pz.map(p => `<tr><td><span class="dot" style="background:${hex(m.colores[p.k])}"></span>${p.n}</td><td>${p.c}</td><td>${cm(p.a)} × ${cm(p.b)}</td><td>${nombreColor(m.colores[p.k])}</td><td class="col-listo"><input type="checkbox" data-av="${m.id}|${p.k}" ${D.avance?.[m.id + '_' + p.k] ? 'checked' : ''}></td></tr>`).join('');
   const puerta = pz.find(p => p.puerta);
   return `<div class="${i ? 'dp-mod-sep' : ''}">
-  <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
+  <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${rutaMueble(m) ? ' · ' + rutaMueble(m) : ''}${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
   <div class="dp-vistas">
     <div class="dp-v"><h4>${esc(m.vistas.f)}</h4>${svgFrontal(m, false)}</div>
     <div class="dp-v"><h4>${esc(m.vistas.i)}</h4>${svgFrontal(m, true)}</div>
@@ -164,6 +185,14 @@ const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mE
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pNombre').readOnly = !!D._origenNombre; $('pCodigo').readOnly = !!q.get('codigo') || !!(D.codigo && D._origenNombre); $('pLead').readOnly = !!D.leadOrigenId && !!D._origenNombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; if ($('pAsignado').value !== (D.asignadoA || '')) $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
+  $('mCat').innerHTML = '<option value="">Selecciona categoría</option>' + TIPOS.map(t => `<option value="${esc(t.codigo)}">${esc(t.nombre)}</option>`).join('');
+  if (M().categoriaCodigo && !TIPOS.some(t => t.codigo === M().categoriaCodigo)) $('mCat').insertAdjacentHTML('beforeend', `<option value="${esc(M().categoriaCodigo)}">${esc(M().categoriaNombre || M().categoriaCodigo)}</option>`);
+  $('mCat').value = M().categoriaCodigo || '';
+  const grupos = {}; CATALOGO.forEach(s => (grupos[s.categoria || 'Sin categoría'] ||= []).push(s));
+  $('mSub').innerHTML = '<option value="">Selecciona el mueble</option>' + Object.entries(grupos).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map(s => `<option value="${esc(s.id)}">${esc(s.nombre)}</option>`).join('')}</optgroup>`).join('');
+  if (M().subcategoriaId && !CATALOGO.some(s => s.id === M().subcategoriaId)) $('mSub').insertAdjacentHTML('beforeend', `<option value="${esc(M().subcategoriaId)}">${esc(M().subcategoriaNombre)}</option>`);
+  $('mSub').value = M().subcategoriaId || '';
+  $('mPlantillaInfo').textContent = M().plantilla ? 'Despiece: ' + PLANTILLAS[M().plantilla].nombre : (M().subcategoriaId ? 'Este mueble aún no tiene su despiece configurado.' : '');
   for (const [id, k] of Object.entries(CAMPOS)) $(id).value = M()[k];
   for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).value = M().vistas[k];
   pintarBandejas();
@@ -202,6 +231,14 @@ $('dpBandejas').addEventListener('change', () => pintarEditor());
 $('dpBandejas').addEventListener('click', e => { const b = e.target.closest('[data-quitar]'); if (!b) return; M().divisiones.splice(+b.dataset.quitar, 1); pintarEditor(); refrescar(); });
 $('dpTabs').addEventListener('click', e => { const i = e.target.dataset.i; if (i == null) return; if (i === '+') { D.modulos.push(moduloNuevo(D.modulos.length + 1)); idx = D.modulos.length - 1; } else idx = +i; pintarEditor(); refrescar(); });
 $('dpColores').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; M().colores[b.dataset.pz] = b.dataset.c; pintarEditor(); refrescar(); });
+$('mCat').addEventListener('change', e => { aplicarCategoria(M(), e.target.value); pintarEditor(); refrescar(); });
+$('mSub').addEventListener('change', e => {
+  const s = CATALOGO.find(x => x.id === e.target.value), m = M();
+  m.subcategoriaId = s?.id || ''; m.subcategoriaNombre = s?.nombre || ''; m.plantilla = s ? plantillaPara(s.nombre) : '';
+  if (s && /^Módulo \d+$/.test(m.nombre)) m.nombre = s.nombre;
+  if (s && !m.categoriaCodigo) { const t = TIPOS.find(t => t.nombre === s.categoria); if (t) aplicarCategoria(m, t.codigo); }
+  pintarEditor(); refrescar();
+});
 $('btnDuplicarMod').addEventListener('click', () => {
   const copia = JSON.parse(JSON.stringify(M()));
   copia.id = 'm' + Date.now() + Math.floor(Math.random() * 99);
@@ -252,5 +289,5 @@ observarSesionStaff(async (staff) => {
       else { $('dpHoja').innerHTML = '<p>Aún no tienes despieces asignados.</p>'; return; }
     }
   }
-  await cargarDespiece(); await traerOrigen(); await poblarUsuarios(); idx = 0; pintarEditor(); refrescar();
+  await cargarDespiece(); await traerOrigen(); await poblarListas(); await poblarUsuarios(); idx = 0; pintarEditor(); refrescar();
 });

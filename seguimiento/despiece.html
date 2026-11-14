@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=5">
+<link rel="stylesheet" href="css/despiece.css?v=6">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -50,6 +50,11 @@
 
     <section class="dp-card">
       <div class="dp-tabs" id="dpTabs"></div>
+      <div class="dp-fila">
+        <label>Categoría<select id="mCat"></select></label>
+        <label>Subcategoría (mueble)<select id="mSub"></select></label>
+      </div>
+      <small class="dp-nota" id="mPlantillaInfo"></small>
       <label>Nombre del módulo<input id="mNombre"></label>
       <div class="dp-fila3">
         <label>Ancho (cm)<input id="mAncho" type="number" step="0.1" min="1"></label>
@@ -102,6 +107,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=7"></script>
+<script type="module" src="js/despiece.js?v=8"></script>
 </body>
 </html>

@@ -50,6 +50,7 @@
 .dp-aviso{display:block;color:#a33;margin:-4px 0 8px}.dp-nota{display:block;color:#6b6358;margin:0 0 10px}
 .dp-edit{border-bottom:1px dashed var(--arena);cursor:text;outline:none}.dp-edit:focus{border-bottom:1px solid var(--oro);background:#fff8e6}
 .dp-app input[readonly]{background:#f6f2ea;color:#6b6358}
+.dp-vacio{padding:26px;text-align:center;color:#6b6358;border:1px dashed var(--arena);border-radius:8px}
 .dp-acc-mod{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:900px){.dp-app{grid-template-columns:1fr}.dp-vistas,.dp-datos{grid-template-columns:1fr}}
 @media print{
