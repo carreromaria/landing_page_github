@@ -10,7 +10,7 @@ const PALETA = [
 ];
 const PIEZAS = [
   {k:'lat',n:'Lateral exterior'},{k:'techo',n:'Techo interior'},{k:'piso',n:'Piso interior'},
-  {k:'barra',n:'Barra de fijación'},{k:'puerta',n:'Puerta'}
+  {k:'barra',n:'Barra de fijación'},{k:'bandeja',n:'Bandeja'},{k:'puerta',n:'Puerta'}
 ];
 const q = new URLSearchParams(location.search);
 let MODO_TALLER = false; // se define por el rol del usuario (taller); la seguridad real va en firestore.rules
@@ -23,8 +23,8 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 function moduloNuevo(n) {
   return {id:'m' + Date.now() + Math.floor(Math.random() * 99), nombre:'Módulo ' + n,
-    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, puertas:2, juego:0.5, sobre:0, manilla:'si',
-    colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',puerta:'gres'},
+    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, bandejas:0, altBandeja:0, puertas:2, juego:0.5, sobre:0, manilla:'si',
+    colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva'},
     notas:'', avance:{}};
 }
@@ -40,7 +40,7 @@ async function cargarDespiece() {
     if (q.get('id')) d = await obtenerDespiece(q.get('id'));
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
-    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
+    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { m.bandejas = m.bandejas ?? 0; m.altBandeja = m.altBandeja ?? 0; m.colores = {bandeja:'blanco', ...m.colores}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -62,6 +62,7 @@ function calcular(m) {
     {k:'piso',n:'Piso interior',c:1,a:iw,b:m.prof},
     {k:'barra',n:'Barra de fijación',c:1,a:iw,b:m.barra}
   ].filter(x => x.b > 0);
+  if (m.bandejas > 0) p.splice(4, 0, {k:'bandeja',n:'Bandeja',c:+m.bandejas,a:iw,b:m.prof});
   if (n > 0) p.push({k:'puerta',n:'Puerta',c:n,
     a:m.sobre > 0 ? m.alto + m.sobre : m.alto - 2 * m.juego, b:m.ancho / n - m.juego, puerta:true});
   return p;
@@ -81,6 +82,12 @@ function svgFrontal(m, interior) {
     g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#141213" stroke-width=".8"/>`;
     const eT = Math.min(eI, eD); g += R(x, y, eI, h, c.lat) + R(x + w - eD, y, eD, h, c.lat) + R(x + eI, y, w - eI - eD, eT, c.techo) + R(x + eI, y + h - eT, w - eI - eD, eT, c.piso);
     if (m.barra > 0) g += R(x + eI, y + eT, w - eI - eD, m.barra * s, c.barra);
+    const eTcm = Math.min(m.espI, m.espD), libre = m.alto - 2 * eTcm - (m.barra > 0 ? m.barra : 0);
+    for (let i = 1; i <= (+m.bandejas || 0); i++) {
+      const hb = m.altBandeja * i; if (hb + eTcm > m.alto - 2 * eTcm) break; // no cabe: no se dibuja
+      g += R(x + eI, y + h - eT - hb * s - eT, w - eI - eD, eT, c.bandeja);
+      if (i === 1 && m.altBandeja > 0) g += dimV(y + h - eT - hb * s, y + h - eT, x + w + 14, cm(m.altBandeja));
+    }
     g += dimH(x + eI, x + w - eD, y + h + 16, cm(m.ancho - m.espI - m.espD));
   } else {
     const n = +m.puertas || 0, so = m.sobre * s;
@@ -119,7 +126,7 @@ function hojaModulo(m, i) {
     <div class="dp-v"><h4>${esc(m.vistas.p)}</h4>${svgPersp(m)}</div>
   </div>
   <div class="dp-datos">
-    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
+    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.bandejas > 0 ? `<tr><td>Bandejas</td><td>${m.bandejas} u.${m.altBandeja > 0 ? ' · a ' + cm(m.altBandeja) + ' cm del piso' : ''}</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
     <div><h3>Despiece (medidas de fabricación, cm)</h3><table><tr><th>Pieza</th><th>Cant.</th><th>Medidas</th><th>Color</th><th class="col-listo">Listo</th></tr>${filas}</table></div>
   </div>
   ${m.notas ? `<div class="dp-notas"><b>Notas</b>\n${esc(m.notas)}</div>` : ''}</div>`;
@@ -127,13 +134,13 @@ function hojaModulo(m, i) {
 function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join(''); }
 
 // ===== Panel editor =====
-const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
+const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mBarra:'barra', mBandejas:'bandejas', mAltBandeja:'altBandeja', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
   for (const [id, k] of Object.entries(CAMPOS)) $(id).value = M()[k];
   for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).value = M().vistas[k];
-  $('dpColores').innerHTML = PIEZAS.map(p => `<div class="dp-pz"><span>${p.n}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${p.k}" data-c="${c.id}" class="${M().colores[p.k] === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
+  $('dpColores').innerHTML = PIEZAS.filter(p => p.k !== 'bandeja' || M().bandejas > 0).map(p => `<div class="dp-pz"><span>${p.n}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${p.k}" data-c="${c.id}" class="${M().colores[p.k] === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
 }
 function enlaces() {
   const a = [];
@@ -148,7 +155,7 @@ const refrescar = () => { pintarHoja(); enlaces(); };
 // ===== Eventos =====
 for (const [id, k] of Object.entries(CAMPOS)) $(id).addEventListener('input', e => {
   const num = e.target.type === 'number'; M()[k] = num ? (parseFloat(e.target.value) || 0) : e.target.value; refrescar();
-  if (k === 'nombre') pintarEditor();
+  if (k === 'nombre' || k === 'bandejas') pintarEditor();
 });
 for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).addEventListener('input', e => { M().vistas[k] = e.target.value; refrescar(); });
 [['pNombre', 'nombre'], ['pCodigo', 'codigo'], ['pLead', 'leadOrigenId'], ['pAsignado', 'asignadoA']].forEach(([id, k]) => $(id).addEventListener('input', e => { D[k] = e.target.value.trim(); refrescar(); }));

@@ -66,7 +66,11 @@
         <label>Juego (cm)<input id="mJuego" type="number" step="0.1" min="0"></label>
         <label>Sobresale (cm)<input id="mSobre" type="number" step="0.1" min="0"></label>
       </div>
-      <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
+      <div class="dp-fila3">
+        <label>Bandejas (cant.)<input id="mBandejas" type="number" min="0" max="10" step="1"></label>
+        <label>Altura bandeja (cm)<input id="mAltBandeja" type="number" step="0.1" min="0"></label>
+        <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
+      </div>
       <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button>
     </section>
 
@@ -99,6 +103,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=3"></script>
+<script type="module" src="js/despiece.js?v=4"></script>
 </body>
 </html>
