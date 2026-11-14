@@ -1,6 +1,6 @@
 // ===== LINENCE · Módulo Despiece =====
 import { observarSesionStaff, cerrarSesion } from './auth.js';
-import { obtenerDespiece, buscarDespiecePorLead, guardarDespiece as fsGuardar, marcarAvanceDespiece, listarDespiecesAsignados, obtenerLead } from './firestore.js';
+import { obtenerProyecto, listarUsuariosStaff, obtenerDespiece, buscarDespiecePorLead, guardarDespiece as fsGuardar, marcarAvanceDespiece, listarDespiecesAsignados, obtenerLead } from './firestore.js';
 
 const PALETA = [
   {id:'blanco',n:'Blanco',h:'#f2efe9'},{id:'marfil',n:'Marfil',h:'#e6dcc8'},
@@ -26,7 +26,7 @@ function moduloNuevo(n) {
     ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
     colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva'},
-    notas:'', avance:{}};
+    notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
 }
 let D = {nombre:'', codigo:q.get('codigo') || '', leadOrigenId:q.get('lead') || '', asignadoA:'', modulos:[moduloNuevo(1)], avance:{}};
 let idx = 0;
@@ -48,9 +48,32 @@ async function guardarDespiece() {
   const id = DOC_ID || idDoc();
   if (!id) { alert('Indica el código LIN del proyecto o abre el despiece desde el lead.'); return false; }
   try {
-    const {id: _x, actualizadoEn, ...datos} = D;
+    const {id: _x, actualizadoEn, _origenNombre, ...datos} = D;
     await fsGuardar(id, datos, STAFF?.uid); DOC_ID = id; return true;
   } catch (e) { console.error(e); return false; }
+}
+
+// ===== Datos que vienen del sistema (CRM / Proyecto / Usuarios) =====
+async function traerOrigen() {
+  if (MODO_TALLER) return;
+  try {
+    let leadId = D.leadOrigenId, nombre = '';
+    if (D.codigo) {
+      const p = await obtenerProyecto(D.codigo);
+      if (p) { nombre = p.cliente || ''; leadId = leadId || p.leadOrigenId || ''; }
+    }
+    if (leadId) { const l = await obtenerLead(leadId); if (l) { D.leadOrigenId = leadId; nombre = l.nombre || nombre; if (!D.codigo && l.proyectoVinculado) D.codigo = l.proyectoVinculado; } }
+    if (nombre) D.nombre = nombre;
+    D._origenNombre = !!nombre;
+  } catch (e) { console.error(e); }
+}
+async function poblarUsuarios() {
+  const sel = $('pAsignado'); let us = [];
+  if (!MODO_TALLER) { try { us = await listarUsuariosStaff(); } catch (e) { console.error(e); } }
+  us.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+  sel.innerHTML = '<option value="">Sin asignar</option>' + us.filter(u => u.email).map(u => `<option value="${esc(u.email)}">${esc(u.nombre || u.email)}${u.rol ? ' · ' + esc(u.rol) : ''}</option>`).join('');
+  if (D.asignadoA && !us.some(u => u.email === D.asignadoA)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(D.asignadoA)}">${esc(D.asignadoA)}</option>`);
+  sel.value = D.asignadoA || '';
 }
 
 // ===== Cálculo de piezas =====
@@ -116,11 +139,12 @@ function svgPersp(m) {
 
 // ===== Hoja del documento =====
 function hojaModulo(m, i) {
+  const EDIT = MODO_TALLER ? '' : 'contenteditable="true" spellcheck="false"';
   const pz = calcular(m), conPuertas = +m.puertas > 0;
   const filas = pz.map(p => `<tr><td><span class="dot" style="background:${hex(m.colores[p.k])}"></span>${p.n}</td><td>${p.c}</td><td>${cm(p.a)} × ${cm(p.b)}</td><td>${nombreColor(m.colores[p.k])}</td><td class="col-listo"><input type="checkbox" data-av="${m.id}|${p.k}" ${D.avance?.[m.id + '_' + p.k] ? 'checked' : ''}></td></tr>`).join('');
   const puerta = pz.find(p => p.puerta);
   return `<div class="${i ? 'dp-mod-sep' : ''}">
-  <div class="dp-cab"><div><b>${esc(m.nombre)} – ${esc(D.nombre || 'Proyecto')}</b><small>Plano constructivo, medidas y despiece${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
+  <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
   <div class="dp-vistas">
     <div class="dp-v"><h4>${esc(m.vistas.f)}</h4>${svgFrontal(m, false)}</div>
     <div class="dp-v"><h4>${esc(m.vistas.i)}</h4>${svgFrontal(m, true)}</div>
@@ -138,7 +162,7 @@ function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join('
 // ===== Panel editor =====
 const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
-  $('pNombre').value = D.nombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; $('pAsignado').value = D.asignadoA || '';
+  $('pNombre').value = D.nombre; $('pNombre').readOnly = !!D._origenNombre; $('pCodigo').readOnly = !!q.get('codigo') || !!(D.codigo && D._origenNombre); $('pLead').readOnly = !!D.leadOrigenId && !!D._origenNombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; if ($('pAsignado').value !== (D.asignadoA || '')) $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
   for (const [id, k] of Object.entries(CAMPOS)) $(id).value = M()[k];
   for (const k of ['f', 'i', 'l', 'p']) $('v_' + k).value = M().vistas[k];
@@ -181,11 +205,18 @@ $('dpColores').addEventListener('click', e => { const b = e.target.closest('butt
 $('btnDuplicarMod').addEventListener('click', () => {
   const copia = JSON.parse(JSON.stringify(M()));
   copia.id = 'm' + Date.now() + Math.floor(Math.random() * 99);
-  copia.nombre = 'Módulo ' + (D.modulos.length + 1);
+  copia.nombre = (copia.nombre + ' (copia)').replace(/( \(copia\))+$/, ' (copia)');
   D.modulos.splice(idx + 1, 0, copia); idx += 1; pintarEditor(); refrescar();
   $('dpEstado').textContent = 'Módulo duplicado: cambia lo que necesites y guarda';
 });
 $('btnBorrarMod').addEventListener('click', () => { if (D.modulos.length < 2) return alert('El despiece necesita al menos un módulo.'); if (!confirm('¿Quitar este módulo del despiece?')) return; D.modulos.splice(idx, 1); idx = 0; pintarEditor(); refrescar(); });
+$('dpHoja').addEventListener('input', e => {
+  const f = e.target.dataset?.f; if (!f) return;
+  const m = D.modulos.find(x => x.id === e.target.dataset.mod); if (!m) return;
+  m[f] = e.target.textContent.replace(/\s+/g, ' ').trim();
+  pintarEditor(); // solo actualiza el panel; la hoja no se redibuja para no perder el cursor
+});
+$('dpHoja').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset?.f) e.preventDefault(); });
 $('dpHoja').addEventListener('change', async e => { const a = e.target.dataset.av; if (!a) return; const [id, k] = a.split('|'); const clave = id + '_' + k; D.avance = D.avance || {}; D.avance[clave] = e.target.checked; try { await marcarAvanceDespiece(DOC_ID || idDoc(), clave, e.target.checked); } catch (err) { console.error(err); e.target.checked = !e.target.checked; $('dpEstado').textContent = 'No se pudo guardar el avance'; } });
 $('btnGuardar').addEventListener('click', async () => { $('dpEstado').textContent = (await guardarDespiece()) ? 'Guardado' : 'No se pudo guardar'; });
 $('btnPDF').addEventListener('click', () => window.print()); // destino "Guardar como PDF"
@@ -221,5 +252,5 @@ observarSesionStaff(async (staff) => {
       else { $('dpHoja').innerHTML = '<p>Aún no tienes despieces asignados.</p>'; return; }
     }
   }
-  await cargarDespiece(); idx = 0; pintarEditor(); refrescar();
+  await cargarDespiece(); await traerOrigen(); await poblarUsuarios(); idx = 0; pintarEditor(); refrescar();
 });

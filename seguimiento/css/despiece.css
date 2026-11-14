@@ -48,6 +48,8 @@
 .dp-bandejas-cab{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px}
 .dp-div{display:flex;align-items:flex-end;gap:8px}.dp-div label{flex:1}.dp-div .dp-btn{margin-bottom:10px;padding:8px 12px}
 .dp-aviso{display:block;color:#a33;margin:-4px 0 8px}.dp-nota{display:block;color:#6b6358;margin:0 0 10px}
+.dp-edit{border-bottom:1px dashed var(--arena);cursor:text;outline:none}.dp-edit:focus{border-bottom:1px solid var(--oro);background:#fff8e6}
+.dp-app input[readonly]{background:#f6f2ea;color:#6b6358}
 .dp-acc-mod{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:900px){.dp-app{grid-template-columns:1fr}.dp-vistas,.dp-datos{grid-template-columns:1fr}}
 @media print{
@@ -58,5 +60,6 @@
   .dp-hoja{border:0;padding:0}
   .dp-mod-sep{page-break-before:always;border:0;margin:0;padding:0}
   .dp-v,table{break-inside:avoid}
+  .dp-edit{border:0!important;background:none!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }

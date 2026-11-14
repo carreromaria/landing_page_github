@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=4">
+<link rel="stylesheet" href="css/despiece.css?v=5">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -40,12 +40,12 @@
   <div class="dp-editor" id="dpEditor">
     <section class="dp-card">
       <h2>Proyecto</h2>
-      <label>Nombre del proyecto<input id="pNombre" placeholder="Ej: Proyecto Sofía"></label>
+      <label>Nombre del proyecto<input id="pNombre" placeholder="Se completa desde el CRM / Proyecto"></label>
       <div class="dp-fila">
         <label>Código LIN<input id="pCodigo" placeholder="LIN-00000"></label>
         <label>ID del lead<input id="pLead" placeholder="leadOrigenId"></label>
       </div>
-      <label>Asignado a (taller)<input id="pAsignado" placeholder="Correo del trabajador"></label>
+      <label>Asignado a (taller)<select id="pAsignado"><option value="">Sin asignar</option></select></label>
     </section>
 
     <section class="dp-card">
@@ -102,6 +102,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=6"></script>
+<script type="module" src="js/despiece.js?v=7"></script>
 </body>
 </html>
