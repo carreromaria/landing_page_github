@@ -178,6 +178,13 @@ $('dpBandejas').addEventListener('change', () => pintarEditor());
 $('dpBandejas').addEventListener('click', e => { const b = e.target.closest('[data-quitar]'); if (!b) return; M().divisiones.splice(+b.dataset.quitar, 1); pintarEditor(); refrescar(); });
 $('dpTabs').addEventListener('click', e => { const i = e.target.dataset.i; if (i == null) return; if (i === '+') { D.modulos.push(moduloNuevo(D.modulos.length + 1)); idx = D.modulos.length - 1; } else idx = +i; pintarEditor(); refrescar(); });
 $('dpColores').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; M().colores[b.dataset.pz] = b.dataset.c; pintarEditor(); refrescar(); });
+$('btnDuplicarMod').addEventListener('click', () => {
+  const copia = JSON.parse(JSON.stringify(M()));
+  copia.id = 'm' + Date.now() + Math.floor(Math.random() * 99);
+  copia.nombre = 'Módulo ' + (D.modulos.length + 1);
+  D.modulos.splice(idx + 1, 0, copia); idx += 1; pintarEditor(); refrescar();
+  $('dpEstado').textContent = 'Módulo duplicado: cambia lo que necesites y guarda';
+});
 $('btnBorrarMod').addEventListener('click', () => { if (D.modulos.length < 2) return alert('El despiece necesita al menos un módulo.'); if (!confirm('¿Quitar este módulo del despiece?')) return; D.modulos.splice(idx, 1); idx = 0; pintarEditor(); refrescar(); });
 $('dpHoja').addEventListener('change', async e => { const a = e.target.dataset.av; if (!a) return; const [id, k] = a.split('|'); const clave = id + '_' + k; D.avance = D.avance || {}; D.avance[clave] = e.target.checked; try { await marcarAvanceDespiece(DOC_ID || idDoc(), clave, e.target.checked); } catch (err) { console.error(err); e.target.checked = !e.target.checked; $('dpEstado').textContent = 'No se pudo guardar el avance'; } });
 $('btnGuardar').addEventListener('click', async () => { $('dpEstado').textContent = (await guardarDespiece()) ? 'Guardado' : 'No se pudo guardar'; });

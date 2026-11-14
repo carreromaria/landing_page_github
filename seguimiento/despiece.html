@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=3">
+<link rel="stylesheet" href="css/despiece.css?v=4">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -69,7 +69,8 @@
       <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
       <div class="dp-bandejas-cab"><b>Bandejas</b><button class="dp-btn dp-sec" id="btnAddBandeja">+ Bandeja</button></div>
       <div id="dpBandejas"></div>
-      <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button>
+      <div class="dp-acc-mod"><button class="dp-btn dp-sec" id="btnDuplicarMod">Duplicar este módulo</button>
+      <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button></div>
     </section>
 
     <section class="dp-card">
@@ -101,6 +102,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=5"></script>
+<script type="module" src="js/despiece.js?v=6"></script>
 </body>
 </html>
