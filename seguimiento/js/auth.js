@@ -48,6 +48,10 @@ export function observarSesionStaff(callback) {
       const valido = staff && staff.activo === true ? staff : null;
       // Cierre de sesión por inactividad (40 min) para TODAS las páginas
       // protegidas y todos los usuarios de staff: se activa aquí, una sola vez.
+      // Rol "taller": solo puede usar despiece.html (el resto del panel lo redirige).
+      if (valido && valido.rol === 'taller' && !location.pathname.endsWith('despiece.html')) {
+        location.href = 'despiece.html'; return;
+      }
       if (valido) iniciarControlInactividad({ cerrarSesion, redirigirA: 'login.html' });
       callback(valido);
     } catch (err) {

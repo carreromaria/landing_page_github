@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Despiece · LINENCE</title>
+<link rel="icon" type="image/png" href="../favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/linence-ui.css?v=4">
+<link rel="stylesheet" href="css/despiece.css?v=2">
+</head>
+<body>
+<div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
+<div class="dash-layout" id="dashLayout" style="display:none;">
+  <aside class="dash-sidebar" id="dashSidebar">
+    <img src="assets/img/logo-wordmark-claro.png" alt="Linence" class="logo-sidebar-desktop">
+    <ul class="dash-nav" id="dpNav">
+      <li><a href="dashboard.html">📋 <span class="texto">Proyectos</span></a></li>
+      <li><a href="crm.html">👥 <span class="texto">CRM</span></a></li>
+      <li><a href="agenda.html">📅 <span class="texto">Agenda</span></a></li>
+      <li><a href="documentacion.html">🗂️ <span class="texto">Documentación</span></a></li>
+      <li><a href="cotizaciones.html">📄 <span class="texto">Cotizaciones</span></a></li>
+      <li><a href="despiece.html" class="activo">📐 <span class="texto">Despiece</span></a></li>
+      <li><a href="maestro.html">🗃️ <span class="texto">Maestro</span></a></li>
+      <li><a href="reportes.html">📊 <span class="texto">Reportes</span></a></li>
+    </ul>
+    <div class="dash-user">
+      <div class="nombre" id="staffNombre">—</div>
+      <div class="rol" id="staffRol">—</div>
+      <button id="btnCerrarSesion">Cerrar sesión</button>
+    </div>
+  </aside>
+  <main class="dash-main">
+    <h1>Despiece</h1>
+    <nav class="dp-top-links" id="dpEnlaces"></nav>
+    <div class="dp-app">
+  <div class="dp-editor" id="dpEditor">
+    <section class="dp-card">
+      <h2>Proyecto</h2>
+      <label>Nombre del proyecto<input id="pNombre" placeholder="Ej: Proyecto Sofía"></label>
+      <div class="dp-fila">
+        <label>Código LIN<input id="pCodigo" placeholder="LIN-00000"></label>
+        <label>ID del lead<input id="pLead" placeholder="leadOrigenId"></label>
+      </div>
+      <label>Asignado a (taller)<input id="pAsignado" placeholder="Correo del trabajador"></label>
+    </section>
+
+    <section class="dp-card">
+      <div class="dp-tabs" id="dpTabs"></div>
+      <label>Nombre del módulo<input id="mNombre"></label>
+      <div class="dp-fila3">
+        <label>Ancho (cm)<input id="mAncho" type="number" step="0.1" min="1"></label>
+        <label>Alto (cm)<input id="mAlto" type="number" step="0.1" min="1"></label>
+        <label>Fondo (cm)<input id="mProf" type="number" step="0.1" min="1"></label>
+      </div>
+      <div class="dp-fila3">
+        <label>Espesor (cm)<input id="mEsp" type="number" step="0.1" min="0.5"></label>
+        <label>Barra (cm)<input id="mBarra" type="number" step="0.1" min="0"></label>
+        <label>Puertas<input id="mPuertas" type="number" min="0" max="4"></label>
+      </div>
+      <div class="dp-fila3">
+        <label>Juego (cm)<input id="mJuego" type="number" step="0.1" min="0"></label>
+        <label>Sobresale (cm)<input id="mSobre" type="number" step="0.1" min="0"></label>
+        <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
+      </div>
+      <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button>
+    </section>
+
+    <section class="dp-card">
+      <h2>Color por pieza</h2>
+      <div id="dpColores"></div>
+    </section>
+
+    <section class="dp-card">
+      <h2>Nombre de cada vista</h2>
+      <label>Vista 1<input id="v_f"></label>
+      <label>Vista 2<input id="v_i"></label>
+      <label>Vista 3<input id="v_l"></label>
+      <label>Vista 4<input id="v_p"></label>
+      <label>Notas del módulo<textarea id="mNotas" rows="3"></textarea></label>
+    </section>
+  </div>
+
+  <section class="dp-vista">
+    <div class="dp-acciones">
+      <button class="dp-btn dp-pri" id="btnGuardar">Guardar</button>
+      <button class="dp-btn dp-sec" id="btnPDF">Descargar PDF</button>
+      <button class="dp-btn dp-sec" id="btnPNG">Descargar imágenes</button>
+      <button class="dp-btn dp-sec" id="btnCompartir">Compartir</button>
+      <a class="dp-btn dp-sec" id="btnWsp" target="_blank" rel="noopener">WhatsApp</a>
+      <span class="dp-estado" id="dpEstado"></span>
+    </div>
+    <div class="dp-hoja" id="dpHoja"></div>
+  </section>
+    </div>
+  </main>
+</div>
+<script type="module" src="js/despiece.js?v=2"></script>
+</body>
+</html>

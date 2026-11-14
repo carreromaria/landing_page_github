@@ -1418,3 +1418,34 @@ export function escucharConfigAgenda(callback, onError) {
 export async function guardarConfigAgenda(datos, uid) {
   await setDoc(doc(db, "agendaConfig", "automatizaciones"), { ...datos, actualizadoPor: uid, actualizadoEn: serverTimestamp() });
 }
+
+
+// ---------- Despieces (planos de fabricación) ----------
+// despieces/{id}  id = código LIN-XXXXX del proyecto, o "lead_<leadId>" si aún no hay proyecto.
+// Campos: nombre, codigo, leadOrigenId, asignadoA (correo del taller), modulos[], avance{ "<moduloId>_<pieza>": bool }.
+// No contiene RUT, teléfono ni montos (el taller solo ve fabricación). Nunca se elimina.
+
+export async function obtenerDespiece(id) {
+  const snap = await getDoc(doc(db, "despieces", id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function buscarDespiecePorLead(leadId) {
+  const snap = await getDocs(query(collection(db, "despieces"), where("leadOrigenId", "==", leadId)));
+  return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+}
+
+export async function guardarDespiece(id, datos, uid) {
+  await setDoc(doc(db, "despieces", id), limpiarUndefined({ ...datos, actualizadoPor: uid, actualizadoEn: serverTimestamp() }), { merge: true });
+}
+
+/** El taller solo marca avance: no toca el resto del documento. */
+export async function marcarAvanceDespiece(id, clave, valor) {
+  await updateDoc(doc(db, "despieces", id), { [`avance.${clave}`]: !!valor, actualizadoEn: serverTimestamp() });
+}
+
+/** Despieces asignados a un trabajador (por su correo). */
+export async function listarDespiecesAsignados(correo) {
+  const snap = await getDocs(query(collection(db, "despieces"), where("asignadoA", "==", correo)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}

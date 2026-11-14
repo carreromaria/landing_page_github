@@ -608,15 +608,19 @@ function abrirDetalleLead(id) {
   // Acceso directo al módulo Documentación, ya con este cliente cargado
   // (busca por RUT ahí, así que sin RUT en el lead no hay a dónde ir).
   const linkDocumentacionEl = document.getElementById('detalleLinkDocumentacion');
-  if (lead.proyectoVinculado || lead.rut) {
-    // Con proyecto vinculado se abre ese proyecto exacto; si no, se busca por RUT.
+  {
+    // Enlaces de la ficha: Documentación (si hay proyecto o RUT) y Despiece (siempre).
     const destinoDoc = lead.proyectoVinculado
       ? `codigo=${encodeURIComponent(lead.proyectoVinculado)}`
-      : `rut=${encodeURIComponent(lead.rut)}`;
+      : (lead.rut ? `rut=${encodeURIComponent(lead.rut)}` : '');
+    const destinoDesp = `lead=${encodeURIComponent(lead.id)}` + (lead.proyectoVinculado ? `&codigo=${encodeURIComponent(lead.proyectoVinculado)}` : '');
+    const enlaces = [];
+    if (destinoDoc) enlaces.push(`<a href="documentacion.html?${destinoDoc}">Ver documentos en Documentación ↗</a>`);
+    // El despiece solo se ofrece con el lead Ganado (ya existe el proyecto LIN).
+    if (lead.etapa === 'Ganado' && lead.proyectoVinculado) enlaces.push(`<a href="despiece.html?${destinoDesp}">Ver despiece ↗</a>`);
+    if (!enlaces.length) { linkDocumentacionEl.style.display = 'none'; } else
     linkDocumentacionEl.style.display = '';
-    linkDocumentacionEl.innerHTML = `<a href="documentacion.html?${destinoDoc}">Ver documentos en Documentación ↗</a>`;
-  } else {
-    linkDocumentacionEl.style.display = 'none';
+    linkDocumentacionEl.innerHTML = enlaces.join('<br>');
   }
 
   const selectEtapaWrap = document.querySelector('.crm-select-etapa-wrap');
