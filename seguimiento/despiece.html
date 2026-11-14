@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=2">
+<link rel="stylesheet" href="css/despiece.css?v=3">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -66,11 +66,9 @@
         <label>Juego (cm)<input id="mJuego" type="number" step="0.1" min="0"></label>
         <label>Sobresale (cm)<input id="mSobre" type="number" step="0.1" min="0"></label>
       </div>
-      <div class="dp-fila3">
-        <label>Bandejas (cant.)<input id="mBandejas" type="number" min="0" max="10" step="1"></label>
-        <label>Altura bandeja (cm)<input id="mAltBandeja" type="number" step="0.1" min="0"></label>
-        <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
-      </div>
+      <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
+      <div class="dp-bandejas-cab"><b>Bandejas</b><button class="dp-btn dp-sec" id="btnAddBandeja">+ Bandeja</button></div>
+      <div id="dpBandejas"></div>
       <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button>
     </section>
 
@@ -103,6 +101,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=4"></script>
+<script type="module" src="js/despiece.js?v=5"></script>
 </body>
 </html>
