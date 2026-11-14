@@ -13,12 +13,14 @@ import {
   listarUsuariosStaff, eliminarLead, crearProyectoConCodigoAutomatico,
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
-  listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion
-} from './firestore.js?v=20261110a';
+  listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
+  escucharEventosAbiertos
+} from './firestore.js?v=20261114a';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
+import { TIPOS_ACTIVIDAD, estaAbierto, hoyStr, formatoFechaCorta } from './agenda-motor.js';
 
 // ---------- Configuración del pipeline ----------
 
@@ -187,6 +189,33 @@ let STAFF_ACTUAL = null;
 let usuariosStaff = [];
 let leadsActuales = [];
 let leadSeleccionadoId = null;
+
+// Próxima actividad agendada de cada lead (visita, toma de medidas, reunión…): se muestra en su tarjeta.
+let eventoProximoPorLead = new Map();
+let dejarDeEscucharEventos = null;
+
+function calcularProximoEventoPorLead(eventos) {
+  const hoy = hoyStr();
+  const mapa = new Map();
+  (eventos || []).forEach(ev => {
+    if (!ev.leadId || !ev.proximaFecha) return;
+    if (ev.categoria && ev.categoria !== 'actividad') return;
+    if (ev.estado === 'borrador' || !estaAbierto(ev.estado)) return;
+    if (ev.proximaFecha < hoy) return;                       // solo lo que está por venir (o es hoy)
+    const clave = `${ev.proximaFecha} ${ev.todoElDia ? '99:99' : (ev.horaInicio || '99:99')}`;
+    const actual = mapa.get(ev.leadId);
+    if (!actual || clave < actual.clave) mapa.set(ev.leadId, { ev, clave });
+  });
+  return new Map([...mapa].map(([id, v]) => [id, v.ev]));
+}
+
+function escucharEventosParaTarjetas() {
+  dejarDeEscucharEventos?.();
+  dejarDeEscucharEventos = escucharEventosAbiertos(
+    (eventos) => { eventoProximoPorLead = calcularProximoEventoPorLead(eventos); renderKanban(); },
+    () => { /* sin eventos la tarjeta simplemente no muestra la actividad */ }
+  );
+}
 
 // Agenda del cliente: visita, toma de medidas y reunión de diseño se agendan aquí, antes de que exista el proyecto.
 // El bloque lo dibuja el componente compartido (el mismo que usa Proyectos); las actividades quedan en la
@@ -389,6 +418,7 @@ async function inicializar() {
     mostrarToast('No se pudo cargar el catálogo de servicios.', 'error');
   }
 
+  escucharEventosParaTarjetas();
   dejarDeEscucharLeads = escucharLeads(
     (leads) => {
       leadsActuales = leads;
@@ -503,11 +533,23 @@ function tarjetaHtml(lead) {
     tiempoTexto = dias === 0 ? 'hoy' : `hace ${dias} día${dias === 1 ? '' : 's'}`;
   }
 
+  // Ubicación del proyecto (comuna; si no hay, la región) y próxima actividad agendada
+  const dir = lead.direccion || {};
+  const ubicacion = dir.comuna || dir.region || '';
+  const evento = eventoProximoPorLead.get(lead.id);
+  let eventoHtml = '';
+  if (evento) {
+    const tipo = TIPOS_ACTIVIDAD[evento.tipo] || { nombre: evento.titulo || 'Actividad', icono: '📋' };
+    const hora = evento.horaInicio && !evento.todoElDia ? ` ${evento.horaInicio}` : '';
+    eventoHtml = `<div class="crm-card-evento" title="${escapeHtml(evento.titulo || tipo.nombre)}">${tipo.icono} ${escapeHtml(tipo.nombre)} · ${escapeHtml(formatoFechaCorta(evento.proximaFecha))}${escapeHtml(hora)}</div>`;
+  }
+
   return `
     <div class="crm-card ${claseCierre}" data-lead-id="${lead.id}" tabindex="0">
       ${lead.codigoLead ? `<div class="crm-card-codigo">${escapeHtml(lead.codigoLead)}</div>` : ''}
       <div class="crm-card-nombre">${escapeHtml(lead.nombre)}</div>
-      <div class="crm-card-meta">${escapeHtml(lead.tipoProyecto || '—')} · ${CANALES[lead.canalOrigen] || lead.canalOrigen || '—'}</div>
+      <div class="crm-card-meta">${escapeHtml(lead.tipoProyecto || '—')}${ubicacion ? `<span class="crm-card-ubicacion">${escapeHtml(ubicacion)}</span>` : ''}</div>
+      ${eventoHtml}
       <div class="crm-card-tiempo ${alertaClase}">${tiempoTexto}</div>
     </div>
   `;
@@ -1240,6 +1282,7 @@ document.getElementById('btnConfirmarReabrir').addEventListener('click', async (
   }
 
   try {
+    console.info('[CRM] Reabriendo lead', leadSeleccionadoId, '→', etapaDestino);
     await reabrirLead(leadSeleccionadoId, etapaDestino, {
       motivoPerdida: lead.motivoPerdida || '',
       nota,
@@ -1249,10 +1292,11 @@ document.getElementById('btnConfirmarReabrir').addEventListener('click', async (
     vistaDetalleLead.style.display = 'none';
     agendaCliente.ocultar();
     vistaKanban.style.display = '';
+    console.info('[CRM] Lead reabierto');
     mostrarToast(`Lead reabierto en "${etapaDestino}".`);
   } catch (err) {
-    console.error(err);
-    errorEl.textContent = 'No se pudo reabrir. Intenta de nuevo.';
+    console.error('[CRM] No se pudo reabrir el lead:', err);
+    errorEl.textContent = `No se pudo reabrir (${err?.code || err?.message || 'error desconocido'}). Intenta de nuevo.`;
     errorEl.classList.add('visible');
   }
 });

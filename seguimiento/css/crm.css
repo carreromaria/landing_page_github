@@ -1103,3 +1103,24 @@ html, body{
   .crm-reabrir-wrap .btn-primario{ width:100%; }
   .crm-reabrir-wrap{ width:100%; margin-top:14px; }
 }
+
+/* ---------- Tarjeta del lead: ubicación y próxima actividad ---------- */
+.crm-card-ubicacion{
+  display:block;
+  margin-top:3px;
+  color:#fff;
+  font-weight:500;
+}
+.crm-card-evento{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0 0 10px;
+  padding:6px 8px;
+  border-radius:6px;
+  background:rgba(214,165,44,0.16);
+  color:var(--gold);
+  font-size:11.5px;
+  font-weight:500;
+  line-height:1.3;
+}

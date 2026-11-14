@@ -603,21 +603,26 @@ export async function reabrirLead(id, etapaDestino, info = {}) {
   if (info.motivoPerdida) partes.push(`Motivo por el que se había perdido: ${info.motivoPerdida}`);
   if (info.nota) partes.push(`Motivo de la reapertura: ${info.nota}`);
 
-  await updateDoc(ref, {
-    etapa: etapaDestino,
-    etapaActualizadaEn: serverTimestamp(),
-    actualizadoEn: serverTimestamp(),
-    fechaUltimoContacto: serverTimestamp(),
-    reabiertoEn: serverTimestamp(),
-    motivoPerdida: deleteField(),
-    fechaGanadoOPerdido: deleteField(),
-    etapaAnterior: deleteField(),
-    notas: arrayUnion({
-      texto: partes.join(" "),
-      autor: info.autor || "",
-      fecha: new Date().toISOString()
-    })
-  });
+  // 1) El cambio de fase usa el mismo camino que ya funciona al mover un lead
+  //    de etapa (reinicia también los días sin contacto). Si esto falla, se avisa.
+  await cambiarEtapaLead(id, etapaDestino);
+
+  // 2) Limpieza del cierre y constancia en la bitácora. Si algo de esto fallara,
+  //    el lead ya quedó reabierto: no se aborta, solo se deja aviso en consola.
+  try {
+    await updateDoc(ref, {
+      motivoPerdida: deleteField(),
+      fechaGanadoOPerdido: deleteField(),
+      etapaAnterior: deleteField(),
+      notas: arrayUnion({
+        texto: partes.join(" "),
+        autor: info.autor || "",
+        fecha: new Date().toISOString()
+      })
+    });
+  } catch (err) {
+    console.warn("El lead se reabrió, pero no se pudo limpiar el cierre ni escribir la bitácora:", err);
+  }
 }
 
 /** Elimina un lead por completo. Requiere rol admin (ver firestore.rules). */
