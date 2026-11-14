@@ -57,15 +57,16 @@
         <label>Fondo (cm)<input id="mProf" type="number" step="0.1" min="1"></label>
       </div>
       <div class="dp-fila3">
-        <label>Espesor (cm)<input id="mEsp" type="number" step="0.1" min="0.5"></label>
+        <label>Espesor izquierdo (cm)<input id="mEspI" type="number" step="0.1" min="0.5"></label>
+        <label>Espesor derecho (cm)<input id="mEspD" type="number" step="0.1" min="0.5"></label>
         <label>Barra (cm)<input id="mBarra" type="number" step="0.1" min="0"></label>
-        <label>Puertas<input id="mPuertas" type="number" min="0" max="4"></label>
       </div>
       <div class="dp-fila3">
+        <label>Puertas<input id="mPuertas" type="number" min="0" max="4"></label>
         <label>Juego (cm)<input id="mJuego" type="number" step="0.1" min="0"></label>
         <label>Sobresale (cm)<input id="mSobre" type="number" step="0.1" min="0"></label>
-        <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
       </div>
+      <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
       <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button>
     </section>
 
@@ -98,6 +99,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=2"></script>
+<script type="module" src="js/despiece.js?v=3"></script>
 </body>
 </html>

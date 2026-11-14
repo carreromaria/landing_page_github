@@ -23,7 +23,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 
 function moduloNuevo(n) {
   return {id:'m' + Date.now() + Math.floor(Math.random() * 99), nombre:'Módulo ' + n,
-    ancho:60, alto:53.5, prof:33, esp:1.5, barra:6, puertas:2, juego:0.5, sobre:0, manilla:'si',
+    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, puertas:2, juego:0.5, sobre:0, manilla:'si',
     colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva'},
     notas:'', avance:{}};
@@ -40,7 +40,7 @@ async function cargarDespiece() {
     if (q.get('id')) d = await obtenerDespiece(q.get('id'));
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
-    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; }
+    if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -55,7 +55,7 @@ async function guardarDespiece() {
 
 // ===== Cálculo de piezas =====
 function calcular(m) {
-  const iw = m.ancho - 2 * m.esp, n = +m.puertas || 0;
+  const iw = m.ancho - m.espI - m.espD, n = +m.puertas || 0;
   const p = [
     {k:'lat',n:'Lateral exterior',c:2,a:m.alto,b:m.prof},
     {k:'techo',n:'Techo interior',c:1,a:iw,b:m.prof},
@@ -75,13 +75,13 @@ const R = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"
 const escala = (w, h) => Math.min((W - 70) / w, (H - 60) / h);
 
 function svgFrontal(m, interior) {
-  const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, e = m.esp * s, c = m.colores;
+  const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, eI = m.espI * s, eD = m.espD * s, c = m.colores;
   let g = '';
   if (interior) {
     g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#141213" stroke-width=".8"/>`;
-    g += R(x, y, e, h, c.lat) + R(x + w - e, y, e, h, c.lat) + R(x + e, y, w - 2 * e, e, c.techo) + R(x + e, y + h - e, w - 2 * e, e, c.piso);
-    if (m.barra > 0) g += R(x + e, y + e, w - 2 * e, m.barra * s, c.barra);
-    g += dimH(x + e, x + w - e, y + h + 16, cm(m.ancho - 2 * m.esp));
+    const eT = Math.min(eI, eD); g += R(x, y, eI, h, c.lat) + R(x + w - eD, y, eD, h, c.lat) + R(x + eI, y, w - eI - eD, eT, c.techo) + R(x + eI, y + h - eT, w - eI - eD, eT, c.piso);
+    if (m.barra > 0) g += R(x + eI, y + eT, w - eI - eD, m.barra * s, c.barra);
+    g += dimH(x + eI, x + w - eD, y + h + 16, cm(m.ancho - m.espI - m.espD));
   } else {
     const n = +m.puertas || 0, so = m.sobre * s;
     if (n === 0) g += R(x, y, w, h, c.lat);
@@ -119,7 +119,7 @@ function hojaModulo(m, i) {
     <div class="dp-v"><h4>${esc(m.vistas.p)}</h4>${svgPersp(m)}</div>
   </div>
   <div class="dp-datos">
-    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${cm(m.esp * 10)} mm</td></tr>${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
+    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
     <div><h3>Despiece (medidas de fabricación, cm)</h3><table><tr><th>Pieza</th><th>Cant.</th><th>Medidas</th><th>Color</th><th class="col-listo">Listo</th></tr>${filas}</table></div>
   </div>
   ${m.notas ? `<div class="dp-notas"><b>Notas</b>\n${esc(m.notas)}</div>` : ''}</div>`;
@@ -127,7 +127,7 @@ function hojaModulo(m, i) {
 function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join(''); }
 
 // ===== Panel editor =====
-const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEsp:'esp', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
+const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
