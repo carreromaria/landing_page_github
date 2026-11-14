@@ -203,7 +203,8 @@ function renderResumen() {
   const atencion = alertas.slice(0, 8).map(a => `<div class="ag-fila ${a.nivel === 'proximo' ? 'naranja' : 'rojo'}" data-ev="${esc(a.ev.id)}">
       <div class="ag-fila-hora">${esc(M.cuandoCorto(a.ev))}</div>
       <div class="ag-fila-cuerpo"><div class="ag-fila-titulo">${iconoEv(a.ev)} ${esc(a.ev.titulo)}</div><div class="ag-fila-sub">${esc([a.texto, resumenDatos(a.ev)].filter(Boolean).join(' · '))}</div></div>
-      <div class="ag-fila-tags">${badgePrioridad(a.ev)}</div></div>`).join('');
+      <div class="ag-fila-tags">${badgePrioridad(a.ev)}</div>
+      <div class="ag-fila-acc"><button type="button" class="ag-mini" data-accion="completar" data-ev="${esc(a.ev.id)}" title="${M.esPago(a.ev) ? 'Registrar pago' : 'Marcar como realizado'}">${M.esPago(a.ev) ? '💳' : '✓'}</button></div></div>`).join('');
 
   const prox = M.ocurrenciasEnRango(abiertos, hoy, M.sumarDias(hoy, 45)).slice(0, 8).map(o => `<div class="ag-fila ${M.colorEvento({ ...o.ev, proximaFecha: o.fecha })}" data-ev="${esc(o.ev.id)}">
       <div class="ag-fila-hora">${esc(M.formatoFechaCorta(o.fecha))}<br><small>${esc(textoHora(o.ev))}</small></div>

@@ -265,6 +265,14 @@
     border-bottom: 1px solid var(--gold-line);
   }
 
+  /* Encabezados con pestañas (Agenda, Maestro): se quita toda línea fina;
+     solo se pinta la línea gruesa dorada de la pestaña activa. */
+  .page-fijo-tabs,
+  .page-fijo-tabs .ag-tabs,
+  .page-fijo-tabs .maestro-tabs {
+    border-bottom: 0;
+  }
+
   /* Dentro del encabezado fijo, los bloques no suman espacio extra */
   .page-fijo .dash-toolbar,
   .page-fijo .ag-toolbar,
