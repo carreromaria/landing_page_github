@@ -123,6 +123,10 @@ function layoutSec(m, s) {
   s.elementos.forEach(e => { c += +e.sep || 0; const h = e.t === 'gola' ? (+e.alto || 0) : eP; const ok = c + h <= zona + 1e-6; out.push({t:e.t, bottom:c, top:c + h, ok}); if (ok && e.t === 'gola') topGola = Math.max(topGola, c + h); c += h; });
   return {out, zona, libre:zona - c, topGola};
 }
+// Las puertas de una sección sin golas terminan donde empiezan los cajones de las secciones vecinas.
+function refPuerta(m) {
+  return Math.max(0, ...m.secciones.map(sc => { const g = layoutSec(m, sc).out.filter(o => o.ok && o.t === 'gola'); return g.length ? Math.max(...g.map(o => o.bottom)) : 0; }));
+}
 function calcularBajo(m) {
   const iw = anchoInt(m), eP = Math.min(m.espI, m.espD), ns = m.secciones.length, an = anchosSecciones(m), sec = ns > 1;
   const p = [
@@ -141,7 +145,7 @@ function calcularBajo(m) {
     if (nb) p.push({k:`s${i + 1}_bandeja`,lbl:ln('Bandeja'),n:'Bandeja' + t,c:nb,a:an[i],b:m.prof});
     if (+s.puertas > 0) {
       const izq = i === 0 ? m.espI + m.recI : m.paralEsp / 2, der = i === ns - 1 ? m.espD + m.recD : m.paralEsp / 2;
-      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - (L.topGola > 0 ? eP + L.topGola : 0) - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
+      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - (L.topGola > 0 ? eP + L.topGola : (refPuerta(m) > 0 ? eP + refPuerta(m) : 0)) - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
     }
   });
   return p;
@@ -193,6 +197,20 @@ function svgFrontal(m, interior) {
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 function txt(x, y, t, a) { return `<text x="${x}" y="${y}" font-size="9" text-anchor="${a || 'middle'}" fill="#141213" font-family="Poppins,sans-serif">${t}</text>`; }
+function frenteBajo(m, x, y, s) {
+  const C = k => col(m, k), w = m.ancho * s, h = m.alto * s, eP = Math.min(m.espI, m.espD) * s, rI = m.recI * s, rD = m.recD * s, eI = m.espI * s, eD = m.espD * s;
+  const an = anchosSecciones(m), pe = m.paralEsp * s, yZ = y + m.golaSup * s, piso = y + h - eP, ref = refPuerta(m); let g = '', sx = x;
+  m.secciones.forEach((sc, i) => {
+    const izq = i === 0 ? rI + eI : pe / 2, der = i === m.secciones.length - 1 ? rD + eD : pe / 2, sp = Math.max(an[i], 0) * s + izq + der;
+    const L = layoutSec(m, sc), n = +sc.puertas || 0;
+    L.out.forEach(o => { if (o.ok && o.t === 'gola') g += R(sx, piso - o.top * s, sp, (o.top - o.bottom) * s, C(`s${i + 1}_gola`)); });
+    const yb = L.topGola > 0 ? piso - L.topGola * s : (ref > 0 ? piso - ref * s : y + h), hd = Math.max(yb - yZ, 0);
+    for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(`s${i + 1}_puerta`));
+    sx += sp;
+  });
+  if (m.golaSup > 0) g += R(x, y, w, m.golaSup * s, C('golaSup'));
+  return g;
+}
 function svgFrontalBajo(m, interior) {
   const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, C = k => col(m, k);
   const eP = Math.min(m.espI, m.espD) * s, rI = m.recI * s, rD = m.recD * s, eI = m.espI * s, eD = m.espD * s, iw = anchoInt(m) * s, x0 = x + rI + eI;
@@ -212,16 +230,7 @@ function svgFrontalBajo(m, interior) {
     });
     g += dimH(x0, x0 + iw, y + h + 16, cm(anchoInt(m)));
   } else {
-    let sx = x;
-    m.secciones.forEach((sc, i) => {
-      const izq = i === 0 ? rI + eI : pe / 2, der = i === m.secciones.length - 1 ? rD + eD : pe / 2, sp = Math.max(an[i], 0) * s + izq + der;
-      const L = layoutSec(m, sc), n = +sc.puertas || 0;
-      L.out.forEach(o => { if (o.ok && o.t === 'gola') g += R(sx, piso - o.top * s, sp, (o.top - o.bottom) * s, C(`s${i + 1}_gola`)); });
-      const yb = L.topGola > 0 ? piso - L.topGola * s : y + h, hd = Math.max(yb - yZ, 0);
-      for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(`s${i + 1}_puerta`));
-      sx += sp;
-    });
-    if (m.golaSup > 0) g += R(x, y, w, m.golaSup * s, C('golaSup'));
+    g += frenteBajo(m, x, y, s);
     g += dimH(x, x + w, y + h + 16, cm(m.ancho));
   }
   g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.alto));
@@ -246,8 +255,8 @@ function svgPersp(m) {
   const w = m.ancho * s, h = m.alto * s, dx = m.prof * s * k, dy = m.prof * s * k * 0.8, x = 20, y = 40 + dy, c = m.colores, n = m.plantilla === 'bajo' ? m.secciones.length : (+m.puertas || 0), cp = col(m, m.plantilla === 'bajo' ? 's1_puerta' : 'puerta');
   const poly = (pts, col) => `<polygon points="${pts}" fill="${hex(col)}" stroke="#141213" stroke-width=".8"/>`;
   let g = poly(`${x},${y} ${x+w},${y} ${x+w+dx},${y-dy} ${x+dx},${y-dy}`, m.plantilla === 'bajo' ? c.lat : c.techo) + poly(`${x+w},${y} ${x+w+dx},${y-dy} ${x+w+dx},${y+h-dy} ${x+w},${y+h}`, c.lat);
-  if (n === 0) g += R(x, y, w, h, c.lat);
-  for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, y, w / n - 1, h + m.sobre * s, cp);
+  if (m.plantilla === 'bajo') g += R(x, y, w, h, 'blanco') + frenteBajo(m, x, y, s);
+  else { if (n === 0) g += R(x, y, w, h, c.lat); for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, y, w / n - 1, h + m.sobre * s, cp); }
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 
@@ -302,12 +311,12 @@ function pintarSecciones() {
     const ult = i === ns - 1, L = layoutSec(m, s); let ng = 0, nb = 0;
     const filas = s.elementos.map((e, k) => {
       const g = e.t === 'gola', n = g ? ++ng : ++nb, ok = L.out[k].ok;
-      return `<div class="dp-el"><div class="dp-fila"><label>${g ? 'Gola' : 'Bandeja'} ${n} · separación (cm)<input type="number" step="0.1" min="0" data-s="${i}" data-e="${k}" data-k="sep" value="${e.sep}"></label>${g ? `<label>Alto de la gola (cm)<input type="number" step="0.1" min="0.5" data-s="${i}" data-e="${k}" data-k="alto" value="${e.alto}"></label>` : '<span></span>'}</div><div class="dp-el-acc"><button class="dp-btn dp-sec" data-mv="up" data-s="${i}" data-e="${k}" title="Subir">▲</button><button class="dp-btn dp-sec" data-mv="down" data-s="${i}" data-e="${k}" title="Bajar">▼</button><button class="dp-btn dp-sec" data-del="el" data-s="${i}" data-e="${k}" title="Quitar">✕</button></div>${ok ? '' : '<small class="dp-aviso">No cabe en el alto de esta sección.</small>'}</div>`;
+      return `<div class="dp-el"><div class="dp-fila"><label>${g ? 'Gola (cajón)' : 'Bandeja'} ${n} · separación (cm)<input type="number" step="0.1" min="0" data-s="${i}" data-e="${k}" data-k="sep" value="${e.sep}"></label>${g ? `<label>Alto de la gola (cm)<input type="number" step="0.1" min="0.5" data-s="${i}" data-e="${k}" data-k="alto" value="${e.alto}"></label>` : '<span></span>'}</div><div class="dp-el-acc"><button class="dp-btn dp-sec" data-mv="up" data-s="${i}" data-e="${k}" title="Subir">▲</button><button class="dp-btn dp-sec" data-mv="down" data-s="${i}" data-e="${k}" title="Bajar">▼</button><button class="dp-btn dp-sec" data-del="el" data-s="${i}" data-e="${k}" title="Quitar">✕</button></div>${ok ? '' : '<small class="dp-aviso">No cabe en el alto de esta sección.</small>'}</div>`;
     }).join('');
     return `<div class="dp-sec-card"><div class="dp-sec-cab"><b>Sección ${i + 1}</b>${ns > 1 ? `<button class="dp-btn dp-sec" data-del="sec" data-s="${i}">Quitar sección</button>` : ''}</div>
     <div class="dp-fila"><label>Ancho libre (cm)${ult && ns > 1 ? ' · resto' : ''}<input type="number" step="0.1" min="1" data-s="${i}" data-k="ancho" value="${ult ? Math.round(an[i] * 10) / 10 : s.ancho}" ${ult ? 'readonly' : ''}></label><label>Puertas<input type="number" min="0" max="4" data-s="${i}" data-k="puertas" value="${s.puertas}"></label></div>
     ${an[i] <= 0 ? '<small class="dp-aviso">Los anchos no caben en el módulo.</small>' : ''}
-    <small class="dp-nota">Se arma desde el piso hacia arriba. «Separación» es el espacio libre bajo la pieza.</small>${filas}
+    <small class="dp-nota">Se arma desde el piso hacia arriba. «Separación» es el espacio libre bajo la pieza. La gola es siempre un cajón o gaveta (no lleva puerta); las puertas cubren la parte de arriba.</small>${filas}
     <div class="dp-fila"><button class="dp-btn dp-sec" data-add="gola" data-s="${i}">+ Gola</button><button class="dp-btn dp-sec" data-add="bandeja" data-s="${i}">+ Bandeja</button></div>
     <small class="dp-nota">Alto útil de la sección: ${cm(L.zona)} cm · libre arriba: ${cm(Math.max(L.libre, 0))} cm</small></div>`;
   }).join('');
