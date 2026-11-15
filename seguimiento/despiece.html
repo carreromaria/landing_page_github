@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=7">
+<link rel="stylesheet" href="css/despiece.css?v=8">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -71,15 +71,21 @@
         <label>Recubrimiento der. (cm)<input id="mRecD" type="number" step="0.1" min="0"></label>
       </div>
       <div class="dp-fila3">
-        <label>Puertas<input id="mPuertas" type="number" min="0" max="4"></label>
+        <label class="solo-aereo">Puertas<input id="mPuertas" type="number" min="0" max="4"></label>
         <label>Juego (cm)<input id="mJuego" type="number" step="0.1" min="0"></label>
         <label>Sobresale (cm)<input id="mSobre" type="number" step="0.1" min="0"></label>
       </div>
       <label>Manilla<select id="mManilla"><option value="si">Con manilla</option><option value="no">Sin manilla</option></select></label>
-      <div class="dp-bandejas-cab"><b>Bandejas</b><button class="dp-btn dp-sec" id="btnAddBandeja">+ Bandeja</button></div>
-      <div id="dpBandejas"></div>
-      <div class="dp-bandejas-cab solo-bajo"><b>Golas (cajones)</b><button class="dp-btn dp-sec" id="btnAddGola">+ Gola</button></div>
-      <div id="dpGolas" class="solo-bajo"></div>
+      <div class="dp-bandejas-cab solo-aereo"><b>Bandejas</b><button class="dp-btn dp-sec" id="btnAddBandeja">+ Bandeja</button></div>
+      <div id="dpBandejas" class="solo-aereo"></div>
+      <div class="solo-bajo">
+        <div class="dp-fila">
+          <label>Gola superior · alto (cm)<input id="mGolaSup" type="number" step="0.1" min="0"></label>
+          <label>Espesor paral (cm)<input id="mParalEsp" type="number" step="0.1" min="0.5"></label>
+        </div>
+        <div class="dp-bandejas-cab"><b>Secciones</b><button class="dp-btn dp-sec" id="btnAddSec">+ Sección</button></div>
+        <div id="dpSecciones"></div>
+      </div>
       <div class="dp-acc-mod"><button class="dp-btn dp-sec" id="btnDuplicarMod">Duplicar este módulo</button>
       <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button></div>
     </section>
@@ -114,6 +120,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=9"></script>
+<script type="module" src="js/despiece.js?v=10"></script>
 </body>
 </html>

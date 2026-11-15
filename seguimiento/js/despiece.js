@@ -17,13 +17,14 @@ let MODO_TALLER = false; // se define por el rol del usuario (taller); la seguri
 let STAFF = null, DOC_ID = null;
 const $ = id => document.getElementById(id);
 const hex = id => (PALETA.find(c => c.id === id) || PALETA[0]).h;
+const col = (m, k) => m.colores[k] || m.colores[String(k).replace(/^s\d+_/, '')] || 'blanco';
 const nombreColor = id => (PALETA.find(c => c.id === id) || PALETA[0]).n;
 const cm = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function moduloNuevo(n) {
   return {id:'m' + Date.now() + Math.floor(Math.random() * 99), nombre:'Módulo ' + n,
-    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, recI:0, recD:0, golas:[], divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
+    ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, recI:0, recD:0, golas:[], golaSup:0, paralEsp:1.5, secciones:[], divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
     colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',gola:'blanco',rec:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva',s:'Vista superior (barra)'},
     categoriaCodigo:'', categoriaNombre:'', subcategoriaId:'', subcategoriaNombre:'', plantilla:'', notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
@@ -36,7 +37,7 @@ const PLANTILLAS = {
 };
 const DEFECTOS = {
   aereo: {ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, recI:0, recD:0, barra:6, puertas:2, juego:0.5, sobre:0, golas:[]},
-  bajo:  {ancho:120, alto:80.5, prof:58, espI:1.5, espD:1.5, recI:0.3, recD:0.3, barra:6, puertas:2, juego:0.5, sobre:0, golas:[]}
+  bajo:  {ancho:120, alto:80.5, prof:58, espI:1.5, espD:1.5, recI:0.3, recD:0.3, barra:6, golaSup:0, paralEsp:1.5, secciones:[{ancho:null, puertas:2, golas:[], divisiones:[]}], puertas:2, juego:0.5, sobre:0, golas:[]}
 };
 const anchoInt = m => m.ancho - (m.espI + (m.recI || 0)) - (m.espD + (m.recD || 0));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -55,7 +56,7 @@ async function cargarDespiece() {
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
     if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.plantilla === undefined) m.plantilla = 'aereo'; // módulos anteriores: eran el aéreo
-    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
+    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.golaSup = m.golaSup || 0; m.paralEsp = m.paralEsp ?? 1.5; if (m.plantilla === 'bajo' && !m.secciones) m.secciones = [{ancho:null, puertas:+m.puertas || 0, golas:m.golas, divisiones:m.divisiones || []}]; m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -105,8 +106,13 @@ function calcular(m) {
   if (!m.plantilla) return [];
   return m.plantilla === 'bajo' ? calcularBajo(m) : calcularAereo(m);
 }
+function anchosSecciones(m) {
+  const ns = m.secciones.length, tot = anchoInt(m) - m.paralEsp * (ns - 1);
+  const typed = m.secciones.slice(0, -1).map(s => +s.ancho || 0);
+  return [...typed, tot - typed.reduce((a, b) => a + b, 0)];
+}
 function calcularBajo(m) {
-  const iw = anchoInt(m), eP = Math.min(m.espI, m.espD), n = +m.puertas || 0, sg = m.golas.reduce((a, g) => a + (+g || 0), 0);
+  const iw = anchoInt(m), eP = Math.min(m.espI, m.espD), ns = m.secciones.length, an = anchosSecciones(m), sec = ns > 1;
   const p = [
     {k:'piso',n:'Piso',c:1,a:m.ancho,b:m.prof},
     {k:'lat',n:'Lateral',c:2,a:m.alto - eP,b:m.prof}
@@ -114,9 +120,17 @@ function calcularBajo(m) {
   const nr = (m.recI > 0) + (m.recD > 0);
   if (nr) p.push({k:'rec',n:'Lateral de recubrimiento',c:nr,a:m.alto,b:m.prof});
   if (m.barra > 0) p.push({k:'barra',n:'Listón de fijación',c:1,a:iw,b:m.barra});
-  m.golas.forEach((g, i) => p.push({k:'gola',n:'Gola ' + (i + 1),c:1,a:iw,b:+g || 0}));
-  if (m.divisiones.length) p.push({k:'bandeja',n:'Bandeja',c:m.divisiones.length,a:iw,b:m.prof});
-  if (n > 0) p.push({k:'puerta',n:'Puerta',c:n,a:m.alto - 2 * m.juego - sg,b:m.ancho / n - m.juego,puerta:true});
+  if (m.golaSup > 0) p.push({k:'golaSup',n:'Gola superior',c:1,a:iw,b:m.golaSup});
+  if (ns > 1) p.push({k:'paral',n:'Paral',c:ns - 1,a:m.alto - eP - m.barra - m.golaSup,b:m.prof});
+  m.secciones.forEach((s, i) => {
+    const t = sec ? ' · Sección ' + (i + 1) : '', ln = (x) => sec ? 'Sección ' + (i + 1) + ' · ' + x : x, sg = s.golas.reduce((a, g) => a + (+g || 0), 0);
+    s.golas.forEach((g, jj) => p.push({k:`s${i + 1}_gola`,lbl:ln('Gola'),n:'Gola ' + (jj + 1) + t,c:1,a:an[i],b:+g || 0}));
+    if (s.divisiones.length) p.push({k:`s${i + 1}_bandeja`,lbl:ln('Bandeja'),n:'Bandeja' + t,c:s.divisiones.length,a:an[i],b:m.prof});
+    if (+s.puertas > 0) {
+      const izq = i === 0 ? m.espI + m.recI : m.paralEsp / 2, der = i === ns - 1 ? m.espD + m.recD : m.paralEsp / 2;
+      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - sg - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
+    }
+  });
   return p;
 }
 function calcularAereo(m) {
@@ -167,33 +181,47 @@ function svgFrontal(m, interior) {
 }
 function txt(x, y, t, a) { return `<text x="${x}" y="${y}" font-size="9" text-anchor="${a || 'middle'}" fill="#141213" font-family="Poppins,sans-serif">${t}</text>`; }
 function svgFrontalBajo(m, interior) {
-  const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, c = m.colores;
+  const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, C = k => col(m, k);
   const eP = Math.min(m.espI, m.espD) * s, rI = m.recI * s, rD = m.recD * s, eI = m.espI * s, eD = m.espD * s, iw = anchoInt(m) * s, x0 = x + rI + eI;
+  const an = anchosSecciones(m), pe = m.paralEsp * s, yZ = y + (interior ? (m.barra + m.golaSup) * s : m.golaSup * s), piso = y + h - eP;
   let g = '';
   if (interior) {
-    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="#fff" stroke="#141213" stroke-width=".8"/>`;
-    g += R(x, y + h - eP, w, eP, c.piso);
-    if (rI) g += R(x, y, rI, h, c.rec); g += R(x + rI, y, eI, h - eP, c.lat) + R(x + w - rD - eD, y, eD, h - eP, c.lat); if (rD) g += R(x + w - rD, y, rD, h, c.rec);
-    let yy = y; if (m.barra > 0) { g += R(x0, yy, iw, m.barra * s, c.barra); yy += m.barra * s; }
-    m.golas.forEach(gl => { const gh = (+gl || 0) * s; if (yy + gh <= y + h - eP + .5) { g += R(x0, yy, iw, gh, c.gola); yy += gh; } });
+    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="#fff" stroke="#141213" stroke-width=".8"/>` + R(x, piso, w, eP, C('piso'));
+    if (rI) g += R(x, y, rI, h, C('rec')); g += R(x + rI, y, eI, h - eP, C('lat')) + R(x + w - rD - eD, y, eD, h - eP, C('lat')); if (rD) g += R(x + w - rD, y, rD, h, C('rec'));
+    if (m.barra > 0) g += R(x0, y, iw, m.barra * s, C('barra'));
+    if (m.golaSup > 0) g += R(x0, y + m.barra * s, iw, m.golaSup * s, C('golaSup'));
+    let sx = x0;
+    m.secciones.forEach((sc, i) => {
+      const sw = Math.max(an[i], 0) * s; let nivel = 0;
+      sc.golas.forEach(gl => { const gh = (+gl || 0) * s; g += R(sx, piso - nivel * s - gh, sw, gh, C(`s${i + 1}_gola`)); nivel += +gl || 0; });
+      let n2 = 0; sc.divisiones.forEach(d => { n2 += (+d || 0); if (piso - n2 * s - eP >= yZ) g += R(sx, piso - n2 * s - eP, sw, eP, C(`s${i + 1}_bandeja`)); n2 += eP / s; });
+      sx += sw;
+      if (i < m.secciones.length - 1) { g += R(sx, yZ, pe, piso - yZ, C('paral')); sx += pe; }
+    });
     g += dimH(x0, x0 + iw, y + h + 16, cm(anchoInt(m)));
   } else {
-    const n = +m.puertas || 0; let yy = y;
-    m.golas.forEach(gl => { const gh = (+gl || 0) * s; g += R(x, yy, w, gh, c.gola); yy += gh; });
-    const hd = Math.max(y + h - yy, 0);
-    if (n === 0 && !m.golas.length) g += R(x, y, w, h, c.lat);
-    for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, yy, w / n - 1, hd, c.puerta);
+    let sx = x;
+    m.secciones.forEach((sc, i) => {
+      const izq = i === 0 ? rI + eI : pe / 2, der = i === m.secciones.length - 1 ? rD + eD : pe / 2, sp = Math.max(an[i], 0) * s + izq + der;
+      let yy = piso + eP; const n = +sc.puertas || 0;
+      sc.golas.forEach(gl => { const gh = (+gl || 0) * s; yy -= gh; g += R(sx, yy, sp, gh, C(`s${i + 1}_gola`)); });
+      const hd = Math.max(yy - yZ, 0);
+      for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(`s${i + 1}_puerta`));
+      sx += sp;
+    });
+    if (m.golaSup > 0) g += R(x, y, w, m.golaSup * s, C('golaSup'));
     g += dimH(x, x + w, y + h + 16, cm(m.ancho));
   }
   g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.alto));
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 function svgSuperior(m) {
-  const s = escala(m.ancho, m.prof), w = m.ancho * s, h = m.prof * s, x = (W - w) / 2 + 8, y = 34, c = m.colores;
-  const eI = m.espI * s, eD = m.espD * s, rI = m.recI * s, rD = m.recD * s, iw = anchoInt(m) * s, eP = Math.min(m.espI, m.espD) * s;
+  const s = escala(m.ancho, m.prof), w = m.ancho * s, h = m.prof * s, x = (W - w) / 2 + 8, y = 34, C = k => col(m, k);
+  const eI = m.espI * s, eD = m.espD * s, rI = m.recI * s, rD = m.recD * s, iw = anchoInt(m) * s, eP = Math.min(m.espI, m.espD) * s, pe = m.paralEsp * s, an = anchosSecciones(m);
   let g = R(x + rI + eI, y, iw, h, 'blanco').replace('stroke-width=".8"', 'stroke-width=".4" stroke-dasharray="3 2"');
-  if (rI) g += R(x, y, rI, h, c.rec); g += R(x + rI, y, eI, h, c.lat) + R(x + w - rD - eD, y, eD, h, c.lat); if (rD) g += R(x + w - rD, y, rD, h, c.rec);
-  if (m.barra > 0) g += R(x + rI + eI, y, iw, eP, c.barra) + txt(x + w / 2, y + eP + 11, 'Listón de fijación ' + cm(anchoInt(m)) + ' × ' + cm(m.barra) + ' cm');
+  if (rI) g += R(x, y, rI, h, C('rec')); g += R(x + rI, y, eI, h, C('lat')) + R(x + w - rD - eD, y, eD, h, C('lat')); if (rD) g += R(x + w - rD, y, rD, h, C('rec'));
+  let sx = x + rI + eI; m.secciones.forEach((sc, i) => { sx += Math.max(an[i], 0) * s; if (i < m.secciones.length - 1) { g += R(sx, y, pe, h, C('paral')); sx += pe; } });
+  if (m.barra > 0) g += R(x + rI + eI, y, iw, eP, C('barra')) + txt(x + w / 2, y + eP + 11, 'Listón de fijación ' + cm(anchoInt(m)) + ' × ' + cm(m.barra) + ' cm');
   g += dimH(x, x + w, y - 8, cm(m.ancho)) + dimV(y, y + h, x - 14, cm(m.prof)) + txt(x + w / 2, y + h + 14, 'Parte trasera arriba · frente abajo');
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
@@ -203,11 +231,11 @@ function svgLateral(m) {
 }
 function svgPersp(m) {
   const k = 0.42, s = Math.min((W - 80) / (m.ancho + m.prof * k), (H - 70) / (m.alto + m.prof * k));
-  const w = m.ancho * s, h = m.alto * s, dx = m.prof * s * k, dy = m.prof * s * k * 0.8, x = 20, y = 40 + dy, c = m.colores, n = +m.puertas || 0;
+  const w = m.ancho * s, h = m.alto * s, dx = m.prof * s * k, dy = m.prof * s * k * 0.8, x = 20, y = 40 + dy, c = m.colores, n = m.plantilla === 'bajo' ? m.secciones.length : (+m.puertas || 0), cp = col(m, m.plantilla === 'bajo' ? 's1_puerta' : 'puerta');
   const poly = (pts, col) => `<polygon points="${pts}" fill="${hex(col)}" stroke="#141213" stroke-width=".8"/>`;
   let g = poly(`${x},${y} ${x+w},${y} ${x+w+dx},${y-dy} ${x+dx},${y-dy}`, m.plantilla === 'bajo' ? c.lat : c.techo) + poly(`${x+w},${y} ${x+w+dx},${y-dy} ${x+w+dx},${y+h-dy} ${x+w},${y+h}`, c.lat);
   if (n === 0) g += R(x, y, w, h, c.lat);
-  for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, y, w / n - 1, h + m.sobre * s, c.puerta);
+  for (let i = 0; i < n; i++) g += R(x + i * w / n + .5, y, w / n - 1, h + m.sobre * s, cp);
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
 }
 
@@ -222,13 +250,13 @@ function hojaModulo(m, i) {
   if (!m.plantilla) return `<div class="${i ? 'dp-mod-sep' : ''}"><div class="dp-cab"><div><b>${esc(m.nombre)} – ${esc(D.nombre || 'Proyecto')}</b><small>${rutaMueble(m) || 'Sin categoría'}</small></div><div class="dp-marca">LINENCE</div></div><p class="dp-vacio">${m.subcategoriaId ? `El despiece de «${esc(m.subcategoriaNombre)}» aún no está configurado.` : 'Elige la categoría y el mueble (subcategoría) para ver su plano y despiece.'}</p></div>`;
   const EDIT = MODO_TALLER ? '' : 'contenteditable="true" spellcheck="false"';
   const pz = calcular(m), conPuertas = +m.puertas > 0;
-  const filas = pz.map(p => `<tr><td><span class="dot" style="background:${hex(m.colores[p.k])}"></span>${p.n}</td><td>${p.c}</td><td>${cm(p.a)} × ${cm(p.b)}</td><td>${nombreColor(m.colores[p.k])}</td><td class="col-listo"><input type="checkbox" data-av="${m.id}|${p.k}" ${D.avance?.[m.id + '_' + p.k] ? 'checked' : ''}></td></tr>`).join('');
+  const filas = pz.map(p => `<tr><td><span class="dot" style="background:${hex(col(m, p.k))}"></span>${p.n}</td><td>${p.c}</td><td>${cm(p.a)} × ${cm(p.b)}</td><td>${nombreColor(col(m, p.k))}</td><td class="col-listo"><input type="checkbox" data-av="${m.id}|${p.k}" ${D.avance?.[m.id + '_' + p.k] ? 'checked' : ''}></td></tr>`).join('');
   const puerta = pz.find(p => p.puerta);
   return `<div class="${i ? 'dp-mod-sep' : ''}">
   <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${rutaMueble(m) ? ' · ' + rutaMueble(m) : ''}${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
   <div class="dp-vistas">${vistasHtml(m)}</div>
   <div class="dp-datos">
-    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.plantilla === 'bajo' ? `${m.recI > 0 || m.recD > 0 ? `<tr><td>Recubrimiento</td><td>Izq. ${cm(m.recI * 10)} mm · Der. ${cm(m.recD * 10)} mm</td></tr>` : ''}${m.golas.length ? `<tr><td>Golas (cajones)</td><td>${m.golas.length} u. · alto ${m.golas.map(cm).join(' / ')} cm</td></tr>` : ''}<tr><td>Ancho interior</td><td>${cm(anchoInt(m))} cm</td></tr>` : ''}${m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
+    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.plantilla === 'bajo' ? `${m.recI > 0 || m.recD > 0 ? `<tr><td>Recubrimiento</td><td>Izq. ${cm(m.recI * 10)} mm · Der. ${cm(m.recD * 10)} mm</td></tr>` : ''}<tr><td>Ancho interior</td><td>${cm(anchoInt(m))} cm</td></tr><tr><td>Secciones</td><td>${m.secciones.length} · anchos ${anchosSecciones(m).map(cm).join(' / ')} cm</td></tr>${m.golaSup > 0 ? `<tr><td>Gola superior</td><td>${cm(m.golaSup)} cm de alto</td></tr>` : ''}${m.secciones.length > 1 ? `<tr><td>Paral</td><td>${cm(m.paralEsp * 10)} mm</td></tr>` : ''}` : ''}${m.plantilla !== 'bajo' && m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
     <div><h3>Despiece (medidas de fabricación, cm)</h3><table><tr><th>Pieza</th><th>Cant.</th><th>Medidas</th><th>Color</th><th class="col-listo">Listo</th></tr>${filas}</table></div>
   </div>
   ${m.notas ? `<div class="dp-notas"><b>Notas</b>\n${esc(m.notas)}</div>` : ''}</div>`;
@@ -236,7 +264,7 @@ function hojaModulo(m, i) {
 function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join(''); }
 
 // ===== Panel editor =====
-const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mRecI:'recI', mRecD:'recD', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
+const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mRecI:'recI', mRecD:'recD', mGolaSup:'golaSup', mParalEsp:'paralEsp', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pNombre').readOnly = !!D._origenNombre; $('pCodigo').readOnly = !!q.get('codigo') || !!(D.codigo && D._origenNombre); $('pLead').readOnly = !!D.leadOrigenId && !!D._origenNombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; if ($('pAsignado').value !== (D.asignadoA || '')) $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
@@ -251,13 +279,21 @@ function pintarEditor() {
   for (const [id, k] of Object.entries(CAMPOS)) $(id).value = M()[k];
   for (const k of ['f', 'i', 'l', 'p', 's']) $('v_' + k).value = M().vistas[k] || '';
   $('dpEditor').dataset.pl = M().plantilla || '';
-  pintarBandejas(); pintarGolas();
-  const vistos = {}; calcular(M()).forEach(p => { if (!vistos[p.k]) vistos[p.k] = p.k === 'gola' ? 'Gola (cajones)' : p.n; });
-  $('dpColores').innerHTML = Object.entries(vistos).map(([k, nombre]) => `<div class="dp-pz"><span>${nombre}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${k}" data-c="${c.id}" class="${M().colores[k] === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
+  pintarBandejas(); pintarSecciones();
+  const vistos = {}; calcular(M()).forEach(p => { if (!vistos[p.k]) vistos[p.k] = p.lbl || p.n; });
+  $('dpColores').innerHTML = Object.entries(vistos).map(([k, nombre]) => `<div class="dp-pz"><span>${nombre}</span><div class="dp-sw">${PALETA.map(c => `<button title="${c.n}" data-pz="${k}" data-c="${c.id}" class="${col(M(), k) === c.id ? 'on' : ''}" style="background:${c.h}"></button>`).join('')}</div></div>`).join('');
 }
-function pintarGolas() {
-  const m = M();
-  $('dpGolas').innerHTML = m.golas.map((g, i) => `<div class="dp-div"><label>Gola ${i + 1} · alto (cm)<input type="number" step="0.1" min="1" data-gola="${i}" value="${g}"></label><button class="dp-btn dp-sec" data-quitargola="${i}" title="Quitar gola ${i + 1}">✕</button></div>`).join('') + (m.golas.length ? '<small class="dp-nota">Cada gola es un cajón o frente; las puertas ocupan el alto que queda.</small>' : '');
+function pintarSecciones() {
+  const m = M(); if (m.plantilla !== 'bajo') { $('dpSecciones').innerHTML = ''; return; }
+  const an = anchosSecciones(m), ns = m.secciones.length, fila = (s, i, kind, arr, rot) => arr.map((v, jj) => `<div class="dp-div"><label>${rot} ${jj + 1} (cm)<input type="number" step="0.1" min="1" data-s="${i}" data-k="${kind}" data-j="${jj}" value="${v}"></label><button class="dp-btn dp-sec" data-del="${kind}" data-s="${i}" data-j="${jj}" title="Quitar">✕</button></div>`).join('');
+  $('dpSecciones').innerHTML = m.secciones.map((s, i) => {
+    const ult = i === ns - 1;
+    return `<div class="dp-sec-card"><div class="dp-sec-cab"><b>Sección ${i + 1}</b>${ns > 1 ? `<button class="dp-btn dp-sec" data-del="sec" data-s="${i}">Quitar sección</button>` : ''}</div>
+    <div class="dp-fila"><label>Ancho libre (cm)${ult && ns > 1 ? ' · resto' : ''}<input type="number" step="0.1" min="1" data-s="${i}" data-k="ancho" value="${ult ? Math.round(an[i] * 10) / 10 : s.ancho}" ${ult ? 'readonly' : ''}></label><label>Puertas<input type="number" min="0" max="4" data-s="${i}" data-k="puertas" value="${s.puertas}"></label></div>
+    ${an[i] <= 0 ? '<small class="dp-aviso">Los anchos no caben en el módulo.</small>' : ''}
+    ${fila(s, i, 'gola', s.golas, 'Gola · alto')}<button class="dp-btn dp-sec" data-add="gola" data-s="${i}">+ Gola</button>
+    ${fila(s, i, 'div', s.divisiones, 'División')}<button class="dp-btn dp-sec" data-add="div" data-s="${i}">+ Bandeja</button></div>`;
+  }).join('');
 }
 function pintarBandejas() {
   const m = M(), esT = Math.min(m.espI, m.espD), interior = m.alto - 2 * esT;
@@ -286,10 +322,25 @@ for (const [id, k] of Object.entries(CAMPOS)) $(id).addEventListener('input', e 
 });
 for (const k of ['f', 'i', 'l', 'p', 's']) $('v_' + k).addEventListener('input', e => { M().vistas[k] = e.target.value; refrescar(); });
 [['pNombre', 'nombre'], ['pCodigo', 'codigo'], ['pLead', 'leadOrigenId'], ['pAsignado', 'asignadoA']].forEach(([id, k]) => $(id).addEventListener('input', e => { D[k] = e.target.value.trim(); refrescar(); }));
-$('btnAddGola').addEventListener('click', () => { M().golas.push(20); pintarEditor(); refrescar(); });
-$('dpGolas').addEventListener('input', e => { const i = e.target.dataset.gola; if (i == null) return; M().golas[+i] = parseFloat(e.target.value) || 0; refrescar(); });
-$('dpGolas').addEventListener('change', () => pintarEditor());
-$('dpGolas').addEventListener('click', e => { const b = e.target.closest('[data-quitargola]'); if (!b) return; M().golas.splice(+b.dataset.quitargola, 1); pintarEditor(); refrescar(); });
+$('btnAddSec').addEventListener('click', () => {
+  const m = M(), an = anchosSecciones(m), ult = m.secciones.length - 1;
+  m.secciones[ult].ancho = Math.max(Math.round((an[ult] - m.paralEsp) / 2 * 10) / 10, 1);
+  m.secciones.push({ancho:null, puertas:1, golas:[], divisiones:[]}); pintarEditor(); refrescar();
+});
+$('dpSecciones').addEventListener('input', e => {
+  const t = e.target.dataset, m = M(); if (t.s == null || !t.k) return; const v = parseFloat(e.target.value) || 0, s = m.secciones[+t.s];
+  if (t.k === 'ancho') s.ancho = v; else if (t.k === 'puertas') s.puertas = v; else if (t.k === 'gola') s.golas[+t.j] = v; else if (t.k === 'div') s.divisiones[+t.j] = v;
+  refrescar();
+});
+$('dpSecciones').addEventListener('change', () => pintarEditor());
+$('dpSecciones').addEventListener('click', e => {
+  const b = e.target.closest('button'), m = M(); if (!b) return; const s = m.secciones[+b.dataset.s];
+  if (b.dataset.add === 'gola') s.golas.push(20); else if (b.dataset.add === 'div') s.divisiones.push(s.divisiones.length ? 15 : 35);
+  else if (b.dataset.del === 'gola') s.golas.splice(+b.dataset.j, 1); else if (b.dataset.del === 'div') s.divisiones.splice(+b.dataset.j, 1);
+  else if (b.dataset.del === 'sec') { if (!confirm('¿Quitar esta sección?')) return; m.secciones.splice(+b.dataset.s, 1); m.secciones[m.secciones.length - 1].ancho = null; }
+  else return;
+  pintarEditor(); refrescar();
+});
 $('btnAddBandeja').addEventListener('click', () => { M().divisiones.push(M().divisiones.length ? 15 : 35); pintarEditor(); refrescar(); });
 $('dpBandejas').addEventListener('input', e => { const i = e.target.dataset.div; if (i == null) return; M().divisiones[+i] = parseFloat(e.target.value) || 0; refrescar(); });
 $('dpBandejas').addEventListener('change', () => pintarEditor());

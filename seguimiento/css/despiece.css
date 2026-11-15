@@ -52,6 +52,9 @@
 .dp-app input[readonly]{background:#f6f2ea;color:#6b6358}
 .dp-vacio{padding:26px;text-align:center;color:#6b6358;border:1px dashed var(--arena);border-radius:8px}
 #dpEditor:not([data-pl="bajo"]) .solo-bajo{display:none}
+#dpEditor[data-pl="bajo"] .solo-aereo{display:none}
+.dp-sec-card{border:1px solid var(--linea);border-radius:8px;padding:10px;margin-bottom:10px;background:#fcfaf5}
+.dp-sec-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .dp-acc-mod{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:900px){.dp-app{grid-template-columns:1fr}.dp-vistas,.dp-datos{grid-template-columns:1fr}}
 @media print{
