@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=6">
-<link rel="stylesheet" href="css/documentacion.css?v=4">
+<link rel="stylesheet" href="css/documentacion.css?v=5">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
 </head>
 <body>
@@ -91,11 +91,12 @@
         <span class="flecha-datos" id="flechaDatosDoc">⌄</span>
       </button>
 
-      <form id="formDatosDoc" style="display:none;">
-        <p class="subtitulo" style="margin-bottom:14px;">Lo que ya viene de la cotización (folio, ítems, total, IVA, abono, forma de pago y fechas de entrega) no se pide aquí. Los campos con valor sugerido se toman del proyecto y de la cotización: cámbialos si no corresponden. Se guardan en el proyecto, así que no se pierden si la cotización cambia de versión.</p>
+      <form id="formDatosDoc" class="dd-form" style="display:none;">
+        <p class="dd-nota">Lo que ya viene de la cotización (folio, ítems, total, IVA, abono, forma de pago y fechas de entrega) no se pide aquí. Los campos con valor sugerido se toman del proyecto y de la cotización: cámbialos si no corresponden. Se guardan en el proyecto, así que no se pierden si la cotización cambia de versión.</p>
 
-        <p class="form-section-title">Contrato</p>
-        <div class="form-grid">
+        <div class="dd-seccion">
+          <p class="dd-seccion-titulo"><span class="dd-num">1</span>Contrato</p>
+          <div class="form-grid">
           <div class="campo">
             <label for="ddFechaContrato">Fecha del contrato</label>
             <input type="date" id="ddFechaContrato">
@@ -112,10 +113,12 @@
               <option value="no">El cliente no autoriza</option>
             </select>
           </div>
+          </div>
         </div>
 
-        <p class="form-section-title">Abono recibido</p>
-        <div class="form-grid">
+        <div class="dd-seccion">
+          <p class="dd-seccion-titulo"><span class="dd-num">2</span>Abono recibido</p>
+          <div class="form-grid">
           <div class="campo">
             <label for="ddMedioPago">Medio de pago del abono</label>
             <input type="text" id="ddMedioPago" placeholder="Ej. Transferencia">
@@ -128,10 +131,12 @@
             <label for="ddFechaPago">Fecha del pago del abono</label>
             <input type="date" id="ddFechaPago">
           </div>
+          </div>
         </div>
 
-        <p class="form-section-title">Instalación y entrega</p>
-        <div class="form-grid">
+        <div class="dd-seccion">
+          <p class="dd-seccion-titulo"><span class="dd-num">3</span>Instalación y entrega</p>
+          <div class="form-grid">
           <div class="campo">
             <label for="ddFechaInstalacion">Fecha de instalación</label>
             <input type="date" id="ddFechaInstalacion">
@@ -160,10 +165,12 @@
             <label for="ddObservaciones">Observaciones (opcional)</label>
             <input type="text" id="ddObservaciones" placeholder="Ej. Pendiente el 40% una vez instalado el proyecto">
           </div>
+          </div>
         </div>
 
         <div class="modal-error" id="datosDocError"></div>
-        <div class="modal-acciones">
+        <div class="dd-acciones">
+          <button type="button" class="btn-secundario" id="btnCerrarDatosDoc">Cerrar sección</button>
           <button type="submit" class="btn-primario">Guardar datos</button>
         </div>
       </form>
@@ -195,7 +202,7 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=14"></script>
+<script type="module" src="js/documentacion.js?v=15"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>

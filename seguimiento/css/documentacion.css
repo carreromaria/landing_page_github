@@ -274,3 +274,87 @@
   font-size:13px; font-weight:500; color:#8a6a12; text-decoration:none;
 }
 .doc-link-crm:hover{ text-decoration:underline; }
+
+/* ============================================================
+   Panel "Datos de contrato, abono e instalación"
+   Caja grande con cabecera que abre/cierra + una tarjeta interior
+   por sección (Contrato, Abono recibido, Instalación y entrega).
+   ============================================================ */
+#docDatosPanel .datos-proyecto-toggle{margin-bottom:0; gap:12px;}
+#docDatosPanel .datos-proyecto-toggle h2{
+  color:var(--ink);
+  font-size:16px;
+  font-weight:600;
+  text-align:left;
+}
+#docDatosPanel .flecha-datos{
+  flex:none;
+  width:30px; height:30px;
+  display:flex; align-items:center; justify-content:center;
+  border:1px solid var(--gold-line);
+  border-radius:50%;
+  line-height:1;
+}
+
+.dd-form{margin-top:18px;}
+
+.dd-nota{
+  margin:0 0 16px;
+  padding:12px 14px;
+  background:var(--sand-soft);
+  border-radius:8px;
+  font-size:13px;
+  line-height:1.5;
+  color:var(--ink);
+  opacity:.85;
+}
+
+.dd-seccion{
+  border:1px solid var(--gold-line);
+  border-radius:10px;
+  background:#fff;
+  padding:16px 18px 18px;
+  margin-bottom:14px;
+  box-shadow:0 1px 3px rgba(20,18,19,.04);
+}
+.dd-seccion-titulo{
+  display:flex; align-items:center; gap:10px;
+  margin:0 0 14px;
+  padding-bottom:10px;
+  border-bottom:1px solid var(--gold-line);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink);
+}
+.dd-num{
+  flex:none;
+  width:22px; height:22px;
+  display:inline-flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background:var(--gold);
+  color:var(--ink);
+  font-size:11px;
+  letter-spacing:0;
+}
+
+/* Campos de fecha/hora: mismo look que los demás (en iPhone salían grises y centrados) */
+.dd-seccion .campo input[type="date"],
+.dd-seccion .campo input[type="time"]{
+  background:#fff;
+  min-height:42px;
+  text-align:left;
+}
+.dd-seccion .campo input::-webkit-date-and-time-value{text-align:left;}
+
+.dd-acciones{
+  display:flex; justify-content:flex-end; gap:10px;
+  margin-top:6px;
+}
+
+@media (max-width:900px){
+  .dd-seccion{padding:14px 14px 16px;}
+  .dd-acciones{flex-direction:column-reverse;}
+  .dd-acciones button{width:100%;}
+}

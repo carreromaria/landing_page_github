@@ -547,11 +547,19 @@ function poblarFormDatos(datos = {}) {
 
 mejorarSelect('#ddAutorizaImagenes', { ancho: 'auto' });
 
+/** Abre o cierra la sección completa (cabecera, botón "Cerrar sección" y guardado usan lo mismo). */
+function fijarPanelDatos(abrir) {
+  document.getElementById('formDatosDoc').style.display = abrir ? 'block' : 'none';
+  document.getElementById('flechaDatosDoc').textContent = abrir ? '⌃' : '⌄';
+}
+
 document.getElementById('datosDocToggle').addEventListener('click', () => {
-  const form = document.getElementById('formDatosDoc');
-  const abierto = form.style.display !== 'none';
-  form.style.display = abierto ? 'none' : 'block';
-  document.getElementById('flechaDatosDoc').textContent = abierto ? '⌄' : '⌃';
+  fijarPanelDatos(document.getElementById('formDatosDoc').style.display === 'none');
+});
+
+document.getElementById('btnCerrarDatosDoc').addEventListener('click', () => {
+  fijarPanelDatos(false);
+  document.getElementById('docDatosPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
 /** Abre el panel y resalta los campos que faltan para generar un documento. */
@@ -589,6 +597,7 @@ document.getElementById('formDatosDoc').addEventListener('submit', async (e) => 
     await actualizarProyecto(PROYECTO_ACTUAL.codigo, { datosDocumentos });
     PROYECTO_ACTUAL.datosDocumentos = datosDocumentos;
     mostrarToast('Datos guardados. Ya puedes abrir los documentos.');
+    fijarPanelDatos(false);
   } catch (err) {
     console.error(err);
     errorEl.textContent = 'No pudimos guardar los datos. Intenta de nuevo.';
