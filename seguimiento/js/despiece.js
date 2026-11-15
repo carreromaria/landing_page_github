@@ -37,7 +37,7 @@ const PLANTILLAS = {
 };
 const DEFECTOS = {
   aereo: {ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, recI:0, recD:0, barra:6, puertas:2, juego:0.5, sobre:0, golas:[]},
-  bajo:  {ancho:120, alto:80.5, prof:58, espI:1.5, espD:1.5, recI:0.3, recD:0.3, barra:6, golaSup:0, paralEsp:1.5, secciones:[{ancho:null, puertas:2, golas:[], divisiones:[]}], puertas:2, juego:0.5, sobre:0, golas:[]}
+  bajo:  {ancho:120, alto:80.5, prof:58, espI:1.5, espD:1.5, recI:0.3, recD:0.3, barra:6, golaSup:0, paralEsp:1.5, secciones:[{ancho:null, puertas:2, elementos:[]}], puertas:2, juego:0.5, sobre:0, golas:[]}
 };
 const anchoInt = m => m.ancho - (m.espI + (m.recI || 0)) - (m.espD + (m.recD || 0));
 const norm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -56,7 +56,8 @@ async function cargarDespiece() {
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
     if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.plantilla === undefined) m.plantilla = 'aereo'; // módulos anteriores: eran el aéreo
-    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.golaSup = m.golaSup || 0; m.paralEsp = m.paralEsp ?? 1.5; if (m.plantilla === 'bajo' && !m.secciones) m.secciones = [{ancho:null, puertas:+m.puertas || 0, golas:m.golas, divisiones:m.divisiones || []}]; m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
+    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.golaSup = m.golaSup || 0; m.paralEsp = m.paralEsp ?? 1.5; if (m.plantilla === 'bajo' && !m.secciones) m.secciones = [{ancho:null, puertas:+m.puertas || 0, golas:m.golas, divisiones:m.divisiones || []}];
+    (m.secciones || []).forEach(s => { if (!s.elementos) s.elementos = (s.golas || []).map(a => ({t:'gola', sep:0, alto:+a || 0})).concat((s.divisiones || []).map(d => ({t:'bandeja', sep:+d || 0}))); }); m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
 }
@@ -111,6 +112,11 @@ function anchosSecciones(m) {
   const typed = m.secciones.slice(0, -1).map(s => +s.ancho || 0);
   return [...typed, tot - typed.reduce((a, b) => a + b, 0)];
 }
+function layoutSec(m, s) {
+  const eP = Math.min(m.espI, m.espD), zona = m.alto - eP - m.barra - m.golaSup; let c = 0, topGola = 0; const out = [];
+  s.elementos.forEach(e => { c += +e.sep || 0; const h = e.t === 'gola' ? (+e.alto || 0) : eP; const ok = c + h <= zona + 1e-6; out.push({t:e.t, bottom:c, top:c + h, ok}); if (ok && e.t === 'gola') topGola = Math.max(topGola, c + h); c += h; });
+  return {out, zona, libre:zona - c, topGola};
+}
 function calcularBajo(m) {
   const iw = anchoInt(m), eP = Math.min(m.espI, m.espD), ns = m.secciones.length, an = anchosSecciones(m), sec = ns > 1;
   const p = [
@@ -123,12 +129,13 @@ function calcularBajo(m) {
   if (m.golaSup > 0) p.push({k:'golaSup',n:'Gola superior',c:1,a:iw,b:m.golaSup});
   if (ns > 1) p.push({k:'paral',n:'Paral',c:ns - 1,a:m.alto - eP - m.barra - m.golaSup,b:m.prof});
   m.secciones.forEach((s, i) => {
-    const t = sec ? ' · Sección ' + (i + 1) : '', ln = (x) => sec ? 'Sección ' + (i + 1) + ' · ' + x : x, sg = s.golas.reduce((a, g) => a + (+g || 0), 0);
-    s.golas.forEach((g, jj) => p.push({k:`s${i + 1}_gola`,lbl:ln('Gola'),n:'Gola ' + (jj + 1) + t,c:1,a:an[i],b:+g || 0}));
-    if (s.divisiones.length) p.push({k:`s${i + 1}_bandeja`,lbl:ln('Bandeja'),n:'Bandeja' + t,c:s.divisiones.length,a:an[i],b:m.prof});
+    const t = sec ? ' · Sección ' + (i + 1) : '', ln = (x) => sec ? 'Sección ' + (i + 1) + ' · ' + x : x, L = layoutSec(m, s);
+    let ng = 0; s.elementos.filter(e => e.t === 'gola').forEach(e => p.push({k:`s${i + 1}_gola`,lbl:ln('Gola'),n:'Gola ' + (++ng) + t,c:1,a:an[i],b:+e.alto || 0}));
+    const nb = s.elementos.filter(e => e.t === 'bandeja').length;
+    if (nb) p.push({k:`s${i + 1}_bandeja`,lbl:ln('Bandeja'),n:'Bandeja' + t,c:nb,a:an[i],b:m.prof});
     if (+s.puertas > 0) {
       const izq = i === 0 ? m.espI + m.recI : m.paralEsp / 2, der = i === ns - 1 ? m.espD + m.recD : m.paralEsp / 2;
-      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - sg - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
+      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - (L.topGola > 0 ? eP + L.topGola : 0) - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
     }
   });
   return p;
@@ -192,9 +199,8 @@ function svgFrontalBajo(m, interior) {
     if (m.golaSup > 0) g += R(x0, y + m.barra * s, iw, m.golaSup * s, C('golaSup'));
     let sx = x0;
     m.secciones.forEach((sc, i) => {
-      const sw = Math.max(an[i], 0) * s; let nivel = 0;
-      sc.golas.forEach(gl => { const gh = (+gl || 0) * s; g += R(sx, piso - nivel * s - gh, sw, gh, C(`s${i + 1}_gola`)); nivel += +gl || 0; });
-      let n2 = 0; sc.divisiones.forEach(d => { n2 += (+d || 0); if (piso - n2 * s - eP >= yZ) g += R(sx, piso - n2 * s - eP, sw, eP, C(`s${i + 1}_bandeja`)); n2 += eP / s; });
+      const sw = Math.max(an[i], 0) * s, L = layoutSec(m, sc);
+      L.out.forEach(o => { if (!o.ok) return; g += o.t === 'gola' ? R(sx, piso - o.top * s, sw, (o.top - o.bottom) * s, C(`s${i + 1}_gola`)) : R(sx, piso - o.top * s, sw, (o.top - o.bottom) * s, C(`s${i + 1}_bandeja`)); });
       sx += sw;
       if (i < m.secciones.length - 1) { g += R(sx, yZ, pe, piso - yZ, C('paral')); sx += pe; }
     });
@@ -203,9 +209,9 @@ function svgFrontalBajo(m, interior) {
     let sx = x;
     m.secciones.forEach((sc, i) => {
       const izq = i === 0 ? rI + eI : pe / 2, der = i === m.secciones.length - 1 ? rD + eD : pe / 2, sp = Math.max(an[i], 0) * s + izq + der;
-      let yy = piso + eP; const n = +sc.puertas || 0;
-      sc.golas.forEach(gl => { const gh = (+gl || 0) * s; yy -= gh; g += R(sx, yy, sp, gh, C(`s${i + 1}_gola`)); });
-      const hd = Math.max(yy - yZ, 0);
+      const L = layoutSec(m, sc), n = +sc.puertas || 0;
+      L.out.forEach(o => { if (o.ok && o.t === 'gola') g += R(sx, piso - o.top * s, sp, (o.top - o.bottom) * s, C(`s${i + 1}_gola`)); });
+      const yb = L.topGola > 0 ? piso - L.topGola * s : y + h, hd = Math.max(yb - yZ, 0);
       for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(`s${i + 1}_puerta`));
       sx += sp;
     });
@@ -285,14 +291,19 @@ function pintarEditor() {
 }
 function pintarSecciones() {
   const m = M(); if (m.plantilla !== 'bajo') { $('dpSecciones').innerHTML = ''; return; }
-  const an = anchosSecciones(m), ns = m.secciones.length, fila = (s, i, kind, arr, rot) => arr.map((v, jj) => `<div class="dp-div"><label>${rot} ${jj + 1} (cm)<input type="number" step="0.1" min="1" data-s="${i}" data-k="${kind}" data-j="${jj}" value="${v}"></label><button class="dp-btn dp-sec" data-del="${kind}" data-s="${i}" data-j="${jj}" title="Quitar">✕</button></div>`).join('');
+  const an = anchosSecciones(m), ns = m.secciones.length;
   $('dpSecciones').innerHTML = m.secciones.map((s, i) => {
-    const ult = i === ns - 1;
+    const ult = i === ns - 1, L = layoutSec(m, s); let ng = 0, nb = 0;
+    const filas = s.elementos.map((e, k) => {
+      const g = e.t === 'gola', n = g ? ++ng : ++nb, ok = L.out[k].ok;
+      return `<div class="dp-el"><div class="dp-fila"><label>${g ? 'Gola' : 'Bandeja'} ${n} · separación (cm)<input type="number" step="0.1" min="0" data-s="${i}" data-e="${k}" data-k="sep" value="${e.sep}"></label>${g ? `<label>Alto de la gola (cm)<input type="number" step="0.1" min="0.5" data-s="${i}" data-e="${k}" data-k="alto" value="${e.alto}"></label>` : '<span></span>'}</div><div class="dp-el-acc"><button class="dp-btn dp-sec" data-mv="up" data-s="${i}" data-e="${k}" title="Subir">▲</button><button class="dp-btn dp-sec" data-mv="down" data-s="${i}" data-e="${k}" title="Bajar">▼</button><button class="dp-btn dp-sec" data-del="el" data-s="${i}" data-e="${k}" title="Quitar">✕</button></div>${ok ? '' : '<small class="dp-aviso">No cabe en el alto de esta sección.</small>'}</div>`;
+    }).join('');
     return `<div class="dp-sec-card"><div class="dp-sec-cab"><b>Sección ${i + 1}</b>${ns > 1 ? `<button class="dp-btn dp-sec" data-del="sec" data-s="${i}">Quitar sección</button>` : ''}</div>
     <div class="dp-fila"><label>Ancho libre (cm)${ult && ns > 1 ? ' · resto' : ''}<input type="number" step="0.1" min="1" data-s="${i}" data-k="ancho" value="${ult ? Math.round(an[i] * 10) / 10 : s.ancho}" ${ult ? 'readonly' : ''}></label><label>Puertas<input type="number" min="0" max="4" data-s="${i}" data-k="puertas" value="${s.puertas}"></label></div>
     ${an[i] <= 0 ? '<small class="dp-aviso">Los anchos no caben en el módulo.</small>' : ''}
-    ${fila(s, i, 'gola', s.golas, 'Gola · alto')}<button class="dp-btn dp-sec" data-add="gola" data-s="${i}">+ Gola</button>
-    ${fila(s, i, 'div', s.divisiones, 'División')}<button class="dp-btn dp-sec" data-add="div" data-s="${i}">+ Bandeja</button></div>`;
+    <small class="dp-nota">Se arma desde el piso hacia arriba. «Separación» es el espacio libre bajo la pieza.</small>${filas}
+    <div class="dp-fila"><button class="dp-btn dp-sec" data-add="gola" data-s="${i}">+ Gola</button><button class="dp-btn dp-sec" data-add="bandeja" data-s="${i}">+ Bandeja</button></div>
+    <small class="dp-nota">Alto útil de la sección: ${cm(L.zona)} cm · libre arriba: ${cm(Math.max(L.libre, 0))} cm</small></div>`;
   }).join('');
 }
 function pintarBandejas() {
@@ -325,18 +336,20 @@ for (const k of ['f', 'i', 'l', 'p', 's']) $('v_' + k).addEventListener('input',
 $('btnAddSec').addEventListener('click', () => {
   const m = M(), an = anchosSecciones(m), ult = m.secciones.length - 1;
   m.secciones[ult].ancho = Math.max(Math.round((an[ult] - m.paralEsp) / 2 * 10) / 10, 1);
-  m.secciones.push({ancho:null, puertas:1, golas:[], divisiones:[]}); pintarEditor(); refrescar();
+  m.secciones.push({ancho:null, puertas:1, elementos:[]}); pintarEditor(); refrescar();
 });
 $('dpSecciones').addEventListener('input', e => {
   const t = e.target.dataset, m = M(); if (t.s == null || !t.k) return; const v = parseFloat(e.target.value) || 0, s = m.secciones[+t.s];
-  if (t.k === 'ancho') s.ancho = v; else if (t.k === 'puertas') s.puertas = v; else if (t.k === 'gola') s.golas[+t.j] = v; else if (t.k === 'div') s.divisiones[+t.j] = v;
+  if (t.e != null) s.elementos[+t.e][t.k] = v; else s[t.k] = v;
   refrescar();
 });
 $('dpSecciones').addEventListener('change', () => pintarEditor());
 $('dpSecciones').addEventListener('click', e => {
-  const b = e.target.closest('button'), m = M(); if (!b) return; const s = m.secciones[+b.dataset.s];
-  if (b.dataset.add === 'gola') s.golas.push(20); else if (b.dataset.add === 'div') s.divisiones.push(s.divisiones.length ? 15 : 35);
-  else if (b.dataset.del === 'gola') s.golas.splice(+b.dataset.j, 1); else if (b.dataset.del === 'div') s.divisiones.splice(+b.dataset.j, 1);
+  const b = e.target.closest('button'), m = M(); if (!b) return; const s = m.secciones[+b.dataset.s], k = +b.dataset.e;
+  if (b.dataset.add === 'gola') s.elementos.push({t:'gola', sep:0, alto:20});
+  else if (b.dataset.add === 'bandeja') s.elementos.push({t:'bandeja', sep:s.elementos.length ? 15 : 35});
+  else if (b.dataset.del === 'el') s.elementos.splice(k, 1);
+  else if (b.dataset.mv) { const d = b.dataset.mv === 'up' ? -1 : 1; if (k + d < 0 || k + d >= s.elementos.length) return; [s.elementos[k], s.elementos[k + d]] = [s.elementos[k + d], s.elementos[k]]; }
   else if (b.dataset.del === 'sec') { if (!confirm('¿Quitar esta sección?')) return; m.secciones.splice(+b.dataset.s, 1); m.secciones[m.secciones.length - 1].ancho = null; }
   else return;
   pintarEditor(); refrescar();
