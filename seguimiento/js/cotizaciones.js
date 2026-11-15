@@ -25,7 +25,7 @@ import {
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
-import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=29';
+import { htmlCotizacion, htmlDescripcion, imprimirDocumentoPdf, imprimirDocumentosPdf, nombreArchivoDocumento, prepararDocumentosParaServidor } from './documentos-cotizacion.js?v=30';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
@@ -70,6 +70,12 @@ const cotTotalGeneral = document.getElementById('cotTotalGeneral');
 const cotDescuento = document.getElementById('cotDescuento');
 const cotNeto = document.getElementById('cotNeto');
 const cotAplicaIva = document.getElementById('cotAplicaIva');
+// Modelo de IVA de la cotización abierta:
+//  'incluido' → los valores unitarios YA incluyen IVA (modelo actual, desde 2026-11-15).
+//  'anterior' → cotizaciones creadas antes: valores netos y el IVA se suma encima.
+// Las antiguas se mantienen en 'anterior' para que sus montos no cambien sin querer.
+let modeloIva = 'incluido';
+const cotIvaNota = document.getElementById('cotIvaNota');
 const filaIva = document.getElementById('filaIva');
 const cotIvaMonto = document.getElementById('cotIvaMonto');
 const cotTotalFinal = document.getElementById('cotTotalFinal');
@@ -548,6 +554,7 @@ async function cargarCotizacionVigente() {
     renderFilas(base.items);
     cotDescuento.value = base.descuento ? formatearMilesInput(String(base.descuento)) : '';
     cotPorcentajeAbono.value = base.porcentajeAbono ?? '';
+    modeloIva = base.modeloIva === 'incluido' ? 'incluido' : 'anterior';
     cotAplicaIva.checked = !!base.aplicaIva;
     cotFechaEntregaInicio.value = base.fechaEntregaInicio || '';
     cotFechaEntregaFin.value = base.fechaEntregaFin || '';
@@ -560,7 +567,8 @@ async function cargarCotizacionVigente() {
     renderFilas([]);
     cotDescuento.value = '';
     cotPorcentajeAbono.value = '';
-    cotAplicaIva.checked = false;
+    modeloIva = 'incluido';
+    cotAplicaIva.checked = true; // el IVA va incluido por defecto (obligatorio con factura)
     cotFechaEntregaInicio.value = '';
     cotFechaEntregaFin.value = '';
     cotDiasHabilesEntrega.value = '';
@@ -1548,8 +1556,26 @@ function recalcularCotizacion() {
 
   // El I.V.A. y el Total se calculan sobre el Neto (Monto ya descontado), no sobre el Monto.
   const aplicaIva = cotAplicaIva.checked;
-  const ivaMonto = aplicaIva ? Math.round(neto * 0.19) : 0;
-  const total = neto + ivaMonto;
+  let ivaMonto, total, netoMostrado = neto;
+  if (modeloIva === 'incluido') {
+    // Los valores ya traen IVA: Monto − Descuento es el valor con IVA.
+    // Se saca el neto (÷1,19), el IVA es la diferencia y, sumados, dan el mismo valor.
+    // Sin IVA (caso excepcional): el cliente paga solo el neto.
+    const conIva = neto;
+    netoMostrado = Math.round(conIva / 1.19);
+    ivaMonto = aplicaIva ? conIva - netoMostrado : 0;
+    total = netoMostrado + ivaMonto;
+  } else {
+    // Cálculo anterior (cotizaciones ya existentes): IVA 19% sumado al neto.
+    ivaMonto = aplicaIva ? Math.round(neto * 0.19) : 0;
+    total = neto + ivaMonto;
+  }
+  cotNeto.textContent = formatearMoneda(netoMostrado);
+  if (cotIvaNota) {
+    cotIvaNota.textContent = modeloIva === 'incluido'
+      ? (aplicaIva ? 'Los valores unitarios ya incluyen IVA.' : 'Sin IVA: el cliente paga solo el valor neto.')
+      : 'Cotización con el cálculo anterior (el IVA se suma al neto).';
+  }
 
   filaIva.style.display = aplicaIva ? '' : 'none';
   cotIvaMonto.textContent = formatearMoneda(ivaMonto);
@@ -1562,7 +1588,7 @@ function recalcularCotizacion() {
   cotSaldo.textContent = formatearMoneda(Math.max(0, total - abono));
   cotSaldoEtiqueta.textContent = `Saldo ${Math.max(0, 100 - porcentaje)}%`;
 
-  return { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono };
+  return { proyecto, items, monto, descuento, neto: netoMostrado, aplicaIva, ivaMonto, total, porcentaje, abono };
 }
 
 /**
@@ -1669,7 +1695,7 @@ async function guardar({ comoNuevaVersion }) {
     // distinto en la interfaz.
     proyecto, items, totalGeneral: monto,
     descuento, neto,
-    aplicaIva, ivaMonto, totalConIva: total,
+    aplicaIva, ivaMonto, totalConIva: total, modeloIva,
     porcentajeAbono: porcentaje, abono,
     clienteNombre: (leadActual.nombre || '').toLocaleUpperCase('es-CL'),
     fechaEntregaInicio: cotFechaEntregaInicio.value,

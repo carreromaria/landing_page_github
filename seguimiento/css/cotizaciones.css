@@ -925,3 +925,12 @@ body { overflow-x: visible; }
 
 /* Cotización y descripción en un solo PDF: los dos documentos se ven uno bajo el otro */
 .cot-pdf-modal-scroll .pdf-doc + .pdf-doc { margin-top: 24px; }
+
+/* Nota bajo el check de IVA (explica cómo se calcula la cotización abierta) */
+.cot-iva-nota{
+  margin:-2px 0 8px;
+  font-size:12px;
+  line-height:1.4;
+  color:#6b6558;
+  text-align:right;
+}

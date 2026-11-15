@@ -325,7 +325,8 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
       <td>${formatearMoneda(item.total)}</td>
     </tr>`).join('');
 
-  // MONTO, DESCUENTO y NETO no dependen de si la cotización aplica IVA (siempre se muestran).
+  // MONTO, DESCUENTO y NETO se muestran siempre. Desde el modelo 'incluido' los valores
+  // unitarios ya traen IVA: MONTO − DESCUENTO = valor con IVA, y el NETO + I.V.A. lo desglosan.
   const monto = cotizacion.totalGeneral || 0;
   const descuento = cotizacion.descuento || 0;
   const neto = cotizacion.neto ?? Math.max(0, monto - descuento);
@@ -365,7 +366,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
         </div>
       </div>
       <table class="pdf-tabla-totales">
-        <tr><th>MONTO</th><td>${formatearMoneda(monto)}</td></tr>
+        <tr><th>${cotizacion.modeloIva === 'incluido' ? 'MONTO C/IVA' : 'MONTO'}</th><td>${formatearMoneda(monto)}</td></tr>
         <tr><th>DESCUENTO</th><td>${formatearMoneda(descuento)}</td></tr>
         <tr><th>NETO</th><td>${formatearMoneda(neto)}</td></tr>
         <tr><th>I.V.A. 19%</th><td>${iva}</td></tr>

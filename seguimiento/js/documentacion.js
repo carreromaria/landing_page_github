@@ -22,7 +22,7 @@ import { ETAPAS } from './etapas.js';
 import {
   htmlCotizacion, htmlDescripcion, htmlEncabezado, htmlPie, filasMaterialesColores,
   prepararAlturasParaImprimir, imprimirDocumentoPdf, nombreArchivoDocumento, prepararDocumentosParaServidor
-} from './documentos-cotizacion.js?v=29';
+} from './documentos-cotizacion.js?v=30';
 // PDF generado en el servidor para celulares (en computador se sigue imprimiendo igual).
 import { esCelular, descargarPdfServidor } from './pdf-servidor.js';
 
@@ -347,7 +347,11 @@ function combinarCotizacion(base = {}, vigente) {
   const aplicaIva = !!vigente.aplicaIva;
   const subtotal = Number(vigente.totalGeneral) || 0;
   const iva = aplicaIva ? (Number(vigente.ivaMonto) || 0) : 0;
-  const total = aplicaIva ? (Number(vigente.totalConIva) || subtotal + iva) : subtotal;
+  // totalConIva siempre guarda el total final de la cotización (con IVA, o neto si es sin IVA).
+  // Las cotizaciones antiguas sin ese dato conservan el cálculo de antes.
+  const total = vigente.totalConIva != null
+    ? Number(vigente.totalConIva)
+    : (aplicaIva ? subtotal + iva : subtotal);
   const abonoMonto = Number(vigente.abono) || 0;
 
   return {
