@@ -17,7 +17,7 @@ let MODO_TALLER = false; // se define por el rol del usuario (taller); la seguri
 let STAFF = null, DOC_ID = null;
 const $ = id => document.getElementById(id);
 const hex = id => (PALETA.find(c => c.id === id) || PALETA[0]).h;
-const col = (m, k) => m.colores[k] || m.colores[String(k).replace(/^s\d+_/, '')] || 'blanco';
+const col = (m, k) => m.colores[k] || m.colores[String(k).replace(/^s\d+_/, '')] || (/_(cajon|especiero)$/.test(k) ? m.colores.puerta : '') || 'blanco';
 const nombreColor = id => (PALETA.find(c => c.id === id) || PALETA[0]).n;
 const cm = n => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -118,6 +118,8 @@ function anchosSecciones(m) {
   const typed = m.secciones.slice(0, -1).map(s => +s.ancho || 0);
   return [...typed, tot - typed.reduce((a, b) => a + b, 0)];
 }
+const FRENTES = {puerta:{n:'Puerta', sel:'Puerta (con bisagras)'}, cajon:{n:'Frente de cajón', sel:'Cajón (frente)'}, especiero:{n:'Frente de especiero', sel:'Especiero (frente)'}};
+const tf = s => FRENTES[s.frente] ? s.frente : 'puerta';
 function layoutSec(m, s) {
   const eP = Math.min(m.espI, m.espD), zona = m.alto - eP - m.barra - m.golaSup; let c = 0, topGola = 0; const out = [];
   s.elementos.forEach(e => { c += +e.sep || 0; const h = e.t === 'gola' ? (+e.alto || 0) : eP; const ok = c + h <= zona + 1e-6; out.push({t:e.t, bottom:c, top:c + h, ok}); if (ok && e.t === 'gola') topGola = Math.max(topGola, c + h); c += h; });
@@ -144,8 +146,10 @@ function calcularBajo(m) {
     const nb = s.elementos.filter(e => e.t === 'bandeja').length;
     if (nb) p.push({k:`s${i + 1}_bandeja`,lbl:ln('Bandeja'),n:'Bandeja' + t,c:nb,a:an[i],b:m.prof});
     if (+s.puertas > 0) {
-      const izq = i === 0 ? m.espI + m.recI : m.paralEsp / 2, der = i === ns - 1 ? m.espD + m.recD : m.paralEsp / 2;
-      p.push({k:`s${i + 1}_puerta`,lbl:ln('Puerta'),n:'Puerta' + t,c:+s.puertas,a:m.alto - m.golaSup - (L.topGola > 0 ? eP + L.topGola : (refPuerta(m) > 0 ? eP + refPuerta(m) : 0)) - 2 * m.juego,b:(an[i] + izq + der) / s.puertas - m.juego,puerta:true});
+      const izq = i === 0 ? m.espI + m.recI : m.paralEsp / 2, der = i === ns - 1 ? m.espD + m.recD : m.paralEsp / 2, tipo = tf(s), nf = +s.puertas, span = an[i] + izq + der;
+      const banda = m.alto - m.golaSup - (L.topGola > 0 ? eP + L.topGola : (refPuerta(m) > 0 ? eP + refPuerta(m) : 0));
+      const dim = tipo === 'cajon' ? {a:(banda - (nf + 1) * m.juego) / nf, b:span - m.juego} : {a:banda - 2 * m.juego, b:span / nf - m.juego};
+      p.push({k:`s${i + 1}_${tipo}`,lbl:ln(FRENTES[tipo].n),n:FRENTES[tipo].n + t,c:nf,...dim,puerta:tipo === 'puerta'});
     }
   });
   return p;
@@ -205,7 +209,9 @@ function frenteBajo(m, x, y, s) {
     const L = layoutSec(m, sc), n = +sc.puertas || 0;
     L.out.forEach(o => { if (o.ok && o.t === 'gola') g += R(sx, piso - o.top * s, sp, (o.top - o.bottom) * s, C(`s${i + 1}_gola`)); });
     const yb = L.topGola > 0 ? piso - L.topGola * s : (ref > 0 ? piso - ref * s : y + h), hd = Math.max(yb - yZ, 0);
-    for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(`s${i + 1}_puerta`));
+    const tipo = tf(sc), ck = `s${i + 1}_${tipo}`;
+    if (tipo === 'cajon') for (let k = 0; k < n; k++) g += R(sx + .5, yZ + k * hd / n + .5, sp - 1, hd / n - 1, C(ck));
+    else for (let k = 0; k < n; k++) g += R(sx + k * sp / n + .5, yZ, sp / n - 1, hd, C(ck));
     sx += sp;
   });
   if (m.golaSup > 0) g += R(x, y, w, m.golaSup * s, C('golaSup'));
@@ -314,7 +320,8 @@ function pintarSecciones() {
       return `<div class="dp-el"><div class="dp-fila"><label>${g ? 'Gola (cajón)' : 'Bandeja'} ${n} · separación (cm)<input type="number" step="0.1" min="0" data-s="${i}" data-e="${k}" data-k="sep" value="${e.sep}"></label>${g ? `<label>Alto de la gola (cm)<input type="number" step="0.1" min="0.5" data-s="${i}" data-e="${k}" data-k="alto" value="${e.alto}"></label>` : '<span></span>'}</div><div class="dp-el-acc"><button class="dp-btn dp-sec" data-mv="up" data-s="${i}" data-e="${k}" title="Subir">▲</button><button class="dp-btn dp-sec" data-mv="down" data-s="${i}" data-e="${k}" title="Bajar">▼</button><button class="dp-btn dp-sec" data-del="el" data-s="${i}" data-e="${k}" title="Quitar">✕</button></div>${ok ? '' : '<small class="dp-aviso">No cabe en el alto de esta sección.</small>'}</div>`;
     }).join('');
     return `<div class="dp-sec-card"><div class="dp-sec-cab"><b>Sección ${i + 1}</b>${ns > 1 ? `<button class="dp-btn dp-sec" data-del="sec" data-s="${i}">Quitar sección</button>` : ''}</div>
-    <div class="dp-fila"><label>Ancho libre (cm)${ult && ns > 1 ? ' · resto' : ''}<input type="number" step="0.1" min="1" data-s="${i}" data-k="ancho" value="${ult ? Math.round(an[i] * 10) / 10 : s.ancho}" ${ult ? 'readonly' : ''}></label><label>Puertas<input type="number" min="0" max="4" data-s="${i}" data-k="puertas" value="${s.puertas}"></label></div>
+    <div class="dp-fila"><label>Ancho libre (cm)${ult && ns > 1 ? ' · resto' : ''}<input type="number" step="0.1" min="1" data-s="${i}" data-k="ancho" value="${ult ? Math.round(an[i] * 10) / 10 : s.ancho}" ${ult ? 'readonly' : ''}></label><label>Cantidad de frentes<input type="number" min="0" max="6" data-s="${i}" data-k="puertas" value="${s.puertas}"></label></div>
+    <label>Tipo de frente<select data-s="${i}" data-k="frente">${Object.entries(FRENTES).map(([k, f]) => `<option value="${k}" ${tf(s) === k ? 'selected' : ''}>${f.sel}</option>`).join('')}</select></label>
     ${an[i] <= 0 ? '<small class="dp-aviso">Los anchos no caben en el módulo.</small>' : ''}
     <small class="dp-nota">Se arma desde el piso hacia arriba. «Separación» es el espacio libre bajo la pieza. La gola es siempre un cajón o gaveta (no lleva puerta); las puertas cubren la parte de arriba.</small>${filas}
     <div class="dp-fila"><button class="dp-btn dp-sec" data-add="gola" data-s="${i}">+ Gola</button><button class="dp-btn dp-sec" data-add="bandeja" data-s="${i}">+ Bandeja</button></div>
@@ -355,7 +362,7 @@ $('btnAddSec').addEventListener('click', () => {
 });
 $('dpSecciones').addEventListener('input', e => {
   const t = e.target.dataset, m = M(); if (t.s == null || !t.k) return; const v = parseFloat(e.target.value) || 0, s = m.secciones[+t.s];
-  if (t.e != null) s.elementos[+t.e][t.k] = v; else s[t.k] = v;
+  if (t.k === 'frente') s.frente = e.target.value; else if (t.e != null) s.elementos[+t.e][t.k] = v; else s[t.k] = v;
   refrescar();
 });
 $('dpSecciones').addEventListener('change', () => pintarEditor());
