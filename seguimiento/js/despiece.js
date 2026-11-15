@@ -27,7 +27,7 @@ function moduloNuevo(n) {
     ancho:60, alto:53.5, prof:33, espI:1.5, espD:1.5, barra:6, recI:0, recD:0, golas:[], golaSup:0, paralEsp:1.5, secciones:[], divisiones:[], puertas:2, juego:0.5, sobre:0, manilla:'si',
     colores:{lat:'blanco',techo:'blanco',piso:'blanco',barra:'blanco',bandeja:'blanco',gola:'blanco',rec:'blanco',puerta:'gres'},
     vistas:{f:'Vista frontal (con puertas)',i:'Vista frontal interior (sin puertas)',l:'Vista lateral',p:'Perspectiva',s:'Vista superior (barra)'},
-    categoriaCodigo:'', categoriaNombre:'', subcategoriaId:'', subcategoriaNombre:'', plantilla:'', notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
+    fondo:'si', fondoTipo:'sobrepuesto', fondoEsp:0.3, categoriaCodigo:'', categoriaNombre:'', subcategoriaId:'', subcategoriaNombre:'', plantilla:'', notas:'', subtitulo:'Plano constructivo, medidas y despiece', avance:{}};
 }
 // ===== Plantillas de despiece: cada mueble tiene su propia receta =====
 // Se agregan aquí a medida que María indica cómo se construye cada mueble.
@@ -56,7 +56,7 @@ async function cargarDespiece() {
     else if (D.codigo) d = await obtenerDespiece(D.codigo);
     if (!d && D.leadOrigenId) d = await buscarDespiecePorLead(D.leadOrigenId);
     if (d) { DOC_ID = d.id; D = {...D, ...d, avance: d.avance || {}}; D.modulos.forEach(m => { if (m.plantilla === undefined) m.plantilla = 'aereo'; // módulos anteriores: eran el aéreo
-    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.golas = m.golas || []; m.golaSup = m.golaSup || 0; m.paralEsp = m.paralEsp ?? 1.5; if (m.plantilla === 'bajo' && !m.secciones) m.secciones = [{ancho:null, puertas:+m.puertas || 0, golas:m.golas, divisiones:m.divisiones || []}];
+    if (!m.categoriaCodigo) m.categoriaCodigo = ''; if (!m.subcategoriaNombre) m.subcategoriaNombre = ''; if (!m.divisiones) m.divisiones = Array.from({length: +m.bandejas || 0}, () => +m.altBandeja || 15); m.colores = {bandeja:'blanco', gola:'blanco', rec:'blanco', ...m.colores}; m.fondo = m.fondo || 'no'; m.fondoTipo = m.fondoTipo || 'sobrepuesto'; m.fondoEsp = m.fondoEsp ?? 0.3; m.golas = m.golas || []; m.golaSup = m.golaSup || 0; m.paralEsp = m.paralEsp ?? 1.5; if (m.plantilla === 'bajo' && !m.secciones) m.secciones = [{ancho:null, puertas:+m.puertas || 0, golas:m.golas, divisiones:m.divisiones || []}];
     (m.secciones || []).forEach(s => { if (!s.elementos) s.elementos = (s.golas || []).map(a => ({t:'gola', sep:0, alto:+a || 0})).concat((s.divisiones || []).map(d => ({t:'bandeja', sep:+d || 0}))); }); m.recI = m.recI || 0; m.recD = m.recD || 0; m.vistas = {s:'Vista superior (barra)', ...m.vistas}; if (m.espI == null) m.espI = m.esp ?? 1.5; if (m.espD == null) m.espD = m.esp ?? 1.5; }); }
     else if (D.leadOrigenId) { const l = await obtenerLead(D.leadOrigenId); if (l) D.nombre = D.nombre || l.nombre || ''; }
   } catch (e) { console.error(e); $('dpEstado').textContent = 'No se pudo cargar el despiece'; }
@@ -105,7 +105,13 @@ async function poblarUsuarios() {
 // ===== Cálculo de piezas =====
 function calcular(m) {
   if (!m.plantilla) return [];
-  return m.plantilla === 'bajo' ? calcularBajo(m) : calcularAereo(m);
+  const p = m.plantilla === 'bajo' ? calcularBajo(m) : calcularAereo(m);
+  if (m.fondo === 'si') {
+    const eT = Math.min(m.espI, m.espD), emb = m.fondoTipo === 'embutido', iw = m.plantilla === 'bajo' ? anchoInt(m) : m.ancho - m.espI - m.espD;
+    const f = emb ? {a:iw, b:m.alto - (m.plantilla === 'bajo' ? eT : 2 * eT)} : {a:m.ancho, b:m.alto};
+    const i = p.findIndex(x => /puerta$/.test(x.k)); p.splice(i < 0 ? p.length : i, 0, {k:'fondo', n:'Fondo (ancho × alto)', c:1, ...f});
+  }
+  return p;
 }
 function anchosSecciones(m) {
   const ns = m.secciones.length, tot = anchoInt(m) - m.paralEsp * (ns - 1);
@@ -165,7 +171,7 @@ function svgFrontal(m, interior) {
   const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, eI = m.espI * s, eD = m.espD * s, c = m.colores;
   let g = '';
   if (interior) {
-    g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#fff" stroke="#141213" stroke-width=".8"/>`;
+    g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>`;
     const eT = Math.min(eI, eD); g += R(x, y, eI, h, c.lat) + R(x + w - eD, y, eD, h, c.lat) + R(x + eI, y, w - eI - eD, eT, c.techo) + R(x + eI, y + h - eT, w - eI - eD, eT, c.piso);
     if (m.barra > 0) g += R(x + eI, y + eT, w - eI - eD, m.barra * s, c.barra);
     const eTcm = Math.min(m.espI, m.espD);
@@ -193,7 +199,7 @@ function svgFrontalBajo(m, interior) {
   const an = anchosSecciones(m), pe = m.paralEsp * s, yZ = y + (interior ? (m.barra + m.golaSup) * s : m.golaSup * s), piso = y + h - eP;
   let g = '';
   if (interior) {
-    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="#fff" stroke="#141213" stroke-width=".8"/>` + R(x, piso, w, eP, C('piso'));
+    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>` + R(x, piso, w, eP, C('piso'));
     if (rI) g += R(x, y, rI, h, C('rec')); g += R(x + rI, y, eI, h - eP, C('lat')) + R(x + w - rD - eD, y, eD, h - eP, C('lat')); if (rD) g += R(x + w - rD, y, rD, h, C('rec'));
     if (m.barra > 0) g += R(x0, y, iw, m.barra * s, C('barra'));
     if (m.golaSup > 0) g += R(x0, y + m.barra * s, iw, m.golaSup * s, C('golaSup'));
@@ -262,7 +268,7 @@ function hojaModulo(m, i) {
   <div class="dp-cab"><div><b><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="nombre" title="Clic para renombrar">${esc(m.nombre)}</span> – ${esc(D.nombre || 'Proyecto')}</b><small><span class="dp-edit" ${EDIT} data-mod="${m.id}" data-f="subtitulo" title="Clic para editar">${esc(m.subtitulo || 'Plano constructivo, medidas y despiece')}</span>${rutaMueble(m) ? ' · ' + rutaMueble(m) : ''}${D.codigo ? ' · ' + esc(D.codigo) : ''}</small></div><div class="dp-marca">LINENCE</div></div>
   <div class="dp-vistas">${vistasHtml(m)}</div>
   <div class="dp-datos">
-    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr><tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.plantilla === 'bajo' ? `${m.recI > 0 || m.recD > 0 ? `<tr><td>Recubrimiento</td><td>Izq. ${cm(m.recI * 10)} mm · Der. ${cm(m.recD * 10)} mm</td></tr>` : ''}<tr><td>Ancho interior</td><td>${cm(anchoInt(m))} cm</td></tr><tr><td>Secciones</td><td>${m.secciones.length} · anchos ${anchosSecciones(m).map(cm).join(' / ')} cm</td></tr>${m.golaSup > 0 ? `<tr><td>Gola superior</td><td>${cm(m.golaSup)} cm de alto</td></tr>` : ''}${m.secciones.length > 1 ? `<tr><td>Paral</td><td>${cm(m.paralEsp * 10)} mm</td></tr>` : ''}` : ''}${m.plantilla !== 'bajo' && m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
+    <div><h3>Medidas generales</h3><table><tr><td>Ancho</td><td>${cm(m.ancho)} cm</td></tr><tr><td>Alto</td><td>${cm(m.alto)} cm</td></tr><tr><td>Fondo</td><td>${cm(m.prof)} cm</td></tr>${m.fondo === 'si' ? `<tr><td>Fondo</td><td>${m.fondoTipo === 'embutido' ? 'Embutido' : 'Sobrepuesto'} · ${cm(m.fondoEsp * 10)} mm</td></tr>` : ''}<tr><td>Melamina</td><td>${m.espI === m.espD ? cm(m.espI * 10) + ' mm' : 'Izq. ' + cm(m.espI * 10) + ' mm · Der. ' + cm(m.espD * 10) + ' mm'}</td></tr>${m.plantilla === 'bajo' ? `${m.recI > 0 || m.recD > 0 ? `<tr><td>Recubrimiento</td><td>Izq. ${cm(m.recI * 10)} mm · Der. ${cm(m.recD * 10)} mm</td></tr>` : ''}<tr><td>Ancho interior</td><td>${cm(anchoInt(m))} cm</td></tr><tr><td>Secciones</td><td>${m.secciones.length} · anchos ${anchosSecciones(m).map(cm).join(' / ')} cm</td></tr>${m.golaSup > 0 ? `<tr><td>Gola superior</td><td>${cm(m.golaSup)} cm de alto</td></tr>` : ''}${m.secciones.length > 1 ? `<tr><td>Paral</td><td>${cm(m.paralEsp * 10)} mm</td></tr>` : ''}` : ''}${m.plantilla !== 'bajo' && m.divisiones.length ? `<tr><td>Bandejas</td><td>${m.divisiones.length} u. · divisiones ${m.divisiones.map(cm).join(' / ')} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Puerta</td><td>${cm(puerta.a)} × ${cm(puerta.b)} cm (${m.puertas} u.)</td></tr>` : ''}${m.sobre > 0 ? `<tr><td>Sobresale</td><td>${cm(m.sobre)} cm</td></tr>` : ''}${conPuertas ? `<tr><td>Manilla</td><td>${m.manilla === 'si' ? 'Con manilla' : 'Sin manilla'}</td></tr>` : ''}</table></div>
     <div><h3>Despiece (medidas de fabricación, cm)</h3><table><tr><th>Pieza</th><th>Cant.</th><th>Medidas</th><th>Color</th><th class="col-listo">Listo</th></tr>${filas}</table></div>
   </div>
   ${m.notas ? `<div class="dp-notas"><b>Notas</b>\n${esc(m.notas)}</div>` : ''}</div>`;
@@ -270,7 +276,7 @@ function hojaModulo(m, i) {
 function pintarHoja() { $('dpHoja').innerHTML = D.modulos.map(hojaModulo).join(''); }
 
 // ===== Panel editor =====
-const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mRecI:'recI', mRecD:'recD', mGolaSup:'golaSup', mParalEsp:'paralEsp', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
+const CAMPOS = {mNombre:'nombre', mAncho:'ancho', mAlto:'alto', mProf:'prof', mEspI:'espI', mEspD:'espD', mRecI:'recI', mRecD:'recD', mFondo:'fondo', mFondoTipo:'fondoTipo', mFondoEsp:'fondoEsp', mGolaSup:'golaSup', mParalEsp:'paralEsp', mBarra:'barra', mPuertas:'puertas', mJuego:'juego', mSobre:'sobre', mManilla:'manilla', mNotas:'notas'};
 function pintarEditor() {
   $('pNombre').value = D.nombre; $('pNombre').readOnly = !!D._origenNombre; $('pCodigo').readOnly = !!q.get('codigo') || !!(D.codigo && D._origenNombre); $('pLead').readOnly = !!D.leadOrigenId && !!D._origenNombre; $('pCodigo').value = D.codigo; $('pLead').value = D.leadOrigenId; if ($('pAsignado').value !== (D.asignadoA || '')) $('pAsignado').value = D.asignadoA || '';
   $('dpTabs').innerHTML = D.modulos.map((m, i) => `<button class="dp-tab ${i === idx ? 'on' : ''}" data-i="${i}">${esc(m.nombre)}</button>`).join('') + '<button class="dp-tab" data-i="+">+ Módulo</button>';
