@@ -934,3 +934,6 @@ body { overflow-x: visible; }
   color:#6b6558;
   text-align:right;
 }
+
+.cot-iva-convertir{ display:block; margin:0 0 10px auto; font-size:12px; padding:6px 12px; }
+.cot-iva-nota{ color:#4a463f; }

@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="css/crm.css?v=8">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=11">
-<link rel="stylesheet" href="css/cotizaciones.css?v=24">
+<link rel="stylesheet" href="css/cotizaciones.css?v=25">
 <link rel="stylesheet" href="css/catalogo-servicios.css?v=4">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
@@ -225,6 +225,7 @@
         <label for="cotAplicaIva"><input type="checkbox" id="cotAplicaIva" checked> Incluir IVA 19% (factura)</label>
       </div>
       <p class="cot-iva-nota" id="cotIvaNota"></p>
+      <button type="button" class="btn-secundario cot-iva-convertir" id="btnIvaNuevoCalculo" style="display:none;">Pasar al cálculo nuevo (IVA incluido)</button>
       <div class="crm-cotizacion-total-row" id="filaIva" style="display:none;">
         <span>I.V.A. 19%</span>
         <span id="cotIvaMonto">$0</span>
@@ -512,7 +513,7 @@
 
 <div id="cotToast"></div>
 
-<script type="module" src="js/cotizaciones.js?v=32"></script>
+<script type="module" src="js/cotizaciones.js?v=33"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
