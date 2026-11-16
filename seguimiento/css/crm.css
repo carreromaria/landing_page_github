@@ -477,11 +477,11 @@
    acá solo agregamos el toggle de mostrar/ocultar con .visible, que es
    lo que usa crm.js. */
 
-#modalNuevoLead, #modalEditarLead, #modalGanado, #modalPerdido{
+#modalNuevoLead, #modalEditarLead, #modalGanado, #modalPerdido, #modalReabrir{
   display:none;
 }
 
-#modalNuevoLead.visible, #modalEditarLead.visible, #modalGanado.visible, #modalPerdido.visible{
+#modalNuevoLead.visible, #modalEditarLead.visible, #modalGanado.visible, #modalPerdido.visible, #modalReabrir.visible{
   display:flex;
   align-items:center;
   justify-content:center;
