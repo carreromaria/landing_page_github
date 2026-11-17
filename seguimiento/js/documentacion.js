@@ -695,6 +695,13 @@ function abrirPlantillaBlanco() {
     // Enter crea párrafos <p> (igual que el resto de los documentos) y el pegado entra como texto simple,
     // para que no se cuele la tipografía ni los colores de Word u otras páginas.
     try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* sin soporte */ }
+    // Tecla Tab = tabulación (Shift+Tab disminuye la sangría), en vez de saltar a otro campo
+    editable.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      if (e.shiftKey) { document.execCommand('styleWithCSS', false, true); document.execCommand('outdent'); }
+      else insertarTabulacion();
+    });
     editable.addEventListener('paste', (e) => {
       e.preventDefault();
       const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
@@ -713,13 +720,80 @@ function abrirPlantillaBlanco() {
  */
 const barraFormato = document.getElementById('barraFormato');
 barraFormato.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+
+/** Cambia mayúsculas/minúsculas solo del texto seleccionado, sin perder su formato. */
+function cambiarMayusculas(editable, aMayusculas) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed || !editable.contains(sel.anchorNode)) {
+    mostrarToast('Selecciona primero el texto que quieres cambiar.', 'info');
+    return;
+  }
+  const rango = sel.getRangeAt(0);
+  const raiz = rango.commonAncestorContainer.nodeType === 3 ? rango.commonAncestorContainer.parentNode : rango.commonAncestorContainer;
+  const recorrido = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT);
+  const nodos = [];
+  while (recorrido.nextNode()) { if (rango.intersectsNode(recorrido.currentNode)) nodos.push(recorrido.currentNode); }
+  nodos.forEach((n) => {
+    const ini = n === rango.startContainer ? rango.startOffset : 0;
+    const fin = n === rango.endContainer ? rango.endOffset : n.nodeValue.length;
+    const tramo = n.nodeValue.slice(ini, fin);
+    const nuevo = aMayusculas ? tramo.toLocaleUpperCase('es-CL') : tramo.toLocaleLowerCase('es-CL');
+    n.nodeValue = n.nodeValue.slice(0, ini) + nuevo + n.nodeValue.slice(fin);
+  });
+}
+
+/** Sube o baja el tamaño de letra del texto seleccionado (2 px por toque, entre 8 y 48). */
+function cambiarTamano(editable, delta) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed || !editable.contains(sel.anchorNode)) {
+    mostrarToast('Selecciona primero el texto que quieres agrandar o achicar.', 'info');
+    return;
+  }
+  const base = sel.anchorNode.nodeType === 3 ? sel.anchorNode.parentElement : sel.anchorNode;
+  const actual = parseFloat(getComputedStyle(base).fontSize) || 13;
+  const nuevo = Math.min(48, Math.max(8, Math.round(actual + delta)));
+  document.execCommand('styleWithCSS', false, false);
+  document.execCommand('fontSize', false, '7'); // el navegador marca el tramo con <font size="7">...
+  const spans = [];
+  editable.querySelectorAll('font[size="7"]').forEach((f) => { // ...y se cambia por el tamaño exacto
+    const span = document.createElement('span');
+    span.style.fontSize = nuevo + 'px';
+    while (f.firstChild) span.appendChild(f.firstChild);
+    f.replaceWith(span);
+    spans.push(span);
+  });
+  if (spans.length) { // se vuelve a seleccionar el texto para poder seguir subiendo o bajando
+    const r = document.createRange();
+    r.setStartBefore(spans[0]);
+    r.setEndAfter(spans[spans.length - 1]);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+}
+
+/** Tabulación: un espacio fijo de media pulgada en el punto donde está el cursor. */
+function insertarTabulacion() {
+  document.execCommand('insertHTML', false, '<span style="display:inline-block;width:0.5in;">&nbsp;</span>');
+}
+
 barraFormato.addEventListener('click', (e) => {
-  const boton = e.target.closest('button[data-cmd]');
+  const boton = e.target.closest('button[data-cmd], button[data-accion]');
   if (!boton) return;
   const editable = document.querySelector('#hojaDocumentoImprimir .hoja-editable');
   if (!editable) return;
   const sel = window.getSelection();
   if (!sel.anchorNode || !editable.contains(sel.anchorNode)) editable.focus();
+  if (boton.dataset.accion) {
+    const a = boton.dataset.accion;
+    try {
+      if (a === 'mayus') cambiarMayusculas(editable, true);
+      else if (a === 'minus') cambiarMayusculas(editable, false);
+      else if (a === 'mas') cambiarTamano(editable, 2);
+      else if (a === 'menos') cambiarTamano(editable, -2);
+      else if (a === 'tab') insertarTabulacion();
+    } catch (err) { console.warn('No se pudo aplicar el cambio.', err); }
+    return;
+  }
   try {
     document.execCommand('styleWithCSS', false, true);
     document.execCommand(boton.dataset.cmd, false, boton.dataset.valor || null);

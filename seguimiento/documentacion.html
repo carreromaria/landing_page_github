@@ -211,6 +211,11 @@
       <button type="button" data-cmd="italic" title="Cursiva"><i>C</i></button>
       <button type="button" data-cmd="underline" title="Subrayado"><u>S</u></button>
       <span class="doc-barra-sep"></span>
+      <button type="button" data-accion="menos" title="Letra más pequeña"><span style="font-size:11px;">A</span>−</button>
+      <button type="button" data-accion="mas" title="Letra más grande"><span style="font-size:17px;">A</span>+</button>
+      <button type="button" data-accion="mayus" title="Pasar a MAYÚSCULAS">AA</button>
+      <button type="button" data-accion="minus" title="Pasar a minúsculas">aa</button>
+      <span class="doc-barra-sep"></span>
       <button type="button" data-cmd="foreColor" data-valor="#D6A52C" title="Texto dorado institucional"><span class="doc-color-punto" style="background:#D6A52C;"></span></button>
       <button type="button" data-cmd="foreColor" data-valor="#141213" title="Texto negro"><span class="doc-color-punto" style="background:#141213;"></span></button>
       <span class="doc-barra-sep"></span>
@@ -221,6 +226,10 @@
       <span class="doc-barra-sep"></span>
       <button type="button" data-cmd="insertUnorderedList" title="Lista con viñetas">•&nbsp;≡</button>
       <button type="button" data-cmd="insertOrderedList" title="Lista numerada">1.&nbsp;≡</button>
+      <span class="doc-barra-sep"></span>
+      <button type="button" data-accion="tab" title="Tabulación (también con la tecla Tab)"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M1.5 8h9M8 5l3 3-3 3M14 4v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>
+      <button type="button" data-cmd="indent" title="Aumentar sangría del párrafo"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M7 6.5h7M7 10h7M2 13.5h12M2 6l3 2-3 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor"/></svg></button>
+      <button type="button" data-cmd="outdent" title="Disminuir sangría del párrafo"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M7 6.5h7M7 10h7M2 13.5h12M5 6L2 8l3 2z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="currentColor"/></svg></button>
     </div>
     <div class="doc-hoja-scroll">
       <div id="hojaDocumentoImprimir"></div>
@@ -232,7 +241,7 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=19"></script>
+<script type="module" src="js/documentacion.js?v=20"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>
