@@ -666,13 +666,13 @@ const DOCUMENTOS = [
 ];
 
 // ============================================================
-// PL — Plantilla en blanco (acta, carta u otro documento libre)
+// LN — Plantilla en blanco (acta, carta u otro documento libre)
 // No depende de un cliente: encabezado y pie LINENCE + hoja editable.
 // ============================================================
 function generarPlantillaBlanco(titulo) {
   const hoy = new Date();
   const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-  const codigo = `PL-${iso.replace(/-/g, '')}`;
+  const codigo = `LN-${iso.replace(/-/g, '')}`;
   const tituloDoc = (titulo || '').trim() || 'Documento';
   return `
     <div class="hoja-documento doc-formal">
@@ -689,7 +689,7 @@ function generarPlantillaBlanco(titulo) {
 function abrirPlantillaBlanco() {
   const titulo = document.getElementById('plantillaTitulo').value.trim();
   const html = generarPlantillaBlanco(titulo);
-  abrirModalDocumento(html, `PL-${Date.now()}`, nombreArchivoDocumento({ documento: titulo || 'Documento' }));
+  abrirModalDocumento(html, `LN-${Date.now()}`, nombreArchivoDocumento({ documento: titulo || 'Documento' }));
   const editable = document.querySelector('#hojaDocumentoImprimir .hoja-editable');
   if (editable) {
     // Enter crea párrafos <p> (igual que el resto de los documentos) y el pegado entra como texto simple,
