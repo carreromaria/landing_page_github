@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=6">
-<link rel="stylesheet" href="css/documentacion.css?v=5">
+<link rel="stylesheet" href="css/documentacion.css?v=6">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
 </head>
 <body>
@@ -181,6 +181,19 @@
       <h2>Documentos del proyecto</h2>
       <div class="docs-grid" id="docsGrid"></div>
     </section>
+
+    <!-- ---- Plantilla en blanco (no requiere cliente) ---- -->
+    <section class="panel-seccion" id="plantillaBlancoPanel">
+      <h2>Plantilla en blanco</h2>
+      <p class="dd-nota">Para actas, cartas u otros documentos que necesites. Sale con el encabezado y el pie de LINENCE y la hoja vacía: escribe directamente sobre ella, luego imprímela o descárgala en PDF. No necesitas buscar un cliente.</p>
+      <div class="plantilla-fila">
+        <div class="campo">
+          <label for="plantillaTitulo">Título del documento</label>
+          <input type="text" id="plantillaTitulo" maxlength="60" placeholder="Ej. Acta de reunión, Carta a proveedor">
+        </div>
+        <button type="button" class="btn-primario" id="btnAbrirPlantilla">Abrir plantilla</button>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -202,7 +215,7 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=16"></script>
+<script type="module" src="js/documentacion.js?v=17"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>

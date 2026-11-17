@@ -358,3 +358,19 @@
   .dd-acciones{flex-direction:column-reverse;}
   .dd-acciones button{width:100%;}
 }
+
+/* Plantilla en blanco: título + botón en una fila (apilado en celular) */
+.plantilla-fila{display:flex; align-items:flex-end; gap:12px;}
+.plantilla-fila .campo{flex:1; margin-bottom:0;}
+@media (max-width:720px){
+  .plantilla-fila{flex-direction:column; align-items:stretch;}
+  .plantilla-fila .btn-primario{width:100%;}
+}
+
+/* Hoja editable: se ve que se puede escribir, pero nada de esto sale impreso */
+.hoja-editable{min-height:3in; outline:none;}
+.hoja-editable p{min-height:1.6em;}
+@media screen{
+  .hoja-editable:hover{background:rgba(211,187,140,.10);}
+  .hoja-editable:focus{background:rgba(211,187,140,.14); box-shadow:inset 0 0 0 1px var(--gold-line);}
+}

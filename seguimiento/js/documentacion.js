@@ -665,6 +665,46 @@ const DOCUMENTOS = [
   { sigla: 'EG',  nombre: 'Tarjeta de Evaluación en Google', activo: true, generar: generarTarjetaEvaluacionGoogle }
 ];
 
+// ============================================================
+// PL — Plantilla en blanco (acta, carta u otro documento libre)
+// No depende de un cliente: encabezado y pie LINENCE + hoja editable.
+// ============================================================
+function generarPlantillaBlanco(titulo) {
+  const hoy = new Date();
+  const iso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  const codigo = `PL-${iso.replace(/-/g, '')}`;
+  const tituloDoc = (titulo || '').trim() || 'Documento';
+  return `
+    <div class="hoja-documento doc-formal">
+      ${encabezadoHoja(tituloDoc, codigo)}
+      <div class="hoja-cuerpo hoja-editable" contenteditable="true" spellcheck="true">
+        <p>Rancagua, ${formatearFechaLarga(iso)}</p>
+        <p><br></p>
+      </div>
+      ${pieHoja(tituloDoc, codigo)}
+    </div>
+  `;
+}
+
+function abrirPlantillaBlanco() {
+  const titulo = document.getElementById('plantillaTitulo').value.trim();
+  const html = generarPlantillaBlanco(titulo);
+  abrirModalDocumento(html, `PL-${Date.now()}`, nombreArchivoDocumento({ documento: titulo || 'Documento' }));
+  const editable = document.querySelector('#hojaDocumentoImprimir .hoja-editable');
+  if (editable) {
+    // Enter crea párrafos <p> (igual que el resto de los documentos) y el pegado entra como texto simple,
+    // para que no se cuele la tipografía ni los colores de Word u otras páginas.
+    try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) { /* sin soporte */ }
+    editable.addEventListener('paste', (e) => {
+      e.preventDefault();
+      const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, texto);
+    });
+  }
+  mostrarToast('Escribe directamente sobre la hoja. Cuando termines, usa Imprimir o Descargar PDF.', 'info');
+}
+document.getElementById('btnAbrirPlantilla').addEventListener('click', abrirPlantillaBlanco);
+
 function renderizarDocsGrid() {
   const grid = document.getElementById('docsGrid');
   grid.innerHTML = '';
