@@ -70,14 +70,11 @@ const cotTotalGeneral = document.getElementById('cotTotalGeneral');
 const cotDescuento = document.getElementById('cotDescuento');
 const cotNeto = document.getElementById('cotNeto');
 const cotAplicaIva = document.getElementById('cotAplicaIva');
-// Modelo de IVA de la cotización abierta:
-//  'incluido' → los valores unitarios YA incluyen IVA (modelo actual, desde 2026-11-15).
-//  'anterior' → cotizaciones creadas antes: valores netos y el IVA se suma encima.
-// Las antiguas se mantienen en 'anterior' para que sus montos no cambien sin querer.
-let modeloIva = 'incluido';
-let valoresCopiadosNetos = false; // opción nueva copiada de una cotización antigua (valores eran netos)
+// Modelo de IVA: único cálculo vigente (desde 2026-11-15). Los valores unitarios YA incluyen IVA.
+// El cálculo anterior (IVA sumado al neto) se eliminó; se sigue guardando 'incluido' en cada cotización.
+const modeloIva = 'incluido';
+let valoresCopiadosNetos = false; // cotización antigua abierta: sus valores eran netos, conviene revisarlos
 const cotIvaNota = document.getElementById('cotIvaNota');
-const btnIvaNuevoCalculo = document.getElementById('btnIvaNuevoCalculo');
 const filaIva = document.getElementById('filaIva');
 const cotIvaMonto = document.getElementById('cotIvaMonto');
 const cotTotalFinal = document.getElementById('cotTotalFinal');
@@ -556,11 +553,10 @@ async function cargarCotizacionVigente() {
     renderFilas(base.items);
     cotDescuento.value = base.descuento ? formatearMilesInput(String(base.descuento)) : '';
     cotPorcentajeAbono.value = base.porcentajeAbono ?? '';
-    // Cotización ya guardada: conserva su modelo (las antiguas no cambian solas; hay botón para pasarlas).
-    // Opción nueva aún sin guardar: siempre parte con el cálculo nuevo (IVA incluido).
-    modeloIva = (!vigenteActual || base.modeloIva === 'incluido') ? 'incluido' : 'anterior';
-    valoresCopiadosNetos = !vigenteActual && base.modeloIva !== 'incluido';
-    cotAplicaIva.checked = (!vigenteActual) ? true : !!base.aplicaIva;
+    // Un solo cálculo (IVA incluido). Si la cotización venía del cálculo anterior (valores netos),
+    // se avisa para revisar los valores y el check de IVA parte marcado.
+    valoresCopiadosNetos = base.modeloIva !== 'incluido';
+    cotAplicaIva.checked = (!vigenteActual || valoresCopiadosNetos) ? true : !!base.aplicaIva;
     cotFechaEntregaInicio.value = base.fechaEntregaInicio || '';
     cotFechaEntregaFin.value = base.fechaEntregaFin || '';
     cotDiasHabilesEntrega.value = base.diasHabilesEntrega ?? '';
@@ -572,7 +568,6 @@ async function cargarCotizacionVigente() {
     renderFilas([]);
     cotDescuento.value = '';
     cotPorcentajeAbono.value = '';
-    modeloIva = 'incluido';
     valoresCopiadosNetos = false;
     cotAplicaIva.checked = true; // el IVA va incluido por defecto (obligatorio con factura)
     cotFechaEntregaInicio.value = '';
@@ -1525,13 +1520,6 @@ activarFormatoMiles(cotDescuento);
 cotDescuento.addEventListener('input', recalcularCotizacion);
 
 cotAplicaIva.addEventListener('change', recalcularCotizacion);
-btnIvaNuevoCalculo?.addEventListener('click', () => {
-  if (!confirm('Los valores unitarios pasarán a considerarse CON IVA incluido. Si esta cotización tenía valores netos, el total va a bajar. ¿Continuar?')) return;
-  modeloIva = 'incluido';
-  valoresCopiadosNetos = false;
-  cotAplicaIva.checked = true;
-  recalcularCotizacion();
-});
 
 cotPorcentajeAbono.addEventListener('input', () => {
   cotPorcentajeAbono.value = cotPorcentajeAbono.value.replace(/\D/g, '').slice(0, 3);
@@ -1569,29 +1557,19 @@ function recalcularCotizacion() {
 
   // El I.V.A. y el Total se calculan sobre el Neto (Monto ya descontado), no sobre el Monto.
   const aplicaIva = cotAplicaIva.checked;
-  let ivaMonto, total, netoMostrado = neto;
-  if (modeloIva === 'incluido') {
-    // Los valores ya traen IVA: Monto − Descuento es el valor con IVA.
-    // Se saca el neto (÷1,19), el IVA es la diferencia y, sumados, dan el mismo valor.
-    // Sin IVA (caso excepcional): el cliente paga solo el neto.
-    const conIva = neto;
-    netoMostrado = Math.round(conIva / 1.19);
-    ivaMonto = aplicaIva ? conIva - netoMostrado : 0;
-    total = netoMostrado + ivaMonto;
-  } else {
-    // Cálculo anterior (cotizaciones ya existentes): IVA 19% sumado al neto.
-    ivaMonto = aplicaIva ? Math.round(neto * 0.19) : 0;
-    total = neto + ivaMonto;
-  }
+  // Los valores ya traen IVA: Monto − Descuento es el valor con IVA.
+  // Se saca el neto (÷1,19), el IVA es la diferencia y, sumados, dan el mismo valor.
+  // Sin IVA (caso excepcional, check desmarcado): el cliente paga solo el neto.
+  const conIva = neto;
+  const netoMostrado = Math.round(conIva / 1.19);
+  const ivaMonto = aplicaIva ? conIva - netoMostrado : 0;
+  const total = netoMostrado + ivaMonto;
   cotNeto.textContent = formatearMoneda(netoMostrado);
   if (cotIvaNota) {
-    cotIvaNota.textContent = modeloIva === 'incluido'
-      ? (valoresCopiadosNetos
-          ? 'Los valores unitarios ya incluyen IVA. Ojo: los copiados de la cotización anterior eran netos, revísalos.'
-          : (aplicaIva ? 'Los valores unitarios ya incluyen IVA.' : 'Sin IVA: el cliente paga solo el valor neto.'))
-      : 'Cotización con el cálculo anterior (el IVA se suma al neto).';
+    cotIvaNota.textContent = valoresCopiadosNetos
+      ? 'Los valores unitarios ya incluyen IVA. Ojo: esta cotización tenía valores netos, revísalos.'
+      : (aplicaIva ? 'Los valores unitarios ya incluyen IVA.' : 'Sin IVA: el cliente paga solo el valor neto.');
   }
-  if (btnIvaNuevoCalculo) btnIvaNuevoCalculo.style.display = modeloIva === 'anterior' ? '' : 'none';
 
   filaIva.style.display = aplicaIva ? '' : 'none';
   cotIvaMonto.textContent = formatearMoneda(ivaMonto);
