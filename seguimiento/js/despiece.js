@@ -172,14 +172,14 @@ function calcularAereo(m) {
 const W = 260, H = 230;
 function dimH(x1, x2, y, t) { return `<g stroke="#141213" stroke-width=".8" fill="#141213"><line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}"/><line x1="${x1}" y1="${y-3}" x2="${x1}" y2="${y+3}"/><line x1="${x2}" y1="${y-3}" x2="${x2}" y2="${y+3}"/><text x="${(x1+x2)/2}" y="${y-4}" font-size="10" text-anchor="middle" stroke="none" font-family="Poppins,sans-serif">${t} cm</text></g>`; }
 function dimV(y1, y2, x, t) { return `<g stroke="#141213" stroke-width=".8" fill="#141213"><line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}"/><line x1="${x-3}" y1="${y1}" x2="${x+3}" y2="${y1}"/><line x1="${x-3}" y1="${y2}" x2="${x+3}" y2="${y2}"/><text transform="translate(${x-5},${(y1+y2)/2}) rotate(-90)" font-size="10" text-anchor="middle" stroke="none" font-family="Poppins,sans-serif">${t} cm</text></g>`; }
-const R = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${hex(c)}" stroke="#141213" stroke-width=".8"/>`;
+const R = (x, y, w, h, c) => `<rect x="${x}" y="${y}" width="${Math.max(w, 0)}" height="${Math.max(h, 0)}" fill="${hex(c)}" stroke="#141213" stroke-width=".8"/>`;
 const escala = (w, h) => Math.min((W - 70) / w, (H - 60) / h);
 
 function svgFrontal(m, interior) {
   const s = escala(m.ancho, m.alto), w = m.ancho * s, h = m.alto * s, x = (W - w) / 2 + 8, y = 34, eI = m.espI * s, eD = m.espD * s, c = m.colores;
   let g = '';
   if (interior) {
-    g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>`;
+    g += `<rect x="${x}" y="${y}" width="${Math.max(w, 0)}" height="${Math.max(h, 0)}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>`;
     const eT = Math.min(eI, eD); g += R(x, y, eI, h, c.lat) + R(x + w - eD, y, eD, h, c.lat) + R(x + eI, y, w - eI - eD, eT, c.techo) + R(x + eI, y + h - eT, w - eI - eD, eT, c.piso);
     if (m.barra > 0) g += R(x + eI, y + eT, w - eI - eD, m.barra * s, c.barra);
     const eTcm = Math.min(m.espI, m.espD);
@@ -223,7 +223,7 @@ function svgFrontalBajo(m, interior) {
   const an = anchosSecciones(m), pe = m.paralEsp * s, yZ = y + (interior ? (m.barra + m.golaSup) * s : m.golaSup * s), piso = y + h - eP;
   let g = '';
   if (interior) {
-    g += `<rect x="${x0}" y="${y}" width="${iw}" height="${h - eP}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>` + R(x, piso, w, eP, C('piso'));
+    g += `<rect x="${x0}" y="${y}" width="${Math.max(iw, 0)}" height="${Math.max(h - eP, 0)}" fill="${m.fondo === 'si' ? hex(col(m, 'fondo')) : '#fff'}" stroke="#141213" stroke-width=".8"/>` + R(x, piso, w, eP, C('piso'));
     if (rI) g += R(x, y, rI, h, C('rec')); g += R(x + rI, y, eI, h - eP, C('lat')) + R(x + w - rD - eD, y, eD, h - eP, C('lat')); if (rD) g += R(x + w - rD, y, rD, h, C('rec'));
     if (m.barra > 0) g += R(x0, y, iw, m.barra * s, C('barra'));
     if (m.golaSup > 0) g += R(x0, y + m.barra * s, iw, m.golaSup * s, C('golaSup'));

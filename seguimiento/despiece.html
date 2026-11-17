@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
-<link rel="stylesheet" href="css/despiece.css?v=9">
+<link rel="stylesheet" href="css/despiece.css?v=10">
 </head>
 <body>
 <div class="dash-cargando" id="dashCargando">Verificando tu sesión…</div>
@@ -56,6 +56,12 @@
       </div>
       <small class="dp-nota" id="mPlantillaInfo"></small>
       <label>Nombre del módulo<input id="mNombre"></label>
+      <div class="dp-acc-mod"><button class="dp-btn dp-sec" id="btnDuplicarMod">Duplicar este módulo</button>
+      <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button></div>
+    </section>
+
+    <section class="dp-card">
+      <h2>Medidas del módulo</h2>
       <div class="dp-fila3">
         <label>Ancho (cm)<input id="mAncho" type="number" step="0.1" min="1"></label>
         <label>Alto (cm)<input id="mAlto" type="number" step="0.1" min="1"></label>
@@ -91,8 +97,6 @@
         <div class="dp-bandejas-cab"><b>Secciones</b><button class="dp-btn dp-sec" id="btnAddSec">+ Sección</button></div>
         <div id="dpSecciones"></div>
       </div>
-      <div class="dp-acc-mod"><button class="dp-btn dp-sec" id="btnDuplicarMod">Duplicar este módulo</button>
-      <button class="dp-btn dp-sec" id="btnBorrarMod">Quitar este módulo</button></div>
     </section>
 
     <section class="dp-card">
@@ -125,6 +129,6 @@
     </div>
   </main>
 </div>
-<script type="module" src="js/despiece.js?v=14"></script>
+<script type="module" src="js/despiece.js?v=15"></script>
 </body>
 </html>

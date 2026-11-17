@@ -57,6 +57,11 @@
 .dp-el{border-top:1px dashed var(--linea);padding-top:8px;margin-top:8px}.dp-el-acc{display:flex;gap:6px;margin:0 0 6px}.dp-el-acc .dp-btn{padding:6px 12px}
 .dp-sec-cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .dp-acc-mod{display:flex;flex-wrap:wrap;gap:8px}
+/* Dos paneles con scroll propio: el editor (izquierda) y la vista (derecha) se desplazan por separado */
+.dp-app{align-items:start}
+.dp-editor,.dp-vista{position:sticky;top:12px;max-height:calc(100vh - 28px);overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+.dp-editor::-webkit-scrollbar,.dp-vista::-webkit-scrollbar{width:8px}.dp-editor::-webkit-scrollbar-thumb,.dp-vista::-webkit-scrollbar-thumb{background:var(--arena);border-radius:8px}
+@media(max-width:900px){.dp-editor,.dp-vista{position:static;max-height:none;overflow:visible;padding-right:0}}
 @media(max-width:900px){.dp-app{grid-template-columns:1fr}.dp-vistas,.dp-datos{grid-template-columns:1fr}}
 @media print{
   @page{size:letter;margin:12mm}
@@ -64,6 +69,7 @@
   .dash-sidebar,.dash-main>h1,.dp-top-links,.dp-editor,.dp-acciones{display:none!important}
   .dp-app{display:block;padding:0}
   .dp-hoja{border:0;padding:0}
+  .dp-vista,.dp-app{position:static!important;max-height:none!important;overflow:visible!important}
   .dp-mod-sep{page-break-before:always;border:0;margin:0;padding:0}
   .dp-v,table{break-inside:avoid}
   .dp-edit{border:0!important;background:none!important}
