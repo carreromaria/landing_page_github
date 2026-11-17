@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="css/dashboard.css">
 <link rel="stylesheet" href="css/dropdown-linence.css">
 <link rel="stylesheet" href="css/pdf-documentos.css?v=6">
-<link rel="stylesheet" href="css/documentacion.css?v=6">
+<link rel="stylesheet" href="css/documentacion.css?v=7">
 <link rel="stylesheet" href="css/linence-ui.css?v=4">
 </head>
 <body>
@@ -205,6 +205,23 @@
       <button type="button" class="btn-secundario" id="btnImprimirDoc">Imprimir</button>
       <button type="button" class="btn-primario" id="btnDescargarDoc">Descargar PDF</button>
     </div>
+    <!-- Barra de formato: solo se muestra con la Plantilla en blanco -->
+    <div class="doc-barra-formato" id="barraFormato" style="display:none;" role="toolbar" aria-label="Formato del texto">
+      <button type="button" data-cmd="bold" title="Negrita"><b>N</b></button>
+      <button type="button" data-cmd="italic" title="Cursiva"><i>C</i></button>
+      <button type="button" data-cmd="underline" title="Subrayado"><u>S</u></button>
+      <span class="doc-barra-sep"></span>
+      <button type="button" data-cmd="foreColor" data-valor="#D6A52C" title="Texto dorado institucional"><span class="doc-color-punto" style="background:#D6A52C;"></span></button>
+      <button type="button" data-cmd="foreColor" data-valor="#141213" title="Texto negro"><span class="doc-color-punto" style="background:#141213;"></span></button>
+      <span class="doc-barra-sep"></span>
+      <button type="button" data-cmd="justifyLeft" title="Alinear a la izquierda"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M2 6.5h8M2 10h12M2 13.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+      <button type="button" data-cmd="justifyCenter" title="Centrar"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M4 6.5h8M2 10h12M4 13.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+      <button type="button" data-cmd="justifyRight" title="Alinear a la derecha"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M6 6.5h8M2 10h12M6 13.5h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+      <button type="button" data-cmd="justifyFull" title="Justificar"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M2 3h12M2 6.5h12M2 10h12M2 13.5h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg></button>
+      <span class="doc-barra-sep"></span>
+      <button type="button" data-cmd="insertUnorderedList" title="Lista con viñetas">•&nbsp;≡</button>
+      <button type="button" data-cmd="insertOrderedList" title="Lista numerada">1.&nbsp;≡</button>
+    </div>
     <div class="doc-hoja-scroll">
       <div id="hojaDocumentoImprimir"></div>
     </div>
@@ -215,7 +232,7 @@
 <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script type="module" src="js/documentacion.js?v=18"></script>
+<script type="module" src="js/documentacion.js?v=19"></script>
 <script type="module" src="js/campanita.js?v=20261017a"></script>
 </body>
 </html>

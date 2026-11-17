@@ -701,7 +701,50 @@ function abrirPlantillaBlanco() {
       document.execCommand('insertText', false, texto);
     });
   }
+  document.getElementById('barraFormato').style.display = '';
   mostrarToast('Escribe directamente sobre la hoja. Cuando termines, usa Imprimir o Descargar PDF.', 'info');
+}
+
+/**
+ * Barra de formato de la Plantilla en blanco: negrita, cursiva, subrayado, color
+ * (dorado institucional / negro), alineación y listas. Los botones no le quitan el
+ * foco ni la selección al texto, y el formato queda como estilo en línea dentro de
+ * la hoja, así que sale igual en la impresión y en el PDF.
+ */
+const barraFormato = document.getElementById('barraFormato');
+barraFormato.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+barraFormato.addEventListener('click', (e) => {
+  const boton = e.target.closest('button[data-cmd]');
+  if (!boton) return;
+  const editable = document.querySelector('#hojaDocumentoImprimir .hoja-editable');
+  if (!editable) return;
+  const sel = window.getSelection();
+  if (!sel.anchorNode || !editable.contains(sel.anchorNode)) editable.focus();
+  try {
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(boton.dataset.cmd, false, boton.dataset.valor || null);
+  } catch (err) { console.warn('No se pudo aplicar el formato.', err); }
+});
+
+/**
+ * Antes de imprimir o generar el PDF: quita los párrafos vacíos y saltos de línea que
+ * quedaron al final del texto. Cuentan como contenido y pueden empujar el pie a una
+ * hoja de más (queda una hoja casi en blanco).
+ */
+function limpiarFinalPlantilla() {
+  const editable = document.querySelector('#hojaDocumentoImprimir .hoja-editable');
+  if (!editable) return;
+  const vacio = (n) => n.nodeType === 3
+    ? !n.textContent.trim()
+    : (n.nodeType === 1 && !n.textContent.trim() && !n.querySelector('img, table, hr'));
+  let ultimo = editable.lastChild;
+  while (ultimo && vacio(ultimo) && editable.childNodes.length > 1) {
+    editable.removeChild(ultimo);
+    ultimo = editable.lastChild;
+  }
+  // un <br> suelto al final del último párrafo también suma una línea
+  const ult = editable.lastElementChild;
+  if (ult && ult.lastChild && ult.lastChild.nodeName === 'BR' && ult.textContent.trim()) ult.removeChild(ult.lastChild);
 }
 document.getElementById('btnAbrirPlantilla').addEventListener('click', abrirPlantillaBlanco);
 
@@ -1343,6 +1386,9 @@ const modalDocumento = document.getElementById('modalDocumento');
 let NOMBRE_PDF_ACTUAL = ''; // nombre sugerido al guardar el documento abierto como PDF
 
 function abrirModalDocumento(html, nombreArchivoBase, nombrePdf = '') {
+  // La barra de formato es solo de la Plantilla en blanco (abrirPlantillaBlanco la vuelve a mostrar)
+  const barra = document.getElementById('barraFormato');
+  if (barra) barra.style.display = 'none';
   document.getElementById('hojaDocumentoImprimir').innerHTML = html;
   document.getElementById('hojaDocumentoImprimir').dataset.archivo = nombreArchivoBase;
   NOMBRE_PDF_ACTUAL = nombrePdf;
@@ -1376,6 +1422,7 @@ async function asegurarPoppins() {
  * marca de agua en todas.
  */
 async function imprimirDocumentoActual() {
+  limpiarFinalPlantilla();
   await asegurarPoppins();
   const documento = document.querySelector('#hojaDocumentoImprimir > *');
   await imprimirDocumentoPdf(documento, NOMBRE_PDF_ACTUAL);
@@ -1400,6 +1447,7 @@ async function descargarPdfDocumentoActual(boton) {
   mostrarToast('Generando el PDF… puede tardar unos segundos.', 'info');
   let paso = 'preparar'; // para saber en qué etapa falló si hay un problema
   try {
+    limpiarFinalPlantilla();
     await asegurarPoppins();
     const documento = document.querySelector('#hojaDocumentoImprimir > *');
     const datos = await prepararDocumentosParaServidor([documento]);
