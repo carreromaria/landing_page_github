@@ -333,6 +333,8 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
   // I.V.A. sigue mostrándose en blanco cuando la cotización no aplica IVA.
   const iva = cotizacion.aplicaIva ? formatearMoneda(cotizacion.ivaMonto) : '';
   const total = cotizacion.aplicaIva ? cotizacion.totalConIva : neto;
+  // Sin IVA: el MONTO que se ve es el mismo NETO (y el mismo TOTAL).
+  const montoMostrado = cotizacion.aplicaIva ? monto : neto + descuento;
 
   // cliente.vendedorAsignado en el lead es un uid (select de staff en el CRM);
   // quien llama a htmlCotizacion debe resolverlo antes a un nombre y pasarlo
@@ -366,7 +368,7 @@ export function htmlCotizacion({ cotizacion, cliente = {} }) {
         </div>
       </div>
       <table class="pdf-tabla-totales">
-        <tr><th>${cotizacion.modeloIva === 'incluido' ? 'MONTO C/IVA' : 'MONTO'}</th><td>${formatearMoneda(monto)}</td></tr>
+        <tr><th>${cotizacion.modeloIva === 'incluido' && cotizacion.aplicaIva ? 'MONTO C/IVA' : 'MONTO'}</th><td>${formatearMoneda(montoMostrado)}</td></tr>
         <tr><th>DESCUENTO</th><td>${formatearMoneda(descuento)}</td></tr>
         <tr><th>NETO</th><td>${formatearMoneda(neto)}</td></tr>
         <tr><th>I.V.A. 19%</th><td>${iva}</td></tr>
