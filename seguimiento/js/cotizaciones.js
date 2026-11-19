@@ -1565,6 +1565,9 @@ function recalcularCotizacion() {
   const ivaMonto = aplicaIva ? conIva - netoMostrado : 0;
   const total = netoMostrado + ivaMonto;
   cotNeto.textContent = formatearMoneda(netoMostrado);
+  // Sin IVA: el Monto que se ve es el mismo Neto (y el mismo Total). Solo cambia lo que se muestra;
+  // lo que se guarda (totalGeneral) sigue siendo la suma de las líneas.
+  cotTotalGeneral.textContent = formatearMoneda(aplicaIva ? monto : netoMostrado + descuento);
   if (cotIvaNota) {
     cotIvaNota.textContent = valoresCopiadosNetos
       ? 'Los valores unitarios ya incluyen IVA. Ojo: esta cotización tenía valores netos, revísalos.'
