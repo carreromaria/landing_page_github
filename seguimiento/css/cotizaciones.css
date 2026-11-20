@@ -937,3 +937,16 @@ body { overflow-x: visible; }
 
 .cot-iva-convertir{ display:block; margin:0 0 10px auto; font-size:12px; padding:6px 12px; }
 .cot-iva-nota{ color:#4a463f; }
+
+/* ============================================================
+   Barra fija del nombre sin "vibrar" en iPhone
+   Con html { overflow-x:hidden } (que deja crm.css) Chrome/Safari de iPhone mueven y
+   hacen vibrar los elementos fijos (sticky) cuando su barra de direcciones se muestra o
+   se esconde. Aquí html vuelve a ser normal y lo que se pasa de ancho se recorta en el
+   contenedor de la página con overflow-x:clip, que no crea otro scroll y no rompe el sticky.
+   (En navegadores muy antiguos sin "clip" se mantiene el comportamiento de antes.)
+   ============================================================ */
+@supports (overflow-x: clip) {
+  html { overflow-x: visible; }
+  .dash-layout { overflow-x: clip; }
+}

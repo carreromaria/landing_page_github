@@ -381,6 +381,8 @@
     opacity: 0;
     pointer-events: none;
     transition: transform .18s ease, opacity .18s ease;
+    will-change: transform;          /* capa propia: se mueve más fluida y sin temblar */
+    backface-visibility: hidden;
   }
   .ln-nombre-fijo.visible .ln-nombre-fijo-barra {
     transform: translateY(0);
