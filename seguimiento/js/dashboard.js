@@ -4,6 +4,7 @@
 // ============================================================
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
+import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import {
   escucharProyectos, crearProyectoConCodigoAutomatico, obtenerProyecto, sincronizarVistaCliente,
   escucharProyecto, escucharHistorial, actualizarProyecto, cambiarEtapaProyecto,
@@ -720,6 +721,12 @@ activarValidacionTelefono(document.getElementById('eTelefono'));
 
 const vistaListado = document.querySelector('.dash-main'); // el primer .dash-main = listado
 const vistaDetalle = document.getElementById('vistaDetalle');
+// Nombre del cliente fijo arriba al bajar por la ficha del proyecto
+activarNombreFijo({
+  vista: vistaDetalle,
+  titulo: document.getElementById('detalleCliente'),
+  codigo: document.getElementById('detalleCodigo')
+});
 let PROYECTO_ACTUAL = null;
 let ultimoHistorialCargado = [];
 let unsubProyectoDetalle = null;

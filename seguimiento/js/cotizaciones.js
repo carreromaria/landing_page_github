@@ -11,6 +11,7 @@
 // postformado), cada una con su propio historial de versiones.
 
 import { observarSesionStaff, cerrarSesion } from './auth.js';
+import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import {
   listarServiciosActivos, obtenerLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
@@ -60,6 +61,8 @@ const opcionDesdeURL = (parametrosURL.get('opcion') || '').toUpperCase().slice(0
 
 const vistaLista = document.getElementById('vistaListaCotizaciones');
 const vistaEditor = document.getElementById('vistaEditorCotizacion');
+// Nombre del cliente fijo arriba al bajar por el editor de la cotización
+activarNombreFijo({ vista: vistaEditor, titulo: document.getElementById('editorClienteNombre') });
 const tablaCotizacionesBody = document.getElementById('tablaCotizacionesBody');
 const listaCotizacionesVacio = document.getElementById('listaCotizacionesVacio');
 

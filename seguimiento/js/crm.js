@@ -17,6 +17,7 @@ import {
   escucharEventosAbiertos, fijarLead
 } from './firestore.js?v=20261118a';
 import { generarToken } from './utils.js';
+import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
@@ -599,24 +600,11 @@ function abrirLeadDesdeUrl() {
 }
 
 // ---------- Nombre fijo al hacer scroll (ficha del lead) ----------
-// Cuando el nombre grande de la ficha sale por arriba de la pantalla, aparece una barra
-// compacta con el nombre pegada arriba; el contenido pasa por debajo de ella.
-const nombreFijoEl = document.getElementById('crmNombreFijo');
-const nombreFijoTexto = document.getElementById('crmNombreFijoTexto');
-const nombreFijoCodigo = document.getElementById('crmNombreFijoCodigo');
-if (nombreFijoEl && 'IntersectionObserver' in window) {
-  const observadorNombre = new IntersectionObserver(([entrada]) => {
-    const pasoPorArriba = !entrada.isIntersecting && entrada.boundingClientRect.top < 0;
-    if (pasoPorArriba) {
-      nombreFijoTexto.textContent = document.getElementById('detalleNombre').textContent;
-      const codigo = document.getElementById('detalleCodigoLead').textContent.trim();
-      nombreFijoCodigo.textContent = codigo;
-      nombreFijoCodigo.style.display = codigo ? '' : 'none';
-    }
-    nombreFijoEl.classList.toggle('visible', pasoPorArriba);
-  });
-  observadorNombre.observe(document.getElementById('detalleNombre'));
-}
+activarNombreFijo({
+  vista: document.getElementById('vistaDetalleLead'),
+  titulo: document.getElementById('detalleNombre'),
+  codigo: document.getElementById('detalleCodigoLead')
+});
 
 // ---------- Vista de detalle ----------
 
