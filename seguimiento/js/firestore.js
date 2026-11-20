@@ -513,6 +513,18 @@ export async function actualizarLead(id, datos) {
 }
 
 /**
+ * Fija o desfija una tarjeta del CRM (queda de primera en su columna).
+ * No toca actualizadoEn a propósito: fijar no es una actualización del lead
+ * y no debe mover su posición ni cambiar sus fechas.
+ */
+export async function fijarLead(id, fijar) {
+  await updateDoc(doc(db, "leads", id), {
+    fijado: !!fijar,
+    fijadoEn: fijar ? serverTimestamp() : null
+  });
+}
+
+/**
  * Obtiene un lead puntual (lectura única, no realtime). Se usa desde
  * pantallas que no necesitan el listado completo en vivo, como el
  * módulo de Cotizaciones al abrir un lead por su id en la URL.

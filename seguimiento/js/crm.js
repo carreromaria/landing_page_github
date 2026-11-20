@@ -14,8 +14,8 @@ import {
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
-  escucharEventosAbiertos
-} from './firestore.js?v=20261114a';
+  escucharEventosAbiertos, fijarLead
+} from './firestore.js?v=20261118a';
 import { generarToken } from './utils.js';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
@@ -499,7 +499,12 @@ function renderKanban() {
   const leads = leadsFiltrados();
 
   crmKanban.innerHTML = ETAPAS.map(etapa => {
-    const leadsEtapa = leads.filter(l => l.etapa === etapa);
+    // Las tarjetas fijadas van primero (la última fijada, arriba); el resto conserva su orden
+    const leadsEtapa = leads.filter(l => l.etapa === etapa).sort((a, b) => {
+      if (!!a.fijado !== !!b.fijado) return a.fijado ? -1 : 1;
+      if (a.fijado && b.fijado) return (b.fijadoEn?.toMillis?.() || 0) - (a.fijadoEn?.toMillis?.() || 0);
+      return 0;
+    });
     const tarjetas = leadsEtapa.length
       ? leadsEtapa.map(tarjetaHtml).join('')
       : `<p class="crm-vacio-columna">Sin leads aquí.</p>`;
@@ -517,6 +522,23 @@ function renderKanban() {
 
   crmKanban.querySelectorAll('[data-lead-id]').forEach(card => {
     card.addEventListener('click', () => abrirDetalleLead(card.dataset.leadId));
+  });
+  crmKanban.querySelectorAll('.crm-card-pin').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation(); // fijar no debe abrir la ficha
+      const id = btn.closest('[data-lead-id]').dataset.leadId;
+      const lead = leadsActuales.find(l => l.id === id);
+      if (!lead) return;
+      btn.disabled = true;
+      try {
+        await fijarLead(id, !lead.fijado);
+      } catch (err) {
+        console.error(err);
+        btn.disabled = false;
+        mostrarToast('No se pudo fijar la tarjeta. Intenta de nuevo.', 'error');
+      }
+    });
+    btn.addEventListener('keydown', (e) => e.stopPropagation());
   });
 }
 
@@ -545,7 +567,10 @@ function tarjetaHtml(lead) {
   }
 
   return `
-    <div class="crm-card ${claseCierre}" data-lead-id="${lead.id}" tabindex="0">
+    <div class="crm-card ${claseCierre} ${lead.fijado ? 'es-fijada' : ''}" data-lead-id="${lead.id}" tabindex="0">
+      <button type="button" class="crm-card-pin ${lead.fijado ? 'activo' : ''}" aria-pressed="${lead.fijado ? 'true' : 'false'}" title="${lead.fijado ? 'Quitar de fijadas' : 'Fijar arriba'}" aria-label="${lead.fijado ? 'Quitar tarjeta fijada' : 'Fijar tarjeta arriba'}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="${lead.fijado ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z"/></svg>
+      </button>
       ${lead.codigoLead ? `<div class="crm-card-codigo">${escapeHtml(lead.codigoLead)}</div>` : ''}
       <div class="crm-card-nombre">${escapeHtml(lead.nombre)}</div>
       <div class="crm-card-meta">${escapeHtml(lead.tipoProyecto || '—')}${ubicacion ? `<span class="crm-card-ubicacion">${escapeHtml(ubicacion)}</span>` : ''}</div>
@@ -571,6 +596,26 @@ function abrirLeadDesdeUrl() {
   }
   // Se limpia la URL para que al recargar no vuelva a abrirse sola
   history.replaceState(null, '', window.location.pathname);
+}
+
+// ---------- Nombre fijo al hacer scroll (ficha del lead) ----------
+// Cuando el nombre grande de la ficha sale por arriba de la pantalla, aparece una barra
+// compacta con el nombre pegada arriba; el contenido pasa por debajo de ella.
+const nombreFijoEl = document.getElementById('crmNombreFijo');
+const nombreFijoTexto = document.getElementById('crmNombreFijoTexto');
+const nombreFijoCodigo = document.getElementById('crmNombreFijoCodigo');
+if (nombreFijoEl && 'IntersectionObserver' in window) {
+  const observadorNombre = new IntersectionObserver(([entrada]) => {
+    const pasoPorArriba = !entrada.isIntersecting && entrada.boundingClientRect.top < 0;
+    if (pasoPorArriba) {
+      nombreFijoTexto.textContent = document.getElementById('detalleNombre').textContent;
+      const codigo = document.getElementById('detalleCodigoLead').textContent.trim();
+      nombreFijoCodigo.textContent = codigo;
+      nombreFijoCodigo.style.display = codigo ? '' : 'none';
+    }
+    nombreFijoEl.classList.toggle('visible', pasoPorArriba);
+  });
+  observadorNombre.observe(document.getElementById('detalleNombre'));
 }
 
 // ---------- Vista de detalle ----------

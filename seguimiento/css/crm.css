@@ -1124,3 +1124,66 @@ html, body{
   font-weight:500;
   line-height:1.3;
 }
+
+/* ---------- Tarjeta fijada (queda de primera en su columna) ---------- */
+.crm-card{position:relative;}
+.crm-card-pin{
+  position:absolute; top:8px; right:8px;
+  width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center;
+  padding:0;
+  background:transparent;
+  color:rgba(211,187,140,.55);
+  border:0; border-radius:50%;
+  cursor:pointer;
+}
+.crm-card-pin:hover{color:var(--gold); background:rgba(214,165,44,.12);}
+.crm-card-pin.activo{color:var(--gold);}
+.crm-card-pin:disabled{opacity:.5; cursor:default;}
+.crm-card.es-fijada{border-color:var(--gold-line);}
+/* el nombre de la tarjeta no pasa por debajo del botón */
+.crm-card-nombre{padding-right:30px;}
+
+/* ---------- Nombre fijo al bajar por la ficha del lead ----------
+   Contenedor sin alto (no mueve nada de la ficha) que se pega arriba al hacer scroll;
+   la barra con fondo sólido se desliza solo cuando el nombre grande ya salió de la pantalla,
+   y el contenido de la ficha pasa por debajo. */
+.crm-nombre-fijo{
+  position:sticky;
+  top:0;
+  z-index:160;
+  height:0;
+}
+.crm-nombre-fijo-barra{
+  position:absolute;
+  top:0;
+  left:calc(-1 * var(--ln-pad-x, 18px));
+  right:calc(-1 * var(--ln-pad-x, 18px));
+  display:flex; align-items:center; gap:10px;
+  padding:14px var(--ln-pad-x, 18px);
+  background:var(--cream);
+  border-bottom:1px solid var(--gold-line);
+  box-shadow:0 4px 10px rgba(20,18,19,.06);
+  transform:translateY(-110%);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .18s ease, opacity .18s ease;
+}
+.crm-nombre-fijo.visible .crm-nombre-fijo-barra{
+  transform:translateY(0);
+  opacity:1;
+  pointer-events:auto;
+}
+.crm-nombre-fijo-codigo{
+  flex:none;
+  font-size:11px; font-weight:600; letter-spacing:.06em;
+  color:#8a6a12;
+  border:1px solid var(--gold); border-radius:4px;
+  padding:2px 7px;
+}
+.crm-nombre-fijo-texto{
+  font-size:16px; font-weight:600;
+  color:var(--ink);
+  text-transform:uppercase;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
