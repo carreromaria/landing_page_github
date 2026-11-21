@@ -695,14 +695,19 @@ html, body{height:100%; background:var(--cream);}
 @media (max-width:900px){
   .dash-topbar-mobile{display:flex;}
 
+  /* El menú y su fondo oscuro se extienden 160px por debajo de la pantalla (ahí nadie los ve).
+     Cuando Chrome/Safari del iPhone esconden o muestran su barra inferior, durante unos
+     segundos calculan mal el borde de abajo de lo "fijo" y dejaban una franja blanca.
+     El relleno extra de abajo mantiene el contenido del menú en el mismo lugar. */
   .dash-sidebar{
-    position:fixed; top:0; left:0; bottom:0;
+    position:fixed; top:0; left:0; bottom:-160px;
     width:250px;
     z-index:220;
     transform:translateX(-100%);
     transition:transform .3s ease;
-    padding:22px 20px;
+    padding:22px 20px calc(22px + 160px);
   }
+  .sidebar-overlay{bottom:-160px;}
   .dash-sidebar.abierto{transform:translateX(0);}
   .btn-cerrar-sidebar{display:block;}
   .logo-sidebar-desktop{margin-bottom:30px;}
