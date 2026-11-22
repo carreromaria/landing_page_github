@@ -10,15 +10,34 @@
 .nm-nota {
   background: #fff;
   border: 1px solid rgba(20, 18, 19, 0.1);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
+/* Cabecera de color: compras en negro con dorado (como la tarjeta de
+   Cotización), notas en arena, para distinguirlas de un vistazo. */
 .nm-nota-cabecera {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px 14px;
+  background: #141213;
 }
+.nm-nota-nota .nm-nota-cabecera { background: var(--sand); }
+
+.nm-nota-icono {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  background: var(--gold);
+  color: var(--ink);
+}
+.nm-nota-nota .nm-nota-icono { background: var(--ink); color: var(--sand); }
 
 .nm-titulo {
   flex: 1;
@@ -27,48 +46,44 @@
   border-bottom: 1px solid transparent;
   background: transparent;
   font-family: 'Poppins', sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--gold);
   padding: 6px 0;
   outline: none;
 }
-.nm-titulo::placeholder { color: rgba(20, 18, 19, 0.4); font-weight: 400; }
+.nm-titulo::placeholder { color: rgba(211, 187, 140, 0.6); font-weight: 400; font-size: 13.5px; }
 .nm-titulo:focus { border-bottom-color: var(--gold); }
+.nm-nota-nota .nm-titulo { color: var(--ink); }
+.nm-nota-nota .nm-titulo::placeholder { color: rgba(20, 18, 19, 0.5); }
+.nm-nota-nota .nm-titulo:focus { border-bottom-color: var(--ink); }
+
+/* Contador de ítems listos (ej. 1/3) */
+.nm-contador {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(214, 165, 44, 0.18);
+  color: var(--gold);
+}
+.nm-nota-nota .nm-contador { background: rgba(20, 18, 19, 0.12); color: var(--ink); }
 
 .nm-nota-borrar {
+  flex: 0 0 auto;
   background: none;
   border: none;
   font-family: 'Poppins', sans-serif;
   font-size: 12.5px;
-  color: #c14b32;
+  color: #e58f7d;
   cursor: pointer;
   padding: 8px 4px;
 }
+.nm-nota-nota .nm-nota-borrar { color: #8f2f1c; }
 .nm-nota-borrar:hover { text-decoration: underline; }
 
-/* ---------- Tipo de nota (Nota / Compra) ---------- */
-
-.nm-tipo { display: inline-flex; gap: 6px; margin: 2px 0 8px; }
-
-.nm-tipo-op {
-  font-family: 'Poppins', sans-serif;
-  font-size: 12.5px;
-  line-height: 1;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--ln-border, #d3bb8c);
-  background: #fff;
-  color: var(--ink);
-  cursor: pointer;
-  transition: background .15s ease, border-color .15s ease;
-}
-.nm-tipo-op:hover { border-color: var(--gold); }
-.nm-tipo-op.activo {
-  background: var(--gold);
-  border-color: var(--gold);
-  font-weight: 600;
-}
+.nm-cuerpo { padding: 6px 14px 14px; }
 
 /* ---------- Ítems ---------- */
 
@@ -210,5 +225,6 @@
   gap: 12px;
   margin-top: 10px;
 }
+.nm-pie-acciones { display: flex; gap: 20px; flex-wrap: wrap; }
 .nm-estado { font-size: 11.5px; color: rgba(20, 18, 19, 0.55); }
 .nm-vacio { margin-bottom: 4px; }
