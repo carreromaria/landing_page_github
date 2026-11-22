@@ -14,12 +14,13 @@ import {
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
-  escucharEventosAbiertos, fijarLead
-} from './firestore.js?v=20261118a';
+  escucharEventosAbiertos, fijarLead, guardarListasMaterialesLead
+} from './firestore.js?v=20261122a';
 import { generarToken } from './utils.js';
 import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
+import { crearNotasMateriales } from './notas-materiales.js?v=1';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
 import { TIPOS_ACTIVIDAD, estaAbierto, hoyStr, formatoFechaCorta } from './agenda-motor.js';
 
@@ -606,6 +607,13 @@ activarNombreFijo({
   codigo: document.getElementById('detalleCodigoLead')
 });
 
+// ---------- Notas y materiales (solo leads Ganados) ----------
+const notasMateriales = crearNotasMateriales({
+  contenedor: document.getElementById('notasMaterialesContenedor'),
+  guardar: guardarListasMaterialesLead,
+  avisar: (mensaje, tipo) => mostrarToast(mensaje, tipo)
+});
+
 // ---------- Vista de detalle ----------
 
 function abrirDetalleLead(id) {
@@ -696,6 +704,7 @@ function abrirDetalleLead(id) {
   vistaDetalleLead.style.display = '';
   vistaDetalleLead.scrollIntoView({ behavior: 'smooth', block: 'start' });
   agendaCliente.mostrar({ leadId: id, proyectoCodigo: lead.proyectoVinculado || null, ganado: lead.etapa === 'Ganado' });
+  notasMateriales.mostrar(lead);
 }
 
 function renderNotas(notas) {
@@ -739,6 +748,7 @@ document.getElementById('btnVolverKanban').addEventListener('click', () => {
   leadSeleccionadoId = null;
   vistaDetalleLead.style.display = 'none';
   agendaCliente.ocultar();
+  notasMateriales.ocultar();
   vistaKanban.style.display = '';
 });
 

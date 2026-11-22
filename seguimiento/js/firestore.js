@@ -525,6 +525,18 @@ export async function fijarLead(id, fijar) {
 }
 
 /**
+ * Guarda las listas de "Notas y materiales" de un lead ganado
+ * (títulos libres + ítems con casilla). Reemplaza el arreglo completo.
+ * No toca actualizadoEn a propósito: anotar un material no es una
+ * actualización del lead y no debe mover su posición ni sus fechas.
+ * @param {string} id  id del lead
+ * @param {Array<{id:string,titulo:string,items:Array<{id:string,texto:string,hecho:boolean}>}>} listas
+ */
+export async function guardarListasMaterialesLead(id, listas) {
+  await updateDoc(doc(db, "leads", id), { listasMateriales: listas });
+}
+
+/**
  * Obtiene un lead puntual (lectura única, no realtime). Se usa desde
  * pantallas que no necesitan el listado completo en vivo, como el
  * módulo de Cotizaciones al abrir un lead por su id en la URL.
