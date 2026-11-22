@@ -1,8 +1,10 @@
 // ============================================================
 // LINENCE — Notas y materiales del cliente (solo leads Ganados)
 // ============================================================
-// Listas tipo "Notas del iPhone": cada nota tiene un título libre y
-// una lista de ítems con casilla. Al marcar un ítem se tacha.
+// Listas tipo "Notas del iPhone": cada sección tiene un título libre y
+// una lista de ítems con casilla. Las COMPRAS (una por lugar: Imperial,
+// Chinos Centros, Placa Centro…) van separadas de las NOTAS; el tipo se
+// elige al crear la sección y ya no se mezcla. Al marcar un ítem se tacha.
 //
 // Este archivo NO habla con Firestore: recibe la función `guardar`
 // desde crm.js (que a su vez usa firestore.js). Así se respeta la
@@ -98,30 +100,38 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       </div>`;
   }
 
+  function textoContador(nota) {
+    const hechos = nota.items.filter(i => i.hecho).length;
+    return `${hechos}/${nota.items.length}`;
+  }
+
   function htmlNota(nota) {
     const esCompra = nota.tipo === 'compra';
     const cantidadNueva = esCompra
       ? `<input type="text" class="nm-cant nm-nueva-cant" data-campo="nueva-cant" maxlength="14"
                 placeholder="Cant." aria-label="Cantidad del ítem nuevo" autocomplete="off">`
       : '';
+    const placeholderTitulo = esCompra
+      ? 'Dónde se compra (ej. Compras en Imperial)'
+      : 'Título de la nota (ej. Notas del cliente)';
     return `
-      <div class="nm-nota" data-nota-id="${escapeHtml(nota.id)}">
+      <div class="nm-nota ${esCompra ? 'nm-nota-compra' : 'nm-nota-nota'}" data-nota-id="${escapeHtml(nota.id)}">
         <div class="nm-nota-cabecera">
+          <span class="nm-nota-icono" aria-hidden="true">${esCompra ? '🛒' : '✎'}</span>
           <input type="text" class="nm-titulo" data-campo="titulo" maxlength="80"
-                 value="${escapeHtml(nota.titulo)}" placeholder="Título de la nota (ej. MATERIALES)"
-                 aria-label="Título de la nota" autocomplete="off">
-          <button type="button" class="nm-nota-borrar" data-accion="borrar-nota" aria-label="Eliminar nota">Eliminar</button>
+                 value="${escapeHtml(nota.titulo)}" placeholder="${placeholderTitulo}"
+                 aria-label="Título de la sección" autocomplete="off">
+          <span class="nm-contador" aria-label="Ítems listos">${textoContador(nota)}</span>
+          <button type="button" class="nm-nota-borrar" data-accion="borrar-nota" aria-label="Eliminar sección">Eliminar</button>
         </div>
-        <div class="nm-tipo" role="group" aria-label="Tipo de nota">
-          <button type="button" class="nm-tipo-op${esCompra ? '' : ' activo'}" data-accion="tipo" data-tipo="nota" aria-pressed="${esCompra ? 'false' : 'true'}">Nota</button>
-          <button type="button" class="nm-tipo-op${esCompra ? ' activo' : ''}" data-accion="tipo" data-tipo="compra" aria-pressed="${esCompra ? 'true' : 'false'}">Compra</button>
-        </div>
-        <div class="nm-items">${nota.items.map(i => htmlItem(i, esCompra)).join('')}</div>
-        <div class="nm-agregar">
-          ${cantidadNueva}
-          <input type="text" class="nm-nuevo-item" data-campo="nuevo-item"
-                 placeholder="+ Agregar ítem…" aria-label="Agregar ítem" autocomplete="off">
-          <button type="button" class="btn-secundario nm-btn-agregar" data-accion="agregar-item">Agregar</button>
+        <div class="nm-cuerpo">
+          <div class="nm-items">${nota.items.map(i => htmlItem(i, esCompra)).join('')}</div>
+          <div class="nm-agregar">
+            ${cantidadNueva}
+            <input type="text" class="nm-nuevo-item" data-campo="nuevo-item"
+                   placeholder="+ Agregar ítem…" aria-label="Agregar ítem" autocomplete="off">
+            <button type="button" class="btn-secundario nm-btn-agregar" data-accion="agregar-item">Agregar</button>
+          </div>
         </div>
       </div>`;
   }
@@ -132,13 +142,21 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       <div class="nm-lista">
         ${listas.length
           ? listas.map(htmlNota).join('')
-          : '<p class="crm-nota-vacia nm-vacio">Aún no hay notas. Crea una para anotar los materiales a comprar o lo que necesites recordar de este cliente.</p>'}
+          : '<p class="crm-nota-vacia nm-vacio">Aún no hay secciones. Crea una compra por cada lugar donde se compra (Imperial, Chinos Centros, Placa Centro…) y una nota aparte para lo que haya que recordar de este cliente.</p>'}
       </div>
       <div class="nm-pie">
-        <a href="#" class="crm-cotizacion-nueva-opcion" data-accion="nueva-nota">+ Nueva nota</a>
+        <span class="nm-pie-acciones">
+          <a href="#" class="crm-cotizacion-nueva-opcion" data-accion="nueva-compra">+ Nueva compra</a>
+          <a href="#" class="crm-cotizacion-nueva-opcion" data-accion="nueva-nota">+ Nueva nota</a>
+        </span>
         <span class="nm-estado" aria-live="polite"></span>
       </div>`;
     contenedor.querySelectorAll('.nm-item-texto').forEach(autoajustar);
+  }
+
+  function actualizarContador(notaEl, nota) {
+    const el = notaEl?.querySelector('.nm-contador');
+    if (el) el.textContent = textoContador(nota);
   }
 
   function buscarNota(el) {
@@ -181,10 +199,11 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     if (!boton || !contenedor.contains(boton)) return;
     const accion = boton.dataset.accion;
 
-    if (accion === 'nueva-nota') {
+    if (accion === 'nueva-nota' || accion === 'nueva-compra') {
       e.preventDefault();
       const ahora = new Date().toISOString();
-      const nota = { id: nuevoId(), titulo: '', tipo: 'nota', items: [], creadaEn: ahora, actualizadaEn: ahora };
+      const tipo = accion === 'nueva-compra' ? 'compra' : 'nota';
+      const nota = { id: nuevoId(), titulo: '', tipo, items: [], creadaEn: ahora, actualizadaEn: ahora };
       listas.push(nota);
       programarGuardado();
       dibujar();
@@ -196,22 +215,14 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     const nota = buscarNota(boton);
     if (!nota) return;
 
-    if (accion === 'tipo') {
-      const tipo = boton.dataset.tipo === 'compra' ? 'compra' : 'nota';
-      if (nota.tipo === tipo) return;
-      nota.tipo = tipo;
-      tocarNota(nota);
-      programarGuardado();
-      const idNota = nota.id;
-      dibujar();
-      enfocar(`[data-nota-id="${idNota}"] .nm-nuevo-item`);
-    } else if (accion === 'marcar') {
+    if (accion === 'marcar') {
       const item = buscarItem(nota, boton);
       if (!item) return;
       item.hecho = !item.hecho;
       const fila = boton.closest('.nm-item');
       fila.classList.toggle('nm-hecho', item.hecho);
       boton.setAttribute('aria-checked', item.hecho ? 'true' : 'false');
+      actualizarContador(notaEl, nota);
       tocarNota(nota);
       programarGuardado();
     } else if (accion === 'borrar-item') {
@@ -221,6 +232,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       tocarNota(nota);
       programarGuardado();
       boton.closest('.nm-item').remove();
+      actualizarContador(notaEl, nota);
     } else if (accion === 'borrar-nota') {
       const nombre = nota.titulo.trim() || 'esta nota';
       if (!window.confirm(`¿Eliminar "${nombre}" con todos sus ítems? No se puede deshacer.`)) return;
@@ -355,7 +367,11 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       }
       leadId = lead.id;
       listas = JSON.parse(JSON.stringify(Array.isArray(lead.listasMateriales) ? lead.listasMateriales : []));
-      listas.forEach(n => { if (n.tipo !== 'compra') n.tipo = 'nota'; });
+      // Las secciones antiguas eran todas 'nota': si el título dice "Compra(s)…",
+      // se muestran como compra (con cantidad) para no tener que rehacerlas.
+      listas.forEach(n => {
+        if (n.tipo !== 'compra') n.tipo = /^\s*compras?\b/i.test(n.titulo || '') ? 'compra' : 'nota';
+      });
       hayPendiente = false;
       contenedor.style.display = '';
       dibujar();
