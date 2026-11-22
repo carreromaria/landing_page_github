@@ -9,8 +9,9 @@
 // regla del proyecto de que toda operación de datos pasa por firestore.js.
 //
 // Estructura guardada en el lead (campo `listasMateriales`):
-//   [{ id, titulo, creadaEn, actualizadaEn,
-//      items: [{ id, texto, hecho }] }]
+//   [{ id, titulo, tipo: 'nota' | 'compra', creadaEn, actualizadaEn,
+//      items: [{ id, texto, cantidad, hecho }] }]
+// En las notas de tipo 'compra' cada ítem lleva un campo de cantidad al inicio.
 
 const PAUSA_GUARDADO_MS = 700;
 
@@ -81,11 +82,16 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
 
   // ---------- Dibujo ----------
 
-  function htmlItem(item) {
+  function htmlItem(item, esCompra) {
+    const cantidad = esCompra
+      ? `<input type="text" class="nm-cant" data-campo="cantidad" maxlength="14"
+                value="${escapeHtml(item.cantidad || '')}" placeholder="Cant." aria-label="Cantidad" autocomplete="off">`
+      : '';
     return `
       <div class="nm-item${item.hecho ? ' nm-hecho' : ''}" data-item-id="${escapeHtml(item.id)}">
         <button type="button" class="nm-check" data-accion="marcar" role="checkbox"
                 aria-checked="${item.hecho ? 'true' : 'false'}" aria-label="Marcar como listo"></button>
+        ${cantidad}
         <textarea class="nm-item-texto" data-campo="item" rows="1"
                   placeholder="Escribe aquí…" aria-label="Texto del ítem">${escapeHtml(item.texto)}</textarea>
         <button type="button" class="nm-item-borrar" data-accion="borrar-item" aria-label="Eliminar ítem">×</button>
@@ -93,6 +99,11 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
   }
 
   function htmlNota(nota) {
+    const esCompra = nota.tipo === 'compra';
+    const cantidadNueva = esCompra
+      ? `<input type="text" class="nm-cant nm-nueva-cant" data-campo="nueva-cant" maxlength="14"
+                placeholder="Cant." aria-label="Cantidad del ítem nuevo" autocomplete="off">`
+      : '';
     return `
       <div class="nm-nota" data-nota-id="${escapeHtml(nota.id)}">
         <div class="nm-nota-cabecera">
@@ -101,8 +112,13 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
                  aria-label="Título de la nota" autocomplete="off">
           <button type="button" class="nm-nota-borrar" data-accion="borrar-nota" aria-label="Eliminar nota">Eliminar</button>
         </div>
-        <div class="nm-items">${nota.items.map(htmlItem).join('')}</div>
+        <div class="nm-tipo" role="group" aria-label="Tipo de nota">
+          <button type="button" class="nm-tipo-op${esCompra ? '' : ' activo'}" data-accion="tipo" data-tipo="nota" aria-pressed="${esCompra ? 'false' : 'true'}">Nota</button>
+          <button type="button" class="nm-tipo-op${esCompra ? ' activo' : ''}" data-accion="tipo" data-tipo="compra" aria-pressed="${esCompra ? 'true' : 'false'}">Compra</button>
+        </div>
+        <div class="nm-items">${nota.items.map(i => htmlItem(i, esCompra)).join('')}</div>
         <div class="nm-agregar">
+          ${cantidadNueva}
           <input type="text" class="nm-nuevo-item" data-campo="nuevo-item"
                  placeholder="+ Agregar ítem…" aria-label="Agregar ítem" autocomplete="off">
           <button type="button" class="btn-secundario nm-btn-agregar" data-accion="agregar-item">Agregar</button>
@@ -143,11 +159,12 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
 
   // ---------- Acciones ----------
 
-  function agregarItem(notaEl, texto, despuesDe = null) {
+  function agregarItem(notaEl, texto, cantidad = '', despuesDe = null) {
     const nota = buscarNota(notaEl);
     const limpio = (texto || '').trim();
     if (!nota || !limpio) return null;
     const item = { id: nuevoId(), texto: limpio, hecho: false };
+    if (nota.tipo === 'compra') item.cantidad = (cantidad || '').trim();
     if (despuesDe) {
       const pos = nota.items.findIndex(i => i.id === despuesDe);
       nota.items.splice(pos + 1, 0, item);
@@ -167,7 +184,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     if (accion === 'nueva-nota') {
       e.preventDefault();
       const ahora = new Date().toISOString();
-      const nota = { id: nuevoId(), titulo: '', items: [], creadaEn: ahora, actualizadaEn: ahora };
+      const nota = { id: nuevoId(), titulo: '', tipo: 'nota', items: [], creadaEn: ahora, actualizadaEn: ahora };
       listas.push(nota);
       programarGuardado();
       dibujar();
@@ -179,7 +196,16 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     const nota = buscarNota(boton);
     if (!nota) return;
 
-    if (accion === 'marcar') {
+    if (accion === 'tipo') {
+      const tipo = boton.dataset.tipo === 'compra' ? 'compra' : 'nota';
+      if (nota.tipo === tipo) return;
+      nota.tipo = tipo;
+      tocarNota(nota);
+      programarGuardado();
+      const idNota = nota.id;
+      dibujar();
+      enfocar(`[data-nota-id="${idNota}"] .nm-nuevo-item`);
+    } else if (accion === 'marcar') {
       const item = buscarItem(nota, boton);
       if (!item) return;
       item.hecho = !item.hecho;
@@ -203,7 +229,8 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       dibujar();
     } else if (accion === 'agregar-item') {
       const input = notaEl.querySelector('.nm-nuevo-item');
-      const item = agregarItem(notaEl, input.value);
+      const cant = notaEl.querySelector('.nm-nueva-cant');
+      const item = agregarItem(notaEl, input.value, cant ? cant.value : '');
       if (!item) { input.focus(); return; }
       const idNota = nota.id;
       dibujar();
@@ -218,6 +245,13 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       const nota = buscarNota(e.target);
       if (!nota) return;
       nota.titulo = e.target.value;
+      tocarNota(nota);
+      programarGuardado();
+    } else if (campo === 'cantidad') {
+      const nota = buscarNota(e.target);
+      const item = buscarItem(nota, e.target);
+      if (!item) return;
+      item.cantidad = e.target.value;
       tocarNota(nota);
       programarGuardado();
     } else if (campo === 'item') {
@@ -239,9 +273,20 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       e.preventDefault();
       const notaEl = e.target.closest('.nm-nota');
       const idNota = notaEl.dataset.notaId;
-      if (!agregarItem(notaEl, e.target.value)) return;
+      const cant = notaEl.querySelector('.nm-nueva-cant');
+      if (!agregarItem(notaEl, e.target.value, cant ? cant.value : '')) return;
       dibujar();
-      enfocar(`[data-nota-id="${idNota}"] .nm-nuevo-item`);
+      enfocar(`[data-nota-id="${idNota}"] ${cant ? '.nm-nueva-cant' : '.nm-nuevo-item'}`);
+    }
+
+    // Enter en una cantidad: pasa al texto del mismo ítem
+    if (campo === 'nueva-cant' && e.key === 'Enter') {
+      e.preventDefault();
+      e.target.closest('.nm-nota').querySelector('.nm-nuevo-item')?.focus();
+    }
+    if (campo === 'cantidad' && e.key === 'Enter') {
+      e.preventDefault();
+      e.target.closest('.nm-item').querySelector('.nm-item-texto')?.focus();
     }
 
     if (campo === 'titulo' && e.key === 'Enter') {
@@ -259,17 +304,18 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
         e.preventDefault();
         if (!item.texto.trim()) return;
         const nuevo = { id: nuevoId(), texto: '', hecho: false };
+        if (nota.tipo === 'compra') nuevo.cantidad = '';
         const pos = nota.items.findIndex(i => i.id === item.id);
         nota.items.splice(pos + 1, 0, nuevo);
         tocarNota(nota);
         programarGuardado();
         const idNota = nota.id;
         dibujar();
-        enfocar(`[data-nota-id="${idNota}"] [data-item-id="${nuevo.id}"] .nm-item-texto`);
+        enfocar(`[data-nota-id="${idNota}"] [data-item-id="${nuevo.id}"] ${nota.tipo === 'compra' ? '.nm-cant' : '.nm-item-texto'}`);
       }
 
       // Retroceso en un ítem vacío: lo elimina y vuelve al anterior
-      if (e.key === 'Backspace' && !e.target.value) {
+      if (e.key === 'Backspace' && !e.target.value && !item.cantidad) {
         e.preventDefault();
         const pos = nota.items.findIndex(i => i.id === item.id);
         nota.items.splice(pos, 1);
@@ -309,6 +355,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       }
       leadId = lead.id;
       listas = JSON.parse(JSON.stringify(Array.isArray(lead.listasMateriales) ? lead.listasMateriales : []));
+      listas.forEach(n => { if (n.tipo !== 'compra') n.tipo = 'nota'; });
       hayPendiente = false;
       contenedor.style.display = '';
       dibujar();

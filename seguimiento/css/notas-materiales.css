@@ -1,23 +1,23 @@
 /* ============================================================
    LINENCE — Notas y materiales del cliente (leads Ganados)
-   Usa el título de sección .crm-bitacora-titulo y el link
-   .crm-cotizacion-nueva-opcion que ya existen en el CRM.
+   Mismo lenguaje visual de la ficha del lead: tarjeta como
+   .crm-nota, campos como el de la Bitácora (13.5px, borde suave,
+   esquina 10px), botones .btn-secundario y dorado de marca.
    ============================================================ */
 
-.nm-lista { display: flex; flex-direction: column; gap: 12px; }
+.nm-lista { display: flex; flex-direction: column; gap: 10px; }
 
 .nm-nota {
   background: #fff;
   border: 1px solid rgba(20, 18, 19, 0.1);
-  border-radius: 12px;
-  padding: 14px 16px 12px;
+  border-radius: 10px;
+  padding: 12px 14px;
 }
 
 .nm-nota-cabecera {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 6px;
 }
 
 .nm-titulo {
@@ -27,38 +27,60 @@
   border-bottom: 1px solid transparent;
   background: transparent;
   font-family: 'Poppins', sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: .02em;
   color: var(--ink);
   padding: 6px 0;
   outline: none;
 }
-.nm-titulo::placeholder { color: rgba(20, 18, 19, 0.35); font-weight: 400; }
+.nm-titulo::placeholder { color: rgba(20, 18, 19, 0.4); font-weight: 400; }
 .nm-titulo:focus { border-bottom-color: var(--gold); }
 
 .nm-nota-borrar {
   background: none;
   border: none;
   font-family: 'Poppins', sans-serif;
-  font-size: 12px;
-  color: rgba(20, 18, 19, 0.5);
+  font-size: 12.5px;
+  color: #c14b32;
   cursor: pointer;
   padding: 8px 4px;
 }
-.nm-nota-borrar:hover { color: #c14b32; }
+.nm-nota-borrar:hover { text-decoration: underline; }
+
+/* ---------- Tipo de nota (Nota / Compra) ---------- */
+
+.nm-tipo { display: inline-flex; gap: 6px; margin: 2px 0 8px; }
+
+.nm-tipo-op {
+  font-family: 'Poppins', sans-serif;
+  font-size: 12.5px;
+  line-height: 1;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--ln-border, #d3bb8c);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.nm-tipo-op:hover { border-color: var(--gold); }
+.nm-tipo-op.activo {
+  background: var(--gold);
+  border-color: var(--gold);
+  font-weight: 600;
+}
 
 /* ---------- Ítems ---------- */
 
 .nm-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(20, 18, 19, 0.06);
+  border-bottom: 1px solid rgba(20, 18, 19, 0.08);
 }
 
-/* Casilla redonda (zona táctil amplia, círculo visible de 24px) */
+/* Casilla redonda (zona táctil de 32px, círculo visible de 24px) */
 .nm-check {
   flex: 0 0 auto;
   position: relative;
@@ -103,15 +125,35 @@
   border: none;
   background: transparent;
   font-family: 'Poppins', sans-serif;
-  font-size: 14.5px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.5;
   color: var(--ink);
-  padding: 3px 0;
+  padding: 4px 0;
   outline: none;
 }
+.nm-item-texto::placeholder { color: rgba(20, 18, 19, 0.4); }
+
+/* Cantidad (solo en notas de tipo Compra) */
+.nm-cant {
+  flex: 0 0 auto;
+  width: 64px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13.5px;
+  color: var(--ink);
+  text-align: center;
+  background: #fff;
+  border: 1px solid rgba(20, 18, 19, 0.18);
+  border-radius: 8px;
+  padding: 4px 6px;
+  height: 32px;
+  margin-top: -1px;
+}
+.nm-cant::placeholder { color: rgba(20, 18, 19, 0.4); }
+.nm-cant:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* Marcado: tachado y atenuado, para ver de un vistazo qué ya está listo */
-.nm-hecho .nm-item-texto {
+.nm-hecho .nm-item-texto,
+.nm-hecho .nm-cant {
   text-decoration: line-through;
   text-decoration-thickness: 1.5px;
   color: rgba(20, 18, 19, 0.45);
@@ -123,31 +165,41 @@
   height: 32px;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
-  color: rgba(20, 18, 19, 0.3);
+  color: #c14b32;
   cursor: pointer;
 }
-.nm-item-borrar:hover { color: #c14b32; }
 
-/* ---------- Agregar ítem ---------- */
+/* ---------- Agregar ítem (igual que el campo de la Bitácora) ---------- */
 
 .nm-agregar { display: flex; gap: 8px; align-items: stretch; margin-top: 10px; }
 
 .nm-nuevo-item {
   flex: 1;
   min-width: 0;
-  border: 1px solid rgba(20, 18, 19, 0.12);
-  border-radius: 10px;
-  background: #fff;
+  min-height: 48px;
   font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  padding: 10px 12px;
+  font-size: 13.5px;
   color: var(--ink);
-  outline: none;
+  background: #fff;
+  border: 1px solid rgba(20, 18, 19, 0.18);
+  border-radius: 10px;
+  padding: 12px 14px;
 }
-.nm-nuevo-item:focus { border-color: var(--gold); }
-.nm-btn-agregar { padding: 10px 16px; }
+.nm-nuevo-item::placeholder { color: rgba(20, 18, 19, 0.4); }
+.nm-nuevo-item:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.nm-nueva-cant {
+  width: 64px;
+  height: auto;
+  min-height: 48px;
+  margin-top: 0;
+  border-radius: 10px;
+  padding: 12px 6px;
+}
+
+.nm-btn-agregar { flex: 0 0 auto; white-space: nowrap; }
 
 /* ---------- Pie ---------- */
 
@@ -156,12 +208,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 4px;
+  margin-top: 10px;
 }
-.nm-estado { font-size: 11.5px; color: rgba(20, 18, 19, 0.5); }
+.nm-estado { font-size: 11.5px; color: rgba(20, 18, 19, 0.55); }
 .nm-vacio { margin-bottom: 4px; }
-
-/* iPhone/Safari hace zoom automático en campos con letra menor a 16px */
-@media (max-width: 900px) {
-  .nm-titulo, .nm-item-texto, .nm-nuevo-item { font-size: 16px; }
-}

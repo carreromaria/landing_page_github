@@ -20,7 +20,7 @@ import { generarToken } from './utils.js';
 import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
 import { mejorarSelect } from './components/dropdown-linence.js';
-import { crearNotasMateriales } from './notas-materiales.js?v=1';
+import { crearNotasMateriales } from './notas-materiales.js?v=2';
 import { poblarSelectTipoProyecto } from './tipos-proyecto.js';
 import { TIPOS_ACTIVIDAD, estaAbierto, hoyStr, formatoFechaCorta } from './agenda-motor.js';
 
