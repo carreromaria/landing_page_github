@@ -11,6 +11,7 @@
 // regla del proyecto de que toda operación de datos pasa por firestore.js.
 //
 // Estructura guardada en el lead (campo `listasMateriales`):
+// El orden del arreglo es el orden en pantalla (se cambia con las flechas ▲▼).
 //   [{ id, titulo, tipo: 'nota' | 'compra', creadaEn, actualizadaEn,
 //      items: [{ id, texto, cantidad, hecho }] }]
 // En las notas de tipo 'compra' cada ítem lleva un campo de cantidad al inicio.
@@ -116,7 +117,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     return `${hechos}/${nota.items.length}`;
   }
 
-  function htmlNota(nota) {
+  function htmlNota(nota, indice = 0, total = 1) {
     const esCompra = nota.tipo === 'compra';
     const cantidadNueva = esCompra
       ? `<input type="text" class="nm-cant nm-nueva-cant" data-campo="nueva-cant" maxlength="14"
@@ -128,6 +129,10 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     return `
       <div class="nm-nota ${esCompra ? 'nm-nota-compra' : 'nm-nota-nota'}" data-nota-id="${escapeHtml(nota.id)}">
         <div class="nm-nota-cabecera">
+          <span class="nm-orden" role="group" aria-label="Cambiar el orden de la sección">
+            <button type="button" class="nm-mover" data-accion="subir-nota" aria-label="Subir sección"${indice === 0 ? ' disabled' : ''}>▲</button>
+            <button type="button" class="nm-mover" data-accion="bajar-nota" aria-label="Bajar sección"${indice === total - 1 ? ' disabled' : ''}>▼</button>
+          </span>
           <span class="nm-nota-icono" aria-hidden="true">${esCompra ? '🛒' : '✎'}</span>
           <input type="text" class="nm-titulo" data-campo="titulo" maxlength="80"
                  value="${escapeHtml(nota.titulo)}" placeholder="${placeholderTitulo}"
@@ -152,7 +157,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       <div class="crm-bitacora-titulo">Notas y materiales</div>
       <div class="nm-lista">
         ${listas.length
-          ? listas.map(htmlNota).join('')
+          ? listas.map((n, i) => htmlNota(n, i, listas.length)).join('')
           : '<p class="crm-nota-vacia nm-vacio">Aún no hay secciones. Crea una compra por cada lugar donde se compra (Imperial, Chinos Centros, Placa Centro…) y una nota aparte para lo que haya que recordar de este cliente.</p>'}
       </div>
       <div class="nm-pie">
@@ -244,6 +249,23 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       programarGuardado();
       boton.closest('.nm-item').remove();
       actualizarContador(notaEl, nota);
+    } else if (accion === 'subir-nota' || accion === 'bajar-nota') {
+      // Reordena las secciones (ej. el orden de la ruta de compras)
+      const pos = listas.findIndex(n => n.id === nota.id);
+      const destino = accion === 'subir-nota' ? pos - 1 : pos + 1;
+      if (destino < 0 || destino >= listas.length) return;
+      [listas[pos], listas[destino]] = [listas[destino], listas[pos]];
+      programarGuardado();
+      const idNota = nota.id;
+      dibujar();
+      const movida = contenedor.querySelector(`[data-nota-id="${idNota}"]`);
+      if (movida) {
+        movida.scrollIntoView({ block: 'center' });
+        // Deja el foco en la misma flecha: si ya no puede ir más lejos, en la contraria
+        const mismo = movida.querySelector(`[data-accion="${accion}"]`);
+        const otro = movida.querySelector(`[data-accion="${accion === 'subir-nota' ? 'bajar-nota' : 'subir-nota'}"]`);
+        (mismo && !mismo.disabled ? mismo : otro)?.focus({ preventScroll: true });
+      }
     } else if (accion === 'borrar-nota') {
       const nombre = nota.titulo.trim() || 'esta nota';
       if (!window.confirm(`¿Eliminar "${nombre}" con todos sus ítems? No se puede deshacer.`)) return;

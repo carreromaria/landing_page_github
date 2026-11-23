@@ -19,11 +19,37 @@
 .nm-nota-cabecera {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 14px;
   background: #141213;
 }
 .nm-nota-nota .nm-nota-cabecera { background: var(--sand); }
+
+/* Flechas para cambiar el orden de la sección (ruta de compras) */
+.nm-orden {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: -2px;
+}
+.nm-mover {
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--gold);
+  background: rgba(214, 165, 44, 0.16);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.nm-nota-nota .nm-mover { color: var(--ink); background: rgba(20, 18, 19, 0.12); }
+.nm-mover:disabled { opacity: .25; cursor: default; }
 
 .nm-nota-icono {
   flex: 0 0 auto;
