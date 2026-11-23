@@ -14,7 +14,7 @@ import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   buscarProyectosPorRut, obtenerProyecto, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
   listarCatalogoDescripcionActivo, listarUsuariosStaff, sincronizarFechaInstalacionProyecto
-} from './firestore.js?v=20261123a';
+} from './firestore.js?v=20261123b';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { ETAPAS } from './etapas.js';
 // Diseño de los documentos oficiales (CT, DC, encabezado y pie) e impresión:
@@ -501,6 +501,7 @@ const CAMPOS_DATOS = {
   medioPago:        { id: 'ddMedioPago',        etiqueta: 'medio de pago' },
   banco:            { id: 'ddBanco',            etiqueta: 'banco' },
   fechaPago:        { id: 'ddFechaPago',        etiqueta: 'fecha del pago del abono' },
+  fechaInstalacionInicio: { id: 'ddFechaInstalacionInicio', etiqueta: 'fecha de instalación (desde)' },
   fechaInstalacion: { id: 'ddFechaInstalacion', etiqueta: 'fecha de instalación' },
   horaInicio:       { id: 'ddHoraInicio',       etiqueta: 'hora de inicio' },
   horaTermino:      { id: 'ddHoraTermino',      etiqueta: 'hora de término' },
@@ -523,6 +524,9 @@ function datosPorDefecto(proyecto, vigente) {
     fechaContrato: fechaDeTimestamp(proyecto.creadoEn) || fechaDeTimestamp(vigente?.creadoEn),
     plazoDias: 16,
     // Fin del plazo de entrega comprometido en la cotización.
+    // Rango de instalación: parte del plazo de entrega que se fijó en la cotización del CRM.
+    // "Hasta" es la fecha que usan los documentos (MU, CG, ER).
+    fechaInstalacionInicio: vigente?.fechaEntregaInicio || vigente?.fechaEntregaFin || '',
     fechaInstalacion: vigente?.fechaEntregaFin || vigente?.fechaEntregaInicio || '',
     instalador: 'Abraham Quintero',
     relacionCliente: 'Titular del proyecto'

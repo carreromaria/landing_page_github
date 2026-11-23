@@ -15,7 +15,7 @@ import {
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
   escucharEventosAbiertos, fijarLead, guardarListasMaterialesLead, fechaISOaDateLocal
-} from './firestore.js?v=20261123a';
+} from './firestore.js?v=20261123b';
 import { generarToken } from './utils.js';
 import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';

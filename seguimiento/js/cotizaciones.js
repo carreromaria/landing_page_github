@@ -22,7 +22,7 @@ import {
   renombrarOpcionCatalogoDescripcion, cambiarEstadoOpcionCatalogoDescripcion,
   actualizarPlantillaDescripcion, actualizarSeleccionPlantillaDescripcion,
   listarUsuariosStaff, sincronizarFechaInstalacionProyecto
-} from './firestore.js?v=20261123a';
+} from './firestore.js?v=20261123b';
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).

@@ -261,10 +261,9 @@ function fechaComoISO(valor) {
  * Deja la "Fecha estimada de instalación" de Seguimiento (y de la vista del
  * cliente) igual a la que se definió en Cotización y Documentación.
  *
- * Orden de prioridad:
- *   1) Fecha de instalación guardada en Documentación (datosDocumentos.fechaInstalacion):
- *      es el día exacto, queda como fecha única.
- *   2) Plazo de entrega de la cotización vigente del lead: rango "desde – hasta".
+ * Todo parte del rango fijado en la cotización del CRM. Si en Documentación se
+ * edita "desde" o "hasta" (datosDocumentos), esa edición manda sobre la cotización.
+ * Si queda un rango al revés (desde posterior a hasta), "desde" se ajusta a "hasta".
  *
  * Solo escribe si el valor cambió. Devuelve true si actualizó el proyecto.
  */
@@ -278,14 +277,12 @@ export async function sincronizarFechaInstalacionProyecto(codigo) {
   const vigente = await obtenerCotizacionVigentePorLead(p.leadOrigenId);
   const fechaDoc = p.datosDocumentos?.fechaInstalacion || "";
 
-  let inicio = "";
-  let fin = "";
-  if (fechaDoc) {
-    inicio = fin = fechaDoc;
-  } else if (vigente) {
-    inicio = vigente.fechaEntregaInicio || vigente.fechaEntregaFin || "";
-    fin = vigente.fechaEntregaFin || inicio;
-  }
+  const docInicio = p.datosDocumentos?.fechaInstalacionInicio || "";
+  let inicio = docInicio || vigente?.fechaEntregaInicio || vigente?.fechaEntregaFin || "";
+  let fin = fechaDoc || vigente?.fechaEntregaFin || vigente?.fechaEntregaInicio || "";
+  if (inicio && !fin) fin = inicio;
+  if (fin && !inicio) inicio = fin;
+  if (inicio && fin && inicio > fin) inicio = fin;
   if (!inicio && !fin) return false;
 
   const inicioActual = fechaComoISO(p.fechaEstimadaInicio);
