@@ -134,6 +134,14 @@ function activarFormatoRut(inputEl) {
 
 // ---------- Dirección estructurada (Región / Comuna / Calle / etc.) ----------
 
+/** Dirección corta para la tarjeta del lead: "CUEVAS 559, DEPTO 12" (calle, número y depto/oficina/casa). */
+function formatearDireccionCorta(d) {
+  if (!d) return '—';
+  const calleNumero = [d.calle, d.numero].map(x => String(x || '').trim()).filter(Boolean).join(' ');
+  const partes = [calleNumero, String(d.depto || '').trim()].filter(Boolean);
+  return partes.length ? partes.join(', ') : '—';
+}
+
 function poblarSelectRegion(prefijo) {
   const select = document.getElementById(prefijo + 'Region');
   if (!select) return;
@@ -635,6 +643,7 @@ function abrirDetalleLead(id) {
   document.getElementById('detalleVendedor').textContent = nombreVendedor(lead.vendedorAsignado);
   document.getElementById('detalleTelefono').textContent = lead.telefono || '—';
   document.getElementById('detalleEmail').textContent = lead.email || '—';
+  document.getElementById('detalleDireccion').textContent = formatearDireccionCorta(lead.direccion);
   document.getElementById('detalleFechaCreacion').textContent = formatearFechaHora(lead.creadoEn);
   document.getElementById('detalleFechaEtapa').textContent = formatearFechaHora(lead.etapaActualizadaEn || lead.creadoEn);
 
