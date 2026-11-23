@@ -49,10 +49,11 @@
   font-size: 15px;
   font-weight: 600;
   color: var(--gold);
+  text-transform: uppercase;
   padding: 6px 0;
   outline: none;
 }
-.nm-titulo::placeholder { color: rgba(211, 187, 140, 0.6); font-weight: 400; font-size: 13.5px; }
+.nm-titulo::placeholder { text-transform: none; color: rgba(211, 187, 140, 0.6); font-weight: 400; font-size: 13.5px; }
 .nm-titulo:focus { border-bottom-color: var(--gold); }
 .nm-nota-nota .nm-titulo { color: var(--ink); }
 .nm-nota-nota .nm-titulo::placeholder { color: rgba(20, 18, 19, 0.5); }

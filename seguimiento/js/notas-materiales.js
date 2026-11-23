@@ -28,6 +28,17 @@ function nuevoId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+/** Los títulos de las notas siempre van en MAYÚSCULAS. */
+function aTitulo(texto) {
+  return String(texto ?? '').toLocaleUpperCase('es-CL');
+}
+
+/** Los ítems llevan mayúscula al comienzo y el resto en minúscula. */
+function aFraseItem(texto) {
+  const t = String(texto ?? '');
+  return t.charAt(0).toLocaleUpperCase('es-CL') + t.slice(1).toLocaleLowerCase('es-CL');
+}
+
 function autoajustar(el) {
   el.style.height = 'auto';
   el.style.height = el.scrollHeight + 'px';
@@ -181,7 +192,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     const nota = buscarNota(notaEl);
     const limpio = (texto || '').trim();
     if (!nota || !limpio) return null;
-    const item = { id: nuevoId(), texto: limpio, hecho: false };
+    const item = { id: nuevoId(), texto: aFraseItem(limpio), hecho: false };
     if (nota.tipo === 'compra') item.cantidad = (cantidad || '').trim();
     if (despuesDe) {
       const pos = nota.items.findIndex(i => i.id === despuesDe);
@@ -256,6 +267,10 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     if (campo === 'titulo') {
       const nota = buscarNota(e.target);
       if (!nota) return;
+      // Siempre en mayúsculas, sin que el cursor salte de lugar
+      const pos = e.target.selectionStart;
+      e.target.value = aTitulo(e.target.value);
+      if (pos !== null) e.target.setSelectionRange(pos, pos);
       nota.titulo = e.target.value;
       tocarNota(nota);
       programarGuardado();
@@ -315,6 +330,7 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       if (e.key === 'Enter') {
         e.preventDefault();
         if (!item.texto.trim()) return;
+        item.texto = aFraseItem(item.texto.trim());
         const nuevo = { id: nuevoId(), texto: '', hecho: false };
         if (nota.tipo === 'compra') nuevo.cantidad = '';
         const pos = nota.items.findIndex(i => i.id === item.id);
@@ -346,6 +362,21 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
     }
   });
 
+  // Al salir de un ítem se ordena su texto: primera letra en mayúscula, el resto en minúscula
+  contenedor.addEventListener('focusout', (e) => {
+    if (e.target.dataset?.campo !== 'item') return;
+    const nota = buscarNota(e.target);
+    const item = buscarItem(nota, e.target);
+    if (!item) return;
+    const ordenado = aFraseItem(item.texto.trim());
+    if (ordenado === item.texto && e.target.value === ordenado) return;
+    item.texto = ordenado;
+    e.target.value = ordenado;
+    autoajustar(e.target);
+    tocarNota(nota);
+    programarGuardado();
+  });
+
   // Si cierran la pestaña o cambian de app con algo sin guardar, se guarda igual
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') guardarAhora();
@@ -372,9 +403,20 @@ export function crearNotasMateriales({ contenedor, guardar, avisar }) {
       listas.forEach(n => {
         if (n.tipo !== 'compra') n.tipo = /^\s*compras?\b/i.test(n.titulo || '') ? 'compra' : 'nota';
       });
+      // Notas ya existentes: se ajustan a las reglas (título en mayúsculas, ítems en frase)
+      let cambioFormato = false;
+      listas.forEach(n => {
+        const titulo = aTitulo(n.titulo);
+        if (titulo !== (n.titulo || '')) { n.titulo = titulo; cambioFormato = true; }
+        (n.items || []).forEach(i => {
+          const texto = aFraseItem(i.texto);
+          if (texto !== i.texto) { i.texto = texto; cambioFormato = true; }
+        });
+      });
       hayPendiente = false;
       contenedor.style.display = '';
       dibujar();
+      if (cambioFormato) programarGuardado();
     },
     /** Se llama al salir de la ficha, para no perder lo último que se escribió. */
     ocultar() {
