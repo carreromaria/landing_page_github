@@ -21,8 +21,8 @@ import {
   listarCatalogoDescripcion, crearOpcionCatalogoDescripcion,
   renombrarOpcionCatalogoDescripcion, cambiarEstadoOpcionCatalogoDescripcion,
   actualizarPlantillaDescripcion, actualizarSeleccionPlantillaDescripcion,
-  listarUsuariosStaff
-} from './firestore.js';
+  listarUsuariosStaff, sincronizarFechaInstalacionProyecto
+} from './firestore.js?v=20261123a';
 import { mejorarSelect } from './components/dropdown-linence.js';
 // El diseño de los documentos CT y DC vive en un solo archivo compartido
 // con el módulo Documentación (js/documentos-cotizacion.js).
@@ -648,6 +648,7 @@ btnMarcarAprobada.addEventListener('click', async () => {
   if (!vigenteActual) return;
   try {
     await marcarOpcionAprobada(leadId, vigenteActual.id, !vigenteActual.aprobada);
+    await sincronizarFechaConSeguimiento(); // la opción aprobada manda en las fechas
     mostrarToast(vigenteActual.aprobada ? 'Aprobación quitada.' : `Opción ${opcionActual} marcada como aprobada.`);
     await cargarCotizacionVigente();
   } catch (err) {
@@ -1660,6 +1661,20 @@ function validarCotizacion(items) {
   return null;
 }
 
+/**
+ * Si el lead ya es un proyecto (Ganado), deja su fecha estimada de instalación en
+ * Seguimiento igual al plazo de entrega de esta cotización. Un fallo aquí nunca
+ * debe impedir guardar la cotización.
+ */
+async function sincronizarFechaConSeguimiento() {
+  try {
+    const lead = await obtenerLead(leadId);
+    if (lead?.proyectoVinculado) await sincronizarFechaInstalacionProyecto(lead.proyectoVinculado);
+  } catch (err) {
+    console.error('No pudimos actualizar la fecha en Seguimiento:', err);
+  }
+}
+
 async function guardar({ comoNuevaVersion }) {
   const { proyecto, items, monto, descuento, neto, aplicaIva, ivaMonto, total, porcentaje, abono } = recalcularCotizacion();
 
@@ -1721,6 +1736,7 @@ async function guardar({ comoNuevaVersion }) {
       await actualizarCotizacion(vigenteActual.id, datos);
       mostrarToast('Cotización actualizada.');
     }
+    await sincronizarFechaConSeguimiento();
     await cargarCotizacionVigente();
     await cargarVersionesAnteriores();
   } catch (err) {

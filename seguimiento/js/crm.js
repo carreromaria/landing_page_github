@@ -14,8 +14,8 @@ import {
   actualizarProyecto, contarProyectosPorRut, listarServiciosActivos,
   obtenerCotizacionVigentePorLead, asignarCodigosLeadFaltantes, listarCotizacionesPorLead,
   listarOpcionesVigentesPorLead, elegirOpcionPrincipal, siguienteLetraOpcion,
-  escucharEventosAbiertos, fijarLead, guardarListasMaterialesLead
-} from './firestore.js?v=20261122a';
+  escucharEventosAbiertos, fijarLead, guardarListasMaterialesLead, fechaISOaDateLocal
+} from './firestore.js?v=20261123a';
 import { generarToken } from './utils.js';
 import { activarNombreFijo } from './nombre-fijo.js?v=1';
 import { REGIONES_COMUNAS, comunasDeRegion } from './regiones-comunas.js';
@@ -1196,8 +1196,9 @@ async function armarProyectoDesdeLead(lead) {
     cantidadProyectosCliente: 1,
     responsable: nombreResponsableDesdeLead(lead),
     direccion: lead.direccion || { region: '', comuna: '', calle: '', numero: '', depto: '', sector: '', indicaciones: '' },
-    fechaEstimadaInicio: null,
-    fechaEstimadaFin: null,
+    // La fecha estimada sale del plazo de entrega de la cotización vigente
+    fechaEstimadaInicio: fechaISOaDateLocal(cotizacionVigente?.fechaEntregaInicio || cotizacionVigente?.fechaEntregaFin),
+    fechaEstimadaFin: fechaISOaDateLocal(cotizacionVigente?.fechaEntregaFin || cotizacionVigente?.fechaEntregaInicio),
     canalOrigen: lead.canalOrigen || '',
     codigoCotizacion: cotizacionVigente?.numero || '',
     observaciones: 'CREADO AUTOMÁTICAMENTE DESDE CRM.',

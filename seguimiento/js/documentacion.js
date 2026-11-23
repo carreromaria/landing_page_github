@@ -13,8 +13,8 @@
 import { observarSesionStaff, cerrarSesion } from './auth.js';
 import {
   buscarProyectosPorRut, obtenerProyecto, actualizarProyecto, obtenerCotizacionVigentePorLead, obtenerLead,
-  listarCatalogoDescripcionActivo, listarUsuariosStaff
-} from './firestore.js';
+  listarCatalogoDescripcionActivo, listarUsuariosStaff, sincronizarFechaInstalacionProyecto
+} from './firestore.js?v=20261123a';
 import { mejorarSelect } from './components/dropdown-linence.js';
 import { ETAPAS } from './etapas.js';
 // Diseño de los documentos oficiales (CT, DC, encabezado y pie) e impresión:
@@ -224,6 +224,8 @@ async function buscarYMostrarProyectoPorRut(rutLimpio) {
 async function mostrarProyecto(proyecto) {
   PROYECTO_ACTUAL = proyecto;
   mostrarResultadoCliente(proyecto);
+  // Al abrir el proyecto, Seguimiento queda con la misma fecha (cubre proyectos que nacieron sin ella)
+  sincronizarFechaInstalacionProyecto(proyecto.codigo).catch(err => console.error('No pudimos actualizar la fecha en Seguimiento:', err));
   const p = await prepararProyectoConCotizacion(proyecto);
   mostrarAvisoCotizacion(p);
   poblarFormDatos(p.datosEfectivos);
@@ -600,6 +602,8 @@ document.getElementById('formDatosDoc').addEventListener('submit', async (e) => 
     });
     await actualizarProyecto(PROYECTO_ACTUAL.codigo, { datosDocumentos });
     PROYECTO_ACTUAL.datosDocumentos = datosDocumentos;
+    // La fecha de instalación también debe verse en Seguimiento y en la vista del cliente
+    await sincronizarFechaInstalacionProyecto(PROYECTO_ACTUAL.codigo).catch(err => console.error('No pudimos actualizar la fecha en Seguimiento:', err));
     mostrarToast('Datos guardados. Ya puedes abrir los documentos.');
     fijarPanelDatos(false);
   } catch (err) {

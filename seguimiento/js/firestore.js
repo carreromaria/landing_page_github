@@ -241,6 +241,65 @@ export async function actualizarProyecto(codigo, datos) {
 }
 
 /**
+ * Convierte "2026-12-24" en una fecha que se ve como el 24 de diciembre tanto
+ * en Chile como al volver a leerla con toISOString() (15:00 UTC = mediodía en Chile).
+ * Devuelve null si no hay fecha válida.
+ */
+export function fechaISOaDateLocal(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+  if (!m) return null;
+  return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 15));
+}
+
+function fechaComoISO(valor) {
+  if (!valor) return '';
+  const d = valor.toDate ? valor.toDate() : new Date(valor);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+/**
+ * Deja la "Fecha estimada de instalación" de Seguimiento (y de la vista del
+ * cliente) igual a la que se definió en Cotización y Documentación.
+ *
+ * Orden de prioridad:
+ *   1) Fecha de instalación guardada en Documentación (datosDocumentos.fechaInstalacion):
+ *      es el día exacto, queda como fecha única.
+ *   2) Plazo de entrega de la cotización vigente del lead: rango "desde – hasta".
+ *
+ * Solo escribe si el valor cambió. Devuelve true si actualizó el proyecto.
+ */
+export async function sincronizarFechaInstalacionProyecto(codigo) {
+  if (!codigo) return false;
+  const snap = await getDoc(doc(db, "proyectos", codigo));
+  if (!snap.exists()) return false;
+  const p = snap.data();
+  if (!p.leadOrigenId) return false;
+
+  const vigente = await obtenerCotizacionVigentePorLead(p.leadOrigenId);
+  const fechaDoc = p.datosDocumentos?.fechaInstalacion || "";
+
+  let inicio = "";
+  let fin = "";
+  if (fechaDoc) {
+    inicio = fin = fechaDoc;
+  } else if (vigente) {
+    inicio = vigente.fechaEntregaInicio || vigente.fechaEntregaFin || "";
+    fin = vigente.fechaEntregaFin || inicio;
+  }
+  if (!inicio && !fin) return false;
+
+  const inicioActual = fechaComoISO(p.fechaEstimadaInicio);
+  const finActual = fechaComoISO(p.fechaEstimadaFin);
+  if (inicioActual === inicio && finActual === fin) return false;
+
+  await actualizarProyecto(codigo, {
+    fechaEstimadaInicio: fechaISOaDateLocal(inicio),
+    fechaEstimadaFin: fechaISOaDateLocal(fin)
+  });
+  return true;
+}
+
+/**
  * Elimina un proyecto por completo: su historial, y el documento
  * principal. Requiere rol admin (ver firestore.rules). Las fotos en
  * Storage se eliminan aparte, desde dashboard.js, usando storage.js.
